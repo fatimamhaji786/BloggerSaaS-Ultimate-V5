@@ -25,14 +25,15 @@ BloggerSaaS Ultimate V5 Enterprise is a professional Blogger-based SaaS platform
 - Documentation Center
 - Dark Mode
 - Responsive Design
- - Technology Stack
-HTML5
-CSS3
-JavaScript ES6+
-Firebase
-Blogger Platform
-GitHub
-- ## Repository Status 
+  
+ ## Technology Stack
+- HTML5
+- CSS3
+- JavaScript ES6+
+- Firebase
+- Blogger Platform
+- GitHub
+- Repository Status 
 
 🚧 Currently under active development.
 
