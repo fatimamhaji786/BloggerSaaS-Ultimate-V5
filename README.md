@@ -1,8 +1,13 @@
-BloggerSaaS Ultimate V5 Enterprise 
-
+# BloggerSaaS Ultimate V5 Enterprise 
 Professional Enterprise Dashboard built with:
 
-Blogger Firebase JavaScript HTML5 CSS3 Progressive Web App (PWA) Vision 
+- Blogger
+- Firebase
+- JavaScript
+- HTML5
+- CSS3
+- Progressive Web App (PWA)
+- CSS3 Progressive Web App (PWA) Vision 
 
 BloggerSaaS Ultimate V5 Enterprise is a professional Blogger-based SaaS platform designed to provide an enterprise-grade administration dashboard while remaining lightweight, secure, and completely browser-based.
 
