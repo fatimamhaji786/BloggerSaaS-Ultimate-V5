@@ -33,7 +33,8 @@ BloggerSaaS Ultimate V5 Enterprise is a professional Blogger-based SaaS platform
 - Firebase
 - Blogger Platform
 - GitHub
-- Repository Status 
+
+## Repository Status 
 
 🚧 Currently under active development.
 
