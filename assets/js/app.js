@@ -5,27 +5,36 @@ Global Application Script
 ===========================================
 */
 
-const App = {
+document.addEventListener("DOMContentLoaded", () => {
 
-    version: "5.0 Enterprise",
+    console.log("BloggerSaaS Ultimate V5 Loaded");
 
-    init() {
-        console.log("BloggerSaaS Ultimate V5 Enterprise Loaded");
-        console.log("Version:", this.version);
-
-        this.showCurrentYear();
-    },
-
-    showCurrentYear() {
-        const year = document.getElementById("currentYear");
-
-        if (year) {
-            year.textContent = new Date().getFullYear();
-        }
+    // Current Year
+    const year = document.getElementById("year");
+    if (year) {
+        year.textContent = new Date().getFullYear();
     }
 
-};
+    // Dark Mode Toggle
+    const darkToggle = document.getElementById("darkToggle");
 
-document.addEventListener("DOMContentLoaded", () => {
-    App.init();
+    if (darkToggle) {
+
+        darkToggle.addEventListener("click", () => {
+
+            document.body.classList.toggle("dark-mode");
+
+            const enabled =
+                document.body.classList.contains("dark-mode");
+
+            localStorage.setItem("darkMode", enabled);
+
+        });
+
+        if (localStorage.getItem("darkMode") === "true") {
+            document.body.classList.add("dark-mode");
+        }
+
+    }
+
 });
