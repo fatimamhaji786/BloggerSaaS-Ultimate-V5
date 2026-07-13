@@ -1,16 +1,91 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BloggerSaaS Enterprise Dashboard</title>
+
+<title>Enterprise Dashboard</title>
+
+<link rel="stylesheet" href="../assets/css/dashboard.css">
+
 </head>
 
 <body>
 
+<div class="dashboard">
+
+<!-- Sidebar -->
+
+<aside class="sidebar">
+
+<h2>BloggerSaaS V5</h2>
+
+<ul>
+
+<li>🏠 Dashboard</li>
+
+<li>🛠 Tool Manager</li>
+
+<li>👥 User Manager</li>
+
+<li>🤖 AI Center</li>
+
+<li>🔥 Firebase Center</li>
+
+<li>📈 Analytics</li>
+
+<li>⚙ Settings</li>
+
+<li>🚪 Logout</li>
+
+</ul>
+
+</aside>
+
+<!-- Main Content -->
+
+<main class="content">
+
+<header class="topbar">
+
 <h1>Enterprise Dashboard</h1>
 
-<p>Dashboard is under development.</p>
+<p>Welcome, Administrator</p>
+
+</header>
+
+<section class="cards">
+
+<div class="card">
+<h3>Total Tools</h3>
+<p id="toolCount">0</p>
+</div>
+
+<div class="card">
+<h3>Total Users</h3>
+<p id="userCount">0</p>
+</div>
+
+<div class="card">
+<h3>AI Requests</h3>
+<p id="aiCount">0</p>
+</div>
+
+<div class="card">
+<h3>System Status</h3>
+<p style="color:green;">● Online</p>
+</div>
+
+</section>
+
+</main>
+
+</div>
+
+<script src="../assets/js/dashboard.js"></script>
 
 </body>
-</html>
+
+  </html>
