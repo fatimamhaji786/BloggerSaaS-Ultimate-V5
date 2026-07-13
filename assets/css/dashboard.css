@@ -93,3 +93,36 @@ body{
     font-size:13px;
 }
 
+/* Dashboard V5 - Part 5 */
+
+.quick-actions{
+    margin-top:40px;
+}
+
+.quick-actions h2{
+    margin-bottom:20px;
+    color:#38bdf8;
+}
+
+.action-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    gap:15px;
+}
+
+.action-grid button{
+    background:#2563eb;
+    color:white;
+    border:none;
+    border-radius:10px;
+    padding:18px;
+    font-size:16px;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+.action-grid button:hover{
+    background:#1d4ed8;
+    transform:translateY(-3px);
+}
+
