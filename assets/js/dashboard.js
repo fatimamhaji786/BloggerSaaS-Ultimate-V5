@@ -16,6 +16,10 @@ function loadDashboard(){
 
     console.log("Loading Enterprise Dashboard...");
 
+    document.getElementById("toolCount").textContent = "0";
+    document.getElementById("userCount").textContent = "0";
+    document.getElementById("aiCount").textContent = "0";
+
 }
 
 function logout(){
