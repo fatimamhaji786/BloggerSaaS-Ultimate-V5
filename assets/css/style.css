@@ -1,0 +1,25 @@
+/* BloggerSaaS Ultimate V5 Enterprise */
+/* Global Styles */
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+}
+
+body{
+font-family:Arial,sans-serif;
+background:#f5f7fb;
+color:#222;
+}
+
+a{
+text-decoration:none;
+color:inherit;
+}
+
+.container{
+width:90%;
+max-width:1400px;
+margin:auto;
+}
