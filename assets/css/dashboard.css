@@ -61,3 +61,35 @@ body{
     font-weight:bold;
     color:#38bdf8;
 }
+
+/* Dashboard V5 - Part 4 */
+
+.recent-activity{
+    margin-top:40px;
+}
+
+.activity-box{
+    background:#1e293b;
+    border-radius:12px;
+    padding:20px;
+}
+
+.activity-box h2{
+    margin-top:0;
+    color:#38bdf8;
+}
+
+.activity-item{
+    padding:12px 0;
+    border-bottom:1px solid #334155;
+}
+
+.activity-item:last-child{
+    border-bottom:none;
+}
+
+.activity-time{
+    color:#94a3b8;
+    font-size:13px;
+}
+
