@@ -1,0 +1,22 @@
+{
+  "name": "BloggerSaaS Ultimate V5 Enterprise",
+  "short_name": "BloggerSaaS V5",
+  "description": "Professional Enterprise Blogger Dashboard powered by Firebase and Cloudflare.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#2563eb",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "assets/images/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/images/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
