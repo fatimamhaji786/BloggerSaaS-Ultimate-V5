@@ -123,3 +123,18 @@ modal.style.display="none";
 };
 
 }
+
+// ===========================================
+// Tool Manager V5 - Live Counter
+// ===========================================
+
+function updateToolCounter(){
+
+const total =
+document.querySelectorAll(".tool-card").length;
+
+document.getElementById("totalTools").innerHTML = total;
+
+}
+
+updateToolCounter();
