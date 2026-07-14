@@ -195,7 +195,15 @@ card.style.display = "block";
 
 }else{
 
-card.style.display 
+card.style.display = "none";
+
+}
+
+});
+
+});
+
+}
 
 // ===========================================
 // Tool Manager V5 - Edit Button
