@@ -174,3 +174,20 @@ card.style.display = "none";
 });
 
 }
+
+// ===========================================
+// Tool Manager V5 - Edit Button
+// ===========================================
+
+const editButtons =
+document.querySelectorAll(".edit-btn");
+
+editButtons.forEach(button=>{
+
+button.addEventListener("click",function(){
+
+modal.style.display="block";
+
+});
+
+});
