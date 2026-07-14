@@ -189,3 +189,23 @@ modal.style.display="block";
 });
 
 });
+
+// ===========================================
+// Tool Manager V5 - Delete Button
+// ===========================================
+
+document.addEventListener("click", function(e){
+
+if(e.target.classList.contains("delete-btn")){
+
+if(confirm("Delete this tool?")){
+
+e.target.closest(".tool-card").remove();
+
+updateToolCounter();
+
+}
+
+}
+
+});
