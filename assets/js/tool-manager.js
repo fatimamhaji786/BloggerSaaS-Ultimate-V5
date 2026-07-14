@@ -94,13 +94,11 @@ Category: ${category}
 ${description}
 </p>
 
-<button>✏️ Edit</button>
+<button class="edit-btn">✏️ Edit</button>
 
 <button class="delete">
 🗑️ Delete
 </button>
-
-`;
 
 toolGrid.appendChild(card);
 
