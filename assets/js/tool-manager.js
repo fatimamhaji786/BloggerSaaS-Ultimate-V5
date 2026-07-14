@@ -138,3 +138,39 @@ document.getElementById("totalTools").innerHTML = total;
 }
 
 updateToolCounter();
+
+// ===========================================
+// Tool Manager V5 - Search
+// ===========================================
+
+const searchTool = document.getElementById("searchTool");
+
+if(searchTool){
+
+searchTool.addEventListener("keyup", function(){
+
+const value = this.value.toLowerCase();
+
+const cards =
+document.querySelectorAll(".tool-card");
+
+cards.forEach(card=>{
+
+const text =
+card.innerText.toLowerCase();
+
+if(text.includes(value)){
+
+card.style.display = "block";
+
+}else{
+
+card.style.display = "none";
+
+}
+
+});
+
+});
+
+}
