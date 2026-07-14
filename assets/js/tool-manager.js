@@ -104,6 +104,8 @@ ${description}
 
 toolGrid.appendChild(card);
 
+  updateToolCounter();
+
 // Clear form
 
 document.getElementById("toolName").value="";
