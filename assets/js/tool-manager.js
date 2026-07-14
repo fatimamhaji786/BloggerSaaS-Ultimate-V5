@@ -83,6 +83,32 @@ return;
 const toolGrid =
 document.getElementById("toolGrid");
 
+// If editing an existing tool
+if(currentEditingCard){
+
+currentEditingCard.querySelector("h3").innerText = name;
+
+currentEditingCard.querySelector("p").innerText =
+"Category: " + category;
+
+currentEditingCard.querySelectorAll("p")[1].innerText =
+description;
+
+currentEditingCard = null;
+
+updateToolCounter();
+
+modal.style.display = "none";
+
+document.getElementById("toolName").value = "";
+document.getElementById("toolCategory").value = "";
+document.getElementById("toolURL").value = "";
+document.getElementById("toolDescription").value = "";
+
+return;
+
+}
+
 const card =
 document.createElement("div");
 
@@ -169,19 +195,7 @@ card.style.display = "block";
 
 }else{
 
-card.style.display = "none";
-
-}
-
-});
-
-});
-
-}
-
-// ===========================================
-// Tool Manager V5 - Edit Button
-// ===========================================
+card.style.display 
 
 // ===========================================
 // Tool Manager V5 - Edit Button
