@@ -96,7 +96,7 @@ ${description}
 
 <button class="edit-btn">✏️ Edit</button>
 
-<button class="delete">🗑️ Delete</button>
+<button class="delete-btn delete">🗑️ Delete</button>
 
 `;
 
