@@ -1,0 +1,50 @@
+.topbar{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:30px;
+}
+
+.topbar button{
+background:#2563eb;
+color:white;
+border:none;
+padding:12px 20px;
+border-radius:10px;
+cursor:pointer;
+}
+
+.tool-grid{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+gap:20px;
+}
+
+.tool-card{
+background:#1e293b;
+padding:20px;
+border-radius:15px;
+}
+
+.tool-card h3{
+margin:0 0 10px;
+color:#38bdf8;
+}
+
+.tool-card p{
+color:#cbd5e1;
+margin-bottom:20px;
+}
+
+.tool-card button{
+margin-right:10px;
+padding:10px 18px;
+border:none;
+border-radius:8px;
+cursor:pointer;
+}
+
+.tool-card .delete{
+background:#dc2626;
+color:white;
+}
