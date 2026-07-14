@@ -183,16 +183,30 @@ card.style.display = "none";
 // Tool Manager V5 - Edit Button
 // ===========================================
 
-const editButtons =
-document.querySelectorAll(".edit-btn");
+// ===========================================
+// Tool Manager V5 - Edit Button
+// ===========================================
 
-editButtons.forEach(button=>{
+document.addEventListener("click", function(e){
 
-button.addEventListener("click",function(){
+if(e.target.classList.contains("edit-btn")){
 
-modal.style.display="block";
+currentEditingCard =
+e.target.closest(".tool-card");
 
-});
+document.getElementById("toolName").value =
+currentEditingCard.querySelector("h3").innerText;
+
+document.getElementById("toolCategory").value =
+currentEditingCard.querySelector("p")
+.innerText.replace("Category: ","");
+
+document.getElementById("toolDescription").value =
+currentEditingCard.querySelectorAll("p")[1].innerText;
+
+modal.style.display = "block";
+
+}
 
 });
 
