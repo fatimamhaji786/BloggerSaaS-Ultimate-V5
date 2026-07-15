@@ -252,9 +252,11 @@ if(e.target.classList.contains("delete-btn")){
 
 if(confirm("Delete this tool?")){
 
-e.target.closest(".tool-card").remove();
+const card = e.target.closest(".tool-card");
 
-updateToolCounter();
+const key = card.dataset.key;
+
+database.ref("tools/" + key).remove();
 
 }
 
