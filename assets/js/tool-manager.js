@@ -205,35 +205,7 @@ modal.style.display = "block";
 
 });
 
-// ===========================================
-// Tool Manager V5 - Edit Button
-// ===========================================
 
-document.addEventListener("click", function(e){
-
-if(e.target.classList.contains("edit-btn")){
-
-currentEditingCard =
-e.target.closest(".tool-card");
-
-currentEditingKey =
-currentEditingCard.dataset.key;
-
-document.getElementById("toolName").value =
-currentEditingCard.querySelector("h3").innerText;
-
-document.getElementById("toolCategory").value =
-currentEditingCard.querySelector("p")
-.innerText.replace("Category: ","");
-
-document.getElementById("toolDescription").value =
-currentEditingCard.querySelectorAll("p")[1].innerText;
-
-modal.style.display = "block";
-
-}
-
-});
 
 // ===========================================
 // Tool Manager V5 - Delete Button
