@@ -156,6 +156,13 @@ toolGrid.appendChild(card);
 
   updateToolCounter();
 
+  database.ref("tools").push({
+  name: name,
+  category: category,
+  url: url,
+  description: description
+});
+
 // Clear form
 
 document.getElementById("toolName").value="";
