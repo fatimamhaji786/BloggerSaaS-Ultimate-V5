@@ -298,10 +298,16 @@ snapshot.forEach(function(child){
 
 const tool = child.val();
 
+const key = child.key;
+
+const card = document.createElement("div");
+
 const card = document.createElement("div");
 
 card.className = "tool-card";
 
+card.dataset.key = key;
+  
 card.innerHTML = `
 <h3>${tool.name}</h3>
 
