@@ -102,9 +102,6 @@ return;
 
 }
 
-const toolGrid =
-document.getElementById("toolGrid");
-
   // If editing an existing tool
 if(currentEditingKey){
 
@@ -130,9 +127,6 @@ document.getElementById("toolDescription").value = "";
 return;
 
   }
-
-const card =
-document.createElement("div");
 
   updateToolCounter();
 
