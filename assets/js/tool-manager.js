@@ -135,7 +135,7 @@ clearForm();
 currentEditingKey = null;
 currentEditingCard = null;
 
-// Close popup
+clearForm();
 
 modal.style.display="none";
 
