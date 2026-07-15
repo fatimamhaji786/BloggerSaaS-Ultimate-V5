@@ -274,7 +274,7 @@ if(e.target.classList.contains("delete-btn")){
 
 if(confirm("Delete this tool?")){
 
-e..closest(".tool-card").remove();
+e.target.closest(".tool-card").remove();
 
 updateToolCounter();
 
