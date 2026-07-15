@@ -256,6 +256,8 @@ card.innerHTML = `
 
 <p>Category: ${tool.category}</p>
 
+<p>URL: ${tool.url || ""}</p>
+
 <p>${tool.description}</p>
 
 <button class="edit-btn">✏️ Edit</button>
