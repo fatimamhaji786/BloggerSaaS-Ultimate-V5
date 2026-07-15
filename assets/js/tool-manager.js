@@ -134,28 +134,6 @@ return;
 const card =
 document.createElement("div");
 
-card.className = "tool-card";
-
-card.innerHTML = `
-
-<h3>${name}</h3>
-
-<p>
-Category: ${category}
-</p>
-
-<p>
-${description}
-</p>
-
-<button class="edit-btn">✏️ Edit</button>
-
-<button class="delete-btn delete">🗑️ Delete</button>
-
-`;
-
-toolGrid.appendChild(card);
-
   updateToolCounter();
 
   database.ref("tools").push({
