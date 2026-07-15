@@ -135,6 +135,9 @@ return;
   description: description
 });
 
+currentEditingKey = null;
+currentEditingCard = null;
+
 // Clear form
 
 document.getElementById("toolName").value="";
