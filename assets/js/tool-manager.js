@@ -171,40 +171,39 @@ document.getElementById("totalTools").innerHTML = total;
 updateToolCounter();
 
 // ===========================================
-// Tool Manager V5 - Search
+// ===========================================
+// Tool Manager V6 - Edit Button
 // ===========================================
 
-const searchTool = document.getElementById("searchTool");
+document.addEventListener("click", function(e){
 
-if(searchTool){
+if(e.target.classList.contains("edit-btn")){
 
-searchTool.addEventListener("keyup", function(){
+const card = e.target.closest(".tool-card");
 
-const value = this.value.toLowerCase();
+currentEditingCard = card;
+currentEditingKey = card.dataset.key;
 
-const cards =
-document.querySelectorAll(".tool-card");
+// Read data directly from Firebase
+database.ref("tools/" + currentEditingKey).once("value", function(snapshot){
 
-cards.forEach(card=>{
+const tool = snapshot.val();
 
-const text =
-card.innerText.toLowerCase();
+document.getElementById("toolName").value = tool.name || "";
 
-if(text.includes(value)){
+document.getElementById("toolCategory").value = tool.category || "";
 
-card.style.display = "block";
+document.getElementById("toolURL").value = tool.url || "";
 
-}else{
+document.getElementById("toolDescription").value = tool.description || "";
 
-card.style.display = "none";
-
-}
-
-});
+modal.style.display = "block";
 
 });
 
 }
+
+});
 
 // ===========================================
 // Tool Manager V5 - Edit Button
