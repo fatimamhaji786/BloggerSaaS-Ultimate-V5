@@ -136,6 +136,8 @@ document.createElement("div");
 
 card.className = "tool-card";
 
+card.dataset.key = key;
+
 card.innerHTML = `
 
 <h3>${name}</h3>
