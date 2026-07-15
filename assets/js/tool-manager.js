@@ -157,6 +157,19 @@ modal.style.display="none";
 }
 
 // ===========================================
+// Clear Form
+// ===========================================
+
+function clearForm(){
+
+document.getElementById("toolName").value = "";
+document.getElementById("toolCategory").value = "";
+document.getElementById("toolURL").value = "";
+document.getElementById("toolDescription").value = "";
+
+  }
+
+// ===========================================
 // Tool Manager V5 - Live Counter
 // ===========================================
 
