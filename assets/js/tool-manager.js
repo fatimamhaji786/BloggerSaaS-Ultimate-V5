@@ -119,12 +119,9 @@ currentEditingCard = null;
   
 modal.style.display = "none";
 
-document.getElementById("toolName").value = "";
-document.getElementById("toolCategory").value = "";
-document.getElementById("toolURL").value = "";
-document.getElementById("toolDescription").value = "";
-
-return;
+clearForm();
+  
+  return;
 
 }
 
