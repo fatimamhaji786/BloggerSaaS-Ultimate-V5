@@ -135,16 +135,6 @@ clearForm();
 currentEditingKey = null;
 currentEditingCard = null;
 
-// Clear form
-
-document.getElementById("toolName").value="";
-
-document.getElementById("toolCategory").value="";
-
-document.getElementById("toolURL").value="";
-
-document.getElementById("toolDescription").value="";
-
 // Close popup
 
 modal.style.display="none";
