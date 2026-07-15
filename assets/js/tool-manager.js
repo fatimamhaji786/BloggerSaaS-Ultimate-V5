@@ -278,3 +278,41 @@ updateToolCounter();
 }
 
 });
+
+// ===========================================
+// Load Tools from Firebase
+// ===========================================
+
+database.ref("tools").on("value", function(snapshot){
+
+const toolGrid = document.getElementById("toolGrid");
+
+toolGrid.innerHTML = "";
+
+snapshot.forEach(function(child){
+
+const tool = child.val();
+
+const card = document.createElement("div");
+
+card.className = "tool-card";
+
+card.innerHTML = `
+<h3>${tool.name}</h3>
+
+<p>Category: ${tool.category}</p>
+
+<p>${tool.description}</p>
+
+<button class="edit-btn">✏️ Edit</button>
+
+<button class="delete-btn delete">🗑️ Delete</button>
+`;
+
+toolGrid.appendChild(card);
+
+});
+
+updateToolCounter();
+
+});
