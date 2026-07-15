@@ -116,10 +116,10 @@ description: description
 
 currentEditingKey = null;
 currentEditingCard = null;
-  
-modal.style.display = "none";
 
 clearForm();
+  
+modal.style.display = "none";
   
   return;
 
