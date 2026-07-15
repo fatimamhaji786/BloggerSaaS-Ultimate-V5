@@ -302,8 +302,6 @@ const key = child.key;
 
 const card = document.createElement("div");
 
-const card = document.createElement("div");
-
 card.className = "tool-card";
 
 card.dataset.key = key;
