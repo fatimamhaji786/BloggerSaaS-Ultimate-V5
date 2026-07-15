@@ -116,8 +116,7 @@ description: description
 
 currentEditingKey = null;
 currentEditingCard = null;
-modal.style.display = "none";
-
+  
 modal.style.display = "none";
 
 document.getElementById("toolName").value = "";
