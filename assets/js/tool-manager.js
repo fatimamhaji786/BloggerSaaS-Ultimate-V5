@@ -126,7 +126,7 @@ document.getElementById("toolDescription").value = "";
 
 return;
 
-  }
+}
 
   updateToolCounter();
 
