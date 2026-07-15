@@ -105,20 +105,20 @@ return;
 const toolGrid =
 document.getElementById("toolGrid");
 
-// If editing an existing tool
-if(currentEditingCard){
+  // If editing an existing tool
+if(currentEditingKey){
 
-currentEditingCard.querySelector("h3").innerText = name;
+database.ref("tools/" + currentEditingKey).update({
 
-currentEditingCard.querySelector("p").innerText =
-"Category: " + category;
+name: name,
+category: category,
+url: url,
+description: description
 
-currentEditingCard.querySelectorAll("p")[1].innerText =
-description;
+});
 
+currentEditingKey = null;
 currentEditingCard = null;
-
-updateToolCounter();
 
 modal.style.display = "none";
 
@@ -129,7 +129,7 @@ document.getElementById("toolDescription").value = "";
 
 return;
 
-}
+  }
 
 const card =
 document.createElement("div");
