@@ -245,6 +245,9 @@ if(e.target.classList.contains("edit-btn")){
 currentEditingCard =
 e.target.closest(".tool-card");
 
+currentEditingKey =
+currentEditingCard.dataset.key;
+
 document.getElementById("toolName").value =
 currentEditingCard.querySelector("h3").innerText;
 
