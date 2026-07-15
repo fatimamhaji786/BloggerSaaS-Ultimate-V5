@@ -30,6 +30,8 @@ console.log("Tool Manager Loaded");
 
 let currentEditingCard = null;
 
+let currentEditingKey = null;
+
 // ===========================================
 // Tool Manager V5 - Popup
 // ===========================================
