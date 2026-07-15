@@ -1,6 +1,6 @@
 // ===========================================
 // Firebase Configuration
-// ===========================================
+// ==========================================
 
 const firebaseConfig = {
   apiKey: "AIzaSyBJLJTKsM3wjYZFx9je2tAtxs4zPQu_7e8",
