@@ -128,8 +128,6 @@ return;
 
 }
 
-  updateToolCounter();
-
   database.ref("tools").push({
   name: name,
   category: category,
