@@ -2,617 +2,1299 @@
 // BloggerSaaS Ultimate V2
 // Tool Manager
 // Version 2.0
-// ==========================================
+// ========================================== 
 
 // ==========================================
 // Firebase Configuration
-// ==========================================
+// ========================================== 
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBJLJTKsM3wjYZFx9je2tAtxs4zPQu_7e8",
-  authDomain: "bloggersaas-v1.firebaseapp.com",
-  databaseURL: "https://bloggersaas-v1-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "bloggersaas-v1",
-  storageBucket: "bloggersaas-v1.firebasestorage.app",
-  messagingSenderId: "187643103324",
-  appId: "1:187643103324:web:e5070919496c09a277be99"
-};
+  apiKey: "AIzaSyBJLJTKsM3wjYZFx9je2tAtxs4zPQu_7e8",
+  authDomain: "bloggersaas-v1.firebaseapp.com",
+  databaseURL: "https://bloggersaas-v1-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "bloggersaas-v1",
+  storageBucket: "bloggersaas-v1.firebasestorage.app",
+  messagingSenderId: "187643103324",
+  appId: "1:187643103324:web:e5070919496c09a277be99"
+}; 
 
 // ==========================================
 // Initialize Firebase
-// ==========================================
+// ========================================== 
 
 if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
+    firebase.initializeApp(firebaseConfig);
+} 
 
-const database = firebase.database();
+const database = firebase.database(); 
 
 // ==========================================
 // Global Variables
-// ==========================================
+// ========================================== 
 
 let currentEditingKey = null;
-let currentEditingCard = null;
+let currentEditingCard = null; 
 
 const modal = document.getElementById("toolModal");
-const toolGrid = document.getElementById("toolGrid");
+const toolGrid = document.getElementById("toolGrid"); 
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", () => { 
 
-    console.log("✅ Tool Manager V2 Loaded");
+    console.log("✅ Tool Manager V2 Loaded"); 
 
-    updateToolCounter();
+    updateToolCounter(); 
 
-    updateCategoryCounter();
+    updateCategoryCounter(); 
 
-    updateActiveCounter();
+    updateActiveCounter(); 
 
-});
+}); 
 
 // ==========================================
 // Popup Manager
-// ==========================================
+// ========================================== 
 
-const modal = document.getElementById("toolModal");
+const modal = document.getElementById("toolModal"); 
 
-const addToolBtn = document.getElementById("addToolBtn");
+const addToolBtn = document.getElementById("addToolBtn"); 
 
-const closeBtn = document.querySelector(".close");
+const closeBtn = document.querySelector(".close"); 
 
 // ==========================================
 // Open Popup
-// ==========================================
+// ========================================== 
 
-function openModal(){
+function openModal(){ 
 
-    modal.style.display = "block";
+    modal.style.display = "block"; 
 
-}
+} 
 
 // ==========================================
 // Close Popup
-// ==========================================
+// ========================================== 
 
-function closeModal(){
+function closeModal(){ 
 
-    modal.style.display = "none";
+    modal.style.display = "none"; 
 
-    clearForm();
+    clearForm(); 
 
-    resetEditMode();
+    resetEditMode(); 
 
-}
+} 
 
 // ==========================================
 // Button Events
-// ==========================================
+// ========================================== 
 
-if(addToolBtn){
+if(addToolBtn){ 
 
-    addToolBtn.addEventListener("click",function(){
+    addToolBtn.addEventListener("click",function(){ 
 
-        openModal();
+        openModal(); 
 
-    });
+    }); 
 
-}
+} 
 
-if(closeBtn){
+if(closeBtn){ 
 
-    closeBtn.addEventListener("click",function(){
+    closeBtn.addEventListener("click",function(){ 
 
-        closeModal();
+        closeModal(); 
 
-    });
+    }); 
 
-}
+} 
 
-// Click outside popup
+// Click outside popup 
 
-window.addEventListener("click",function(e){
+window.addEventListener("click",function(e){ 
 
-    if(e.target===modal){
+    if(e.target===modal){ 
 
-        closeModal();
+        closeModal(); 
 
-    }
+    } 
 
-});
+}); 
 
 // ==========================================
 // Clear Form
-// ==========================================
+// ========================================== 
 
-function clearForm(){
+function clearForm(){ 
 
-    document.getElementById("toolName").value="";
+    document.getElementById("toolName").value=""; 
 
-    document.getElementById("toolCategory").value="";
+    document.getElementById("toolCategory").value=""; 
 
-    document.getElementById("toolURL").value="";
+    document.getElementById("toolURL").value=""; 
 
-    document.getElementById("toolDescription").value="";
+    document.getElementById("toolDescription").value=""; 
 
-}
+} 
 
 // ==========================================
 // Reset Edit Mode
-// ==========================================
+// ========================================== 
 
-function resetEditMode(){
+function resetEditMode(){ 
 
-    currentEditingKey=null;
+    currentEditingKey=null; 
 
-    currentEditingCard=null;
+    currentEditingCard=null; 
 
-  
+  
 // ==========================================
 // Save Tool
-// ==========================================
+// ========================================== 
 
-const saveToolBtn = document.getElementById("saveToolBtn");
+const saveToolBtn = document.getElementById("saveToolBtn"); 
 
-if (saveToolBtn) {
+if (saveToolBtn) { 
 
-    saveToolBtn.addEventListener("click", saveTool);
+    saveToolBtn.addEventListener("click", saveTool); 
 
-}
+} 
 
-function saveTool() {
+function saveTool() { 
 
-    const name = document.getElementById("toolName").value.trim();
+    const name = document.getElementById("toolName").value.trim(); 
 
-    const category = document.getElementById("toolCategory").value.trim();
+    const category = document.getElementById("toolCategory").value.trim(); 
 
-    const url = document.getElementById("toolURL").value.trim();
+    const url = document.getElementById("toolURL").value.trim(); 
 
-    const description = document.getElementById("toolDescription").value.trim();
+    const description = document.getElementById("toolDescription").value.trim(); 
 
-    // ==============================
-    // Validation
-    // ==============================
+    // ==============================
+    // Validation
+    // ============================== 
 
-    if (name === "") {
+    if (name === "") { 
 
-        alert("Please enter Tool Name.");
+        alert("Please enter Tool Name."); 
 
-        document.getElementById("toolName").focus();
+        document.getElementById("toolName").focus(); 
 
-        return;
+        return; 
 
-    }
+    } 
 
-    if (category === "") {
+    if (category === "") { 
 
-        alert("Please enter Tool Category.");
+        alert("Please enter Tool Category."); 
 
-        document.getElementById("toolCategory").focus();
+        document.getElementById("toolCategory").focus(); 
 
-        return;
+        return; 
 
-    }
+    } 
 
-    const toolData = {
+    const toolData = { 
 
-        name: name,
+        name: name, 
 
-        category: category,
+        category: category, 
 
-        url: url,
+        url: url, 
 
-        description: description,
+        description: description, 
 
-        updatedAt: Date.now()
+        updatedAt: Date.now() 
 
-    };
+    }; 
 
-    // ==============================
-    // Edit Existing Tool
-    // ==============================
+    // ==============================
+    // Edit Existing Tool
+    // ============================== 
 
-    if (currentEditingKey) {
+    if (currentEditingKey) { 
 
-        database.ref("tools/" + currentEditingKey).update(toolData)
+        database.ref("tools/" + currentEditingKey).update(toolData) 
 
-        .then(() => {
+        .then(() => { 
 
-            alert("✅ Tool updated successfully.");
+            alert("✅ Tool updated successfully."); 
 
-            closeModal();
+            closeModal(); 
 
-        })
+        }) 
 
-        .catch(error => {
+        .catch(error => { 
 
-            alert("Error: " + error.message);
+            alert("Error: " + error.message); 
 
-        });
+        }); 
 
-        return;
+        return; 
 
-    }
+    } 
 
-    // ==============================
-    // Add New Tool
-    // ==============================
+    // ==============================
+    // Add New Tool
+    // ============================== 
 
-    toolData.createdAt = Date.now();
+    toolData.createdAt = Date.now(); 
 
-toolData.updatedAt = Date.now();
+toolData.updatedAt = Date.now(); 
 
-toolData.active = true;
+toolData.active = true; 
 
-toolData.featured = false;
+toolData.featured = false; 
 
-    database.ref("tools").push(toolData)
+    database.ref("tools").push(toolData) 
 
-    .then(() => {
+    .then(() => { 
 
-        alert("✅ Tool added successfully.");
+        alert("✅ Tool added successfully."); 
 
-        closeModal();
+        closeModal(); 
 
-    })
+    }) 
 
-    .catch(error => {
+    .catch(error => { 
 
-        alert("Error: " + error.message);
+        alert("Error: " + error.message); 
 
-    });
+    }); 
 
-}
+} 
 
-  // ==========================================
+  // ==========================================
 // Load Tools from Firebase
-// ==========================================
+// ========================================== 
 
-database.ref("tools").on("value", function(snapshot){
+database.ref("tools").on("value", function(snapshot){ 
 
-    const toolGrid = document.getElementById("toolGrid");
+    const toolGrid = document.getElementById("toolGrid"); 
 
-    toolGrid.innerHTML = "";
+    toolGrid.innerHTML = ""; 
 
-    let totalTools = 0;
+    let totalTools = 0; 
 
-    let categories = new Set();
+    let categories = new Set(); 
 
-    let activeTools = 0;
+    let activeTools = 0; 
 
-    // No tools available
+    // No tools available 
 
-    if(!snapshot.exists()){
+    if(!snapshot.exists()){ 
 
-        toolGrid.innerHTML = `
+        toolGrid.innerHTML = ` 
 
-        <div class="empty-state">
+        <div class="empty-state"> 
 
-            <h2>No Tools Found</h2>
+            <h2>No Tools Found</h2> 
 
-            <p>Click "Add Tool" to create your first tool.</p>
+            <p>Click "Add Tool" to create your first tool.</p> 
 
-        </div>
+        </div> 
 
-        `;
+        `; 
 
-        document.getElementById("totalTools").innerText = "0";
+        document.getElementById("totalTools").innerText = "0"; 
 
-        document.getElementById("totalCategories").innerText = "0";
+        document.getElementById("totalCategories").innerText = "0"; 
 
-        document.getElementById("activeTools").innerText = "0";
+        document.getElementById("activeTools").innerText = "0"; 
 
-        return;
+        return; 
 
-    }
+    } 
 
-    snapshot.forEach(function(child){
+    snapshot.forEach(function(child){ 
 
-        const tool = child.val();
+        const tool = child.val(); 
 
-        const key = child.key;
+        const key = child.key; 
 
-        totalTools++;
+        totalTools++; 
 
-        activeTools++;
+        activeTools++; 
 
-        categories.add(tool.category);
+        categories.add(tool.category); 
 
-        const card = document.createElement("div");
+        const card = document.createElement("div"); 
 
-        card.className = "tool-card";
+        card.className = "tool-card"; 
 
-        card.dataset.key = key;
+        card.dataset.key = key; 
 
-        card.dataset.name = tool.name.toLowerCase();
+        card.dataset.name = tool.name.toLowerCase(); 
 
-        card.dataset.category = tool.category.toLowerCase();
+        card.dataset.category = tool.category.toLowerCase(); 
 
-        card.innerHTML = `
+        card.innerHTML = ` 
 
-            <h3>${tool.name}</h3>
+            <h3>${tool.name}</h3> 
 
-            <p><strong>Category:</strong> ${tool.category}</p>
+            <p><strong>Category:</strong> ${tool.category}</p> 
 
-            <p><strong>URL:</strong> ${tool.url || "-"}</p>
+            <p><strong>URL:</strong> ${tool.url || "-"}</p> 
 
-            <p>${tool.description || ""}</p>
+            <p>${tool.description || ""}</p> 
 
-            <div class="tool-actions">
+            <div class="tool-actions"> 
 
-                <button class="edit-btn">
+                <button class="edit-btn"> 
 
-                    ✏️ Edit
+                    ✏️ Edit 
 
-                </button>
+                </button> 
 
-                <button class="delete-btn delete">
+                <button class="delete-btn delete"> 
 
-                    🗑️ Delete
+                    🗑️ Delete 
 
-                </button>
+                </button> 
 
-            </div>
+            </div> 
 
-        `;
+        `; 
 
-        toolGrid.appendChild(card);
+        toolGrid.appendChild(card); 
 
-    });
+    }); 
 
-    document.getElementById("totalTools").innerText = totalTools;
+    document.getElementById("totalTools").innerText = totalTools; 
 
-    document.getElementById("totalCategories").innerText = categories.size;
+    document.getElementById("totalCategories").innerText = categories.size; 
 
-    document.getElementById("activeTools").innerText = activeTools;
+    document.getElementById("activeTools").innerText = activeTools; 
 
-});
+}); 
 
 // ==========================================
 // Live Search
-// ==========================================
+// ========================================== 
 
-const searchBox = document.getElementById("searchTool");
+const searchBox = document.getElementById("searchTool"); 
 
-if(searchBox){
+if(searchBox){ 
 
-    searchBox.addEventListener("keyup",function(){
+    searchBox.addEventListener("keyup",function(){ 
 
-        const keyword = this.value.toLowerCase();
+        const keyword = this.value.toLowerCase(); 
 
-        document.querySelectorAll(".tool-card").forEach(function(card){
+        document.querySelectorAll(".tool-card").forEach(function(card){ 
 
-            const name = card.dataset.name;
+            const name = card.dataset.name; 
 
-            const category = card.dataset.category;
+            const category = card.dataset.category; 
 
-            if(
+            if( 
 
-                name.includes(keyword) ||
+                name.includes(keyword) || 
 
-                category.includes(keyword)
+                category.includes(keyword) 
 
-            ){
+            ){ 
 
-                card.style.display = "";
+                card.style.display = ""; 
 
-            }
+            } 
 
-            else{
+            else{ 
 
-                card.style.display = "none";
+                card.style.display = "none"; 
 
-            }
+            } 
 
-        });
+        }); 
 
-    });
+    }); 
 
-}
+} 
 
-card.innerHTML = `
+card.innerHTML = ` 
 
-<h3>${tool.name}</h3>
+<h3>${tool.name}</h3> 
 
-<p><strong>Category:</strong> ${tool.category}</p>
+<p><strong>Category:</strong> ${tool.category}</p> 
 
-<p><strong>URL:</strong> ${tool.url || "-"}</p>
+<p><strong>URL:</strong> ${tool.url || "-"}</p> 
 
-<p>${tool.description || ""}</p>
+<p>${tool.description || ""}</p> 
 
 <p><strong>Status:</strong>
 <span class="${tool.active === false ? 'status-inactive' : 'status-active'}">
 ${tool.active === false ? "Inactive" : "Active"}
 </span>
-</p>
+</p> 
 
 <p><strong>Featured:</strong>
 ${tool.featured ? "⭐ Yes" : "—"}
-</p>
+</p> 
 
 <p><strong>Created:</strong>
 ${tool.createdAt ? new Date(tool.createdAt).toLocaleDateString() : "-"}
-</p>
+</p> 
 
 <p><strong>Updated:</strong>
 ${tool.updatedAt ? new Date(tool.updatedAt).toLocaleDateString() : "-"}
-</p>
+</p> 
 
-<div class="tool-actions">
+<div class="tool-actions"> 
 
 <button class="edit-btn">
 ✏️ Edit
-</button>
+</button> 
 
 <button class="feature-btn">
 ⭐ Feature
-</button>
+</button> 
 
 <button class="status-btn">
 ${tool.active === false ? "🟢 Activate" : "🔴 Deactivate"}
-</button>
+</button> 
 
 <button class="delete-btn delete">
 🗑️ Delete
-</button>
+</button> 
 
-</div>
+</div> 
 
-`;
+`; 
 
-   // ==========================================
+   // ==========================================
 // Toggle Featured
-// ==========================================
+// ========================================== 
 
-document.addEventListener("click",function(e){
+document.addEventListener("click",function(e){ 
 
-if(!e.target.classList.contains("feature-btn")) return;
+if(!e.target.classList.contains("feature-btn")) return; 
 
-const card=e.target.closest(".tool-card");
+const card=e.target.closest(".tool-card"); 
 
-const key=card.dataset.key;
+const key=card.dataset.key; 
 
-database.ref("tools/"+key).once("value",function(snapshot){
+database.ref("tools/"+key).once("value",function(snapshot){ 
 
-const tool=snapshot.val();
+const tool=snapshot.val(); 
 
-database.ref("tools/"+key).update({
+database.ref("tools/"+key).update({ 
 
-featured: !tool.featured,
+featured: !tool.featured, 
 
-updatedAt: Date.now()
+updatedAt: Date.now() 
 
-});
+}); 
 
-});
+}); 
 
-});
+}); 
 
-  // ==========================================
+  // ==========================================
 // Toggle Active / Inactive
-// ==========================================
+// ========================================== 
 
-document.addEventListener("click",function(e){
+document.addEventListener("click",function(e){ 
 
-if(!e.target.classList.contains("status-btn")) return;
+if(!e.target.classList.contains("status-btn")) return; 
 
-const card=e.target.closest(".tool-card");
+const card=e.target.closest(".tool-card"); 
 
-const key=card.dataset.key;
+const key=card.dataset.key; 
 
-database.ref("tools/"+key).once("value",function(snapshot){
+database.ref("tools/"+key).once("value",function(snapshot){ 
 
-const tool=snapshot.val();
+const tool=snapshot.val(); 
 
-database.ref("tools/"+key).update({
+database.ref("tools/"+key).update({ 
 
-active: !(tool.active===false),
+active: !(tool.active===false), 
 
-updatedAt: Date.now()
+updatedAt: Date.now() 
 
-});
+}); 
 
-});
+}); 
 
-});
+}); 
 
 // ===========================================
 // Tool Manager V2 - Dashboard Statistics
-// ===========================================
+// =========================================== 
 
-function updateDashboardStats() {
+function updateDashboardStats() { 
 
-database.ref("tools").once("value", function(snapshot){
+database.ref("tools").once("value", function(snapshot){ 
 
 let totalTools = 0;
 let categories = new Set();
-let activeTools = 0;
+let activeTools = 0; 
 
-snapshot.forEach(function(child){
+snapshot.forEach(function(child){ 
 
-const tool = child.val();
+const tool = child.val(); 
 
-totalTools++;
+totalTools++; 
 
 if(tool.category){
 categories.add(tool.category);
-}
+} 
 
 if(tool.status === "Active" || !tool.status){
 activeTools++;
-}
+} 
 
-});
+}); 
 
 const totalToolsEl = document.getElementById("totalTools");
 const totalCategoriesEl = document.getElementById("totalCategories");
-const activeToolsEl = document.getElementById("activeTools");
+const activeToolsEl = document.getElementById("activeTools"); 
 
 if(totalToolsEl){
 totalToolsEl.innerHTML = totalTools;
-}
+} 
 
 if(totalCategoriesEl){
 totalCategoriesEl.innerHTML = categories.size;
-}
+} 
 
 if(activeToolsEl){
 activeToolsEl.innerHTML = activeTools;
-}
+} 
 
-});
+}); 
 
-}
+} 
 
 // ===========================================
 // Refresh Dashboard after Firebase changes
-// ===========================================
+// =========================================== 
 
-database.ref("tools").on("value", function(){
+database.ref("tools").on("value", function(){ 
 
-updateDashboardStats();
+updateDashboardStats(); 
 
-});
+}); 
 
 // ===========================================
 // Search Tools
-// ===========================================
+// =========================================== 
 
-const searchInput = document.getElementById("searchTool");
+const searchInput = document.getElementById("searchTool"); 
 
-if(searchInput){
+if(searchInput){ 
 
-searchInput.addEventListener("keyup", function(){
+searchInput.addEventListener("keyup", function(){ 
 
-const filter = this.value.toLowerCase();
+const filter = this.value.toLowerCase(); 
 
-document.querySelectorAll(".tool-card").forEach(function(card){
+document.querySelectorAll(".tool-card").forEach(function(card){ 
 
-const text = card.innerText.toLowerCase();
+const text = card.innerText.toLowerCase(); 
 
-if(text.indexOf(filter) > -1){
+if(text.indexOf(filter) > -1){ 
 
-card.style.display = "";
+card.style.display = ""; 
 
-}else{
+}else{ 
 
-card.style.display = "none";
+card.style.display = "none"; 
 
-}
+} 
 
-});
+}); 
 
-});
+}); 
 
-}
+} 
 
 // ===========================================
 // Initial Dashboard Load
-// ===========================================
+// =========================================== 
 
-updateDashboardStats();
+updateDashboardStats(); 
 
-console.log("Tool Manager V2 Loaded Successfully");
+console.log("Tool Manager V2 Loaded Successfully"); 
+
+updateToolCounter(); 
+
+}); 
+
+// ==========================================
+// Popup Manager
+// ========================================== 
+
+// Open Popup
+function openModal() { 
+
+    modal.style.display = "block"; 
+
+} 
+
+// Close Popup
+function closeModal() { 
+
+    modal.style.display = "none"; 
+
+    clearForm(); 
+
+    resetEditMode(); 
+
+} 
+
+// ==========================================
+// Button Events
+// ========================================== 
+
+if (addToolBtn) { 
+
+    addToolBtn.addEventListener("click", openModal); 
+
+} 
+
+if (closeBtn) { 
+
+    closeBtn.addEventListener("click", closeModal); 
+
+} 
+
+// Close popup by clicking outside 
+
+window.addEventListener("click", function (e) { 
+
+    if (e.target === modal) { 
+
+        closeModal(); 
+
+    } 
+
+}); 
+
+// ==========================================
+// Clear Form
+// ========================================== 
+
+function clearForm() { 
+
+    document.getElementById("toolName").value = ""; 
+
+    document.getElementById("toolCategory").value = ""; 
+
+    document.getElementById("toolURL").value = ""; 
+
+    document.getElementById("toolDescription").value = ""; 
+
+} 
+
+// ==========================================
+// Reset Edit Mode
+// ========================================== 
+
+function resetEditMode() { 
+
+    currentEditingKey = null; 
+
+    currentEditingCard = null; 
+
+} 
+
+// ==========================================
+// Save Tool
+// ========================================== 
+
+if (saveToolBtn) { 
+
+    saveToolBtn.addEventListener("click", saveTool); 
+
+} 
+
+function saveTool() { 
+
+    const name = document.getElementById("toolName").value.trim(); 
+
+    const category = document.getElementById("toolCategory").value.trim(); 
+
+    const url = document.getElementById("toolURL").value.trim(); 
+
+    const description = document.getElementById("toolDescription").value.trim(); 
+
+    // Validation 
+
+    if (name === "") { 
+
+        alert("Please enter Tool Name."); 
+
+        document.getElementById("toolName").focus(); 
+
+        return; 
+
+    } 
+
+    if (category === "") { 
+
+        alert("Please enter Tool Category."); 
+
+        document.getElementById("toolCategory").focus(); 
+
+        return; 
+
+    } 
+
+    const toolData = { 
+
+        name: name, 
+
+        category: category, 
+
+        url: url, 
+
+        description: description, 
+
+        active: true, 
+
+        featured: false, 
+
+        updatedAt: Date.now() 
+
+    }; 
+
+    // =============================
+    // Edit Existing Tool
+    // ============================= 
+
+    if (currentEditingKey) { 
+
+        database.ref("tools/" + currentEditingKey) 
+
+            .update(toolData) 
+
+            .then(function () { 
+
+                alert("✅ Tool updated successfully."); 
+
+                closeModal(); 
+
+            }) 
+
+            .catch(function (error) { 
+
+                alert(error.message); 
+
+            }); 
+
+        return; 
+
+    } 
+
+    // =============================
+    // Add New Tool
+    // ============================= 
+
+    toolData.createdAt = Date.now(); 
+
+    database.ref("tools") 
+
+        .push(toolData) 
+
+        .then(function () { 
+
+            alert("✅ Tool added successfully."); 
+
+            closeModal(); 
+
+        }) 
+
+        .catch(function (error) { 
+
+            alert(error.message); 
+
+        }); 
+
+} 
+
+// ==========================================
+// Load Tools from Firebase
+// ========================================== 
+
+function loadTools() { 
+
+    database.ref("tools").on("value", function (snapshot) { 
+
+        toolGrid.innerHTML = ""; 
+
+        let totalTools = 0;
+        let activeTools = 0; 
+
+        let categories = new Set(); 
+
+        // ======================================
+        // Empty State
+        // ====================================== 
+
+        if (!snapshot.exists()) { 
+
+            toolGrid.innerHTML = ` 
+
+            <div class="empty-state"> 
+
+                <h2>No Tools Found</h2> 
+
+                <p>Click "Add Tool" to create your first tool.</p> 
+
+            </div> 
+
+            `; 
+
+            updateDashboardStats(0, 0, 0); 
+
+            return; 
+
+        } 
+
+        // ======================================
+        // Build Tool Cards
+        // ====================================== 
+
+        snapshot.forEach(function (child) { 
+
+            const tool = child.val(); 
+
+            const key = child.key; 
+
+            totalTools++; 
+
+            if (tool.active !== false) { 
+
+                activeTools++; 
+
+            } 
+
+            if (tool.category) { 
+
+                categories.add(tool.category); 
+
+            } 
+
+            const card = document.createElement("div"); 
+
+            card.className = "tool-card"; 
+
+            card.dataset.key = key; 
+
+            card.dataset.name = (tool.name || "").toLowerCase(); 
+
+            card.dataset.category = (tool.category || "").toLowerCase(); 
+
+            card.innerHTML = ` 
+
+                <h3>${tool.name}</h3> 
+
+                <p><strong>Category:</strong> ${tool.category}</p> 
+
+                <p><strong>URL:</strong> ${tool.url || "-"}</p> 
+
+                <p>${tool.description || ""}</p> 
+
+                <p> 
+
+                    <strong>Status:</strong> 
+
+                    <span class="${tool.active === false ? "status-inactive" : "status-active"}"> 
+
+                        ${tool.active === false ? "Inactive" : "Active"} 
+
+                    </span> 
+
+                </p> 
+
+                <div class="tool-actions"> 
+
+                    <button class="edit-btn"> 
+
+                        ✏️ Edit 
+
+                    </button> 
+
+                    <button class="delete-btn delete"> 
+
+                        🗑️ Delete 
+
+                    </button> 
+
+                </div> 
+
+            `; 
+
+            toolGrid.appendChild(card); 
+
+        }); 
+
+        updateDashboardStats( 
+
+            totalTools, 
+
+            categories.size, 
+
+            activeTools 
+
+        ); 
+
+    }); 
+
+} 
+
+// ==========================================
+// Dashboard Statistics
+// ========================================== 
+
+function updateDashboardStats( 
+
+    totalTools, 
+
+    totalCategories, 
+
+    activeTools 
+
+) { 
+
+    const totalToolsEl = document.getElementById("totalTools"); 
+
+    const totalCategoriesEl = document.getElementById("totalCategories"); 
+
+    const activeToolsEl = document.getElementById("activeTools"); 
+
+    if (totalToolsEl) { 
+
+        totalToolsEl.innerHTML = totalTools; 
+
+    } 
+
+    if (totalCategoriesEl) { 
+
+        totalCategoriesEl.innerHTML = totalCategories; 
+
+    } 
+
+    if (activeToolsEl) { 
+
+        activeToolsEl.innerHTML = activeTools; 
+
+    } 
+
+} 
+
+// ==========================================
+// Edit Tool
+// ========================================== 
+
+document.addEventListener("click", function (e) { 
+
+    if (!e.target.classList.contains("edit-btn")) return; 
+
+    const card = e.target.closest(".tool-card"); 
+
+    currentEditingKey = card.dataset.key; 
+
+    database.ref("tools/" + currentEditingKey).once("value")
+        .then((snapshot) => { 
+
+            const tool = snapshot.val(); 
+
+            if (!tool) return; 
+
+            document.getElementById("toolName").value = tool.name || "";
+            document.getElementById("toolCategory").value = tool.category || "";
+            document.getElementById("toolURL").value = tool.url || "";
+            document.getElementById("toolDescription").value = tool.description || ""; 
+
+            openModal(); 
+
+        }); 
+
+}); 
+
+// ==========================================
+// Delete Tool
+// ========================================== 
+
+document.addEventListener("click", function (e) { 
+
+    if (!e.target.classList.contains("delete-btn")) return; 
+
+    const card = e.target.closest(".tool-card"); 
+
+    const key = card.dataset.key; 
+
+    if (!confirm("Delete this tool permanently?")) return; 
+
+    database.ref("tools/" + key)
+        .remove()
+        .then(() => { 
+
+            alert("Tool deleted successfully."); 
+
+        }); 
+
+}); 
+
+// ==========================================
+// Feature / Unfeature Tool
+// ========================================== 
+
+document.addEventListener("click", function (e) { 
+
+    if (!e.target.classList.contains("feature-btn")) return; 
+
+    const card = e.target.closest(".tool-card"); 
+
+    const key = card.dataset.key; 
+
+    database.ref("tools/" + key).once("value")
+        .then((snapshot) => { 
+
+            const tool = snapshot.val(); 
+
+            database.ref("tools/" + key).update({ 
+
+                featured: !tool.featured, 
+
+                updatedAt: Date.now() 
+
+            }); 
+
+        }); 
+
+}); 
+
+// ==========================================
+// Activate / Deactivate Tool
+// ========================================== 
+
+document.addEventListener("click", function (e) { 
+
+    if (!e.target.classList.contains("status-btn")) return; 
+
+    const card = e.target.closest(".tool-card"); 
+
+    const key = card.dataset.key; 
+
+    database.ref("tools/" + key).once("value")
+        .then((snapshot) => { 
+
+            const tool = snapshot.val(); 
+
+            database.ref("tools/" + key).update({ 
+
+                active: !(tool.active === false), 
+
+                updatedAt: Date.now() 
+
+            }); 
+
+        }); 
+
+}); 
+
+// ==========================================
+// Load Tools from Firebase
+// ========================================== 
+
+database.ref("tools").on("value", function(snapshot){ 
+
+    toolGrid.innerHTML = ""; 
+
+    let totalTools = 0;
+    let activeTools = 0;
+    let categories = new Set(); 
+
+    if(!snapshot.exists()){ 
+
+        toolGrid.innerHTML = `
+        <div class="empty-state">
+            <h2>No Tools Found</h2>
+            <p>Click "Add Tool" to create your first tool.</p>
+        </div>
+        `; 
+
+        document.getElementById("totalTools").innerText = 0;
+        document.getElementById("activeTools").innerText = 0;
+        document.getElementById("totalCategories").innerText = 0; 
+
+        return;
+    } 
+
+    snapshot.forEach(function(child){ 
+
+        const tool = child.val();
+        const key = child.key; 
+
+        totalTools++; 
+
+        if(tool.active !== false){
+            activeTools++;
+        } 
+
+        if(tool.category){
+            categories.add(tool.category);
+        } 
+
+        const card = document.createElement("div"); 
+
+        card.className = "tool-card"; 
+
+        card.dataset.key = key; 
+
+        card.dataset.name = (tool.name || "").toLowerCase(); 
+
+        card.dataset.category = (tool.category || "").toLowerCase(); 
+
+        card.innerHTML = ` 
+
+            <h3>${tool.name}</h3> 
+
+            <p><strong>Category:</strong> ${tool.category}</p> 
+
+            <p><strong>URL:</strong> ${tool.url || "-"}</p> 
+
+            <p>${tool.description || ""}</p> 
+
+            <p>
+                <strong>Status:</strong>
+                <span class="${tool.active===false ? "status-inactive":"status-active"}">
+                    ${tool.active===false ? "Inactive":"Active"}
+                </span>
+            </p> 
+
+            <div class="tool-actions"> 
+
+                <button class="edit-btn">
+                    ✏️ Edit
+                </button> 
+
+                <button class="feature-btn">
+                    ${tool.featured ? "⭐ Featured" : "☆ Feature"}
+                </button> 
+
+                <button class="status-btn">
+                    ${tool.active===false ? "🟢 Activate" : "🔴 Deactivate"}
+                </button> 
+
+                <button class="delete-btn delete">
+                    🗑️ Delete
+                </button> 
+
+            </div> 
+
+        `; 
+
+        toolGrid.appendChild(card); 
+
+    }); 
+
+    document.getElementById("totalTools").innerText = totalTools; 
+
+    document.getElementById("activeTools").innerText = activeTools; 
+
+    document.getElementById("totalCategories").innerText = categories.size; 
+
+}); 
+
+// ==========================================
+// Live Search
+// ========================================== 
+
+const searchInput = document.getElementById("searchTool"); 
+
+if(searchInput){ 
+
+    searchInput.addEventListener("keyup",function(){ 
+
+        const keyword = this.value.toLowerCase(); 
+
+        document.querySelectorAll(".tool-card").forEach(function(card){ 
+
+            const name = card.dataset.name;
+            const category = card.dataset.category; 
+
+            if(name.includes(keyword) || category.includes(keyword)){ 
+
+                card.style.display = ""; 
+
+            }else{ 
+
+                card.style.display = "none"; 
+
+            } 
+
+        }); 
+
+    }); 
+
+} 
+
+// ==========================================
+// Dashboard Counters
+// ========================================== 
+
+function updateToolCounter(){ 
+
+    database.ref("tools").once("value").then((snapshot)=>{ 
+
+        let total = snapshot.numChildren(); 
+
+        document.getElementById("totalTools").innerText = total; 
+
+    }); 
+
+} 
+
+function updateCategoryCounter(){ 
+
+    database.ref("tools").once("value").then((snapshot)=>{ 
+
+        let set = new Set(); 
+
+        snapshot.forEach((child)=>{ 
+
+            if(child.val().category){ 
+
+                set.add(child.val().category); 
+
+            } 
+
+        }); 
+
+        document.getElementById("totalCategories").innerText = set.size; 
+
+    }); 
+
+} 
+
+function updateActiveCounter(){ 
+
+    database.ref("tools").once("value").then((snapshot)=>{ 
+
+        let total = 0; 
+
+        snapshot.forEach((child)=>{ 
+
+            if(child.val().active !== false){ 
+
+                total++; 
+
+        3    } 
+
+        }); 
+
+        document.getElementById("activeTools").innerText = total; 
+
+    }); 
+
+} 
+
+// ==========================================
+// Initial Dashboard Refresh
+// ========================================== 
 
 updateToolCounter();
+updateCategoryCounter();
+updateActiveCounter(); 
 
-});
+console.log("✅ BloggerSaaS Ultimate V2 Tool Manager Ready");
