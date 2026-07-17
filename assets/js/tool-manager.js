@@ -1,4 +1,4 @@
- /*==========================================================
+/*==========================================================
  BloggerSaaS Ultimate V3
  Tool Manager
  Version : 3.0
@@ -450,4 +450,763 @@ function saveTool() {
 
     });
 
+     }
+// ======================================================
+// BloggerSaaS Ultimate V3
+// Tool Manager
+// Part 4
+// Load Tools + Render Cards
+// ======================================================
+
+// ------------------------------------------------------
+// Load Tools from Firebase
+// ------------------------------------------------------
+
+function loadTools() {
+
+    toolsRef.on("value", (snapshot) => {
+
+        toolsCache = [];
+
+        if (!snapshot.exists()) {
+
+            renderEmptyState();
+
+            updateDashboard();
+
+            return;
+
+        }
+
+        snapshot.forEach((child) => {
+
+            toolsCache.push({
+
+                key: child.key,
+
+                ...child.val()
+
+            });
+
+        });
+
+        renderTools();
+
+        updateDashboard();
+
+    });
+
 }
+
+// ------------------------------------------------------
+// Render Tools
+// ------------------------------------------------------
+
+function renderTools() {
+
+    toolGrid.innerHTML = "";
+
+    let visibleTools = toolsCache;
+
+    // ------------------------------
+    // Search
+    // ------------------------------
+
+    if (searchKeyword !== "") {
+
+        visibleTools = visibleTools.filter(tool =>
+
+            (tool.name || "")
+            .toLowerCase()
+            .includes(searchKeyword)
+
+            ||
+
+            (tool.category || "")
+            .toLowerCase()
+            .includes(searchKeyword)
+
+        );
+
+    }
+
+    // ------------------------------
+    // Empty Search
+    // ------------------------------
+
+    if (visibleTools.length === 0) {
+
+        renderEmptyState();
+
+        return;
+
+    }
+
+    // ------------------------------
+    // Cards
+    // ------------------------------
+
+    visibleTools.forEach(tool => {
+
+        toolGrid.appendChild(
+
+            createToolCard(tool)
+
+        );
+
+    });
+
+}
+
+// ------------------------------------------------------
+// Tool Card
+// ------------------------------------------------------
+
+function createToolCard(tool) {
+
+    const card = document.createElement("div");
+
+    card.className = "tool-card";
+
+    card.dataset.key = tool.key;
+
+    card.dataset.name =
+    (tool.name || "").toLowerCase();
+
+    card.dataset.category =
+    (tool.category || "").toLowerCase();
+
+    card.innerHTML = `
+
+        <div class="tool-header">
+
+            <h3>${tool.name}</h3>
+
+            <span class="${
+                tool.active===false
+                ? "status-inactive"
+                : "status-active"
+            }">
+
+            ${
+                tool.active===false
+                ? "Inactive"
+                : "Active"
+            }
+
+            </span>
+
+        </div>
+
+        <div class="tool-body">
+
+            <p>
+
+            <strong>Category</strong>
+
+            <br>
+
+            ${tool.category || "-"}
+
+            </p>
+
+            <p>
+
+            <strong>URL</strong>
+
+            <br>
+
+            ${tool.url || "-"}
+
+            </p>
+
+            <p>
+
+            ${tool.description || ""}
+
+            </p>
+
+        </div>
+
+        <div class="tool-footer">
+
+            <button
+            class="edit-btn"
+            onclick="openEditModal('${tool.key}')">
+
+            ✏️ Edit
+
+            </button>
+
+            <button
+            class="feature-btn"
+            onclick="toggleFeatured('${tool.key}')">
+
+            ${tool.featured ? "⭐ Featured" : "☆ Feature"}
+
+            </button>
+
+            <button
+            class="status-btn"
+            onclick="toggleStatus('${tool.key}')">
+
+            ${tool.active===false
+            ? "🟢 Activate"
+            : "🔴 Disable"}
+
+            </button>
+
+            <button
+            class="delete-btn"
+            onclick="deleteTool('${tool.key}')">
+
+            🗑 Delete
+
+            </button>
+
+        </div>
+
+    `;
+
+    return card;
+
+}
+
+// ------------------------------------------------------
+// Empty State
+// ------------------------------------------------------
+
+function renderEmptyState() {
+
+    toolGrid.innerHTML = `
+
+    <div class="empty-state">
+
+        <i class="fas fa-toolbox"></i>
+
+        <h2>No Tools Found</h2>
+
+        <p>
+
+        Click Add Tool to create your first tool.
+
+        </p>
+
+    </div>
+
+    `;
+
+}
+
+// ------------------------------------------------------
+// Dashboard Statistics
+// ------------------------------------------------------
+
+function updateDashboard() {
+
+    totalToolsCard.innerHTML = toolsCache.length;
+
+    const categories = new Set();
+
+    let active = 0;
+
+    let newest = 0;
+
+    toolsCache.forEach(tool => {
+
+        if (tool.category) {
+
+            categories.add(tool.category);
+
+        }
+
+        if (tool.active !== false) {
+
+            active++;
+
+        }
+
+        if (tool.updatedAt > newest) {
+
+            newest = tool.updatedAt;
+
+        }
+
+    });
+
+    totalCategoriesCard.innerHTML =
+    categories.size;
+
+    activeToolsCard.innerHTML =
+    active;
+
+    lastUpdatedCard.innerHTML =
+    generateReadableDate(newest);
+
+              }
+
+// ======================================================
+// BloggerSaaS Ultimate V3
+// Tool Manager
+// Part 5
+// Tool Actions
+// ======================================================
+
+// ------------------------------------------------------
+// Delete Tool
+// ------------------------------------------------------
+
+function deleteTool(toolKey) {
+
+    const tool = toolsCache.find(t => t.key === toolKey);
+
+    if (!tool) return;
+
+    const confirmed = confirm(
+        `Delete "${tool.name}" permanently?`
+    );
+
+    if (!confirmed) return;
+
+    toolsRef.child(toolKey)
+        .remove()
+        .then(() => {
+
+            console.log("Tool Deleted");
+
+        })
+        .catch(error => {
+
+            alert(error.message);
+
+        });
+
+}
+
+// ------------------------------------------------------
+// Toggle Featured
+// ------------------------------------------------------
+
+function toggleFeatured(toolKey) {
+
+    const tool = toolsCache.find(t => t.key === toolKey);
+
+    if (!tool) return;
+
+    toolsRef.child(toolKey).update({
+
+        featured: !tool.featured,
+
+        updatedAt: generateTimestamp()
+
+    });
+
+}
+
+// ------------------------------------------------------
+// Toggle Active
+// ------------------------------------------------------
+
+function toggleStatus(toolKey) {
+
+    const tool = toolsCache.find(t => t.key === toolKey);
+
+    if (!tool) return;
+
+    toolsRef.child(toolKey).update({
+
+        active: !(tool.active === false),
+
+        updatedAt: generateTimestamp()
+
+    });
+
+}
+
+// ------------------------------------------------------
+// Refresh Dashboard
+// ------------------------------------------------------
+
+function refreshDashboard() {
+
+    renderTools();
+
+    updateDashboard();
+
+}
+
+// ------------------------------------------------------
+// Dashboard Counters
+// ------------------------------------------------------
+
+function updateCounters() {
+
+    totalToolsCard.innerHTML =
+        toolsCache.length;
+
+    activeToolsCard.innerHTML =
+        toolsCache.filter(
+            tool => tool.active !== false
+        ).length;
+
+    totalCategoriesCard.innerHTML =
+        new Set(
+            toolsCache.map(
+                tool => tool.category
+            )
+        ).size;
+
+}
+
+// ------------------------------------------------------
+// Last Updated Card
+// ------------------------------------------------------
+
+function updateLastUpdated() {
+
+    if (toolsCache.length === 0) {
+
+        lastUpdatedCard.innerHTML = "--";
+
+        return;
+
+    }
+
+    let latest = 0;
+
+    toolsCache.forEach(tool => {
+
+        if (tool.updatedAt > latest) {
+
+            latest = tool.updatedAt;
+
+        }
+
+    });
+
+    lastUpdatedCard.innerHTML =
+        generateReadableDate(latest);
+
+}
+
+// ------------------------------------------------------
+// Complete Dashboard Refresh
+// ------------------------------------------------------
+
+function updateDashboard() {
+
+    updateCounters();
+
+    updateLastUpdated();
+
+}
+
+// ------------------------------------------------------
+// Firebase Live Updates
+// ------------------------------------------------------
+
+toolsRef.on("value", (snapshot) => {
+
+    toolsCache = [];
+
+    if (snapshot.exists()) {
+
+        snapshot.forEach(child => {
+
+            toolsCache.push({
+
+                key: child.key,
+
+                ...child.val()
+
+            });
+
+        });
+
+    }
+
+    refreshDashboard();
+
+});
+
+// ------------------------------------------------------
+// Console Message
+// ------------------------------------------------------
+
+console.log("✅ Part 5 Loaded Successfully");
+
+/*==========================================================
+ BloggerSaaS Ultimate V3
+ Tool Manager
+ Part 6
+ Dashboard Statistics
+==========================================================*/
+
+// ------------------------------------------------------
+// Update Dashboard Statistics
+// ------------------------------------------------------
+
+function updateDashboard() {
+
+    let total = toolsCache.length;
+
+    let active = 0;
+
+    let categories = new Set();
+
+    let latestUpdate = 0;
+
+    let featured = 0;
+
+    toolsCache.forEach(tool => {
+
+        if (tool.active !== false) {
+            active++;
+        }
+
+        if (tool.featured === true) {
+            featured++;
+        }
+
+        if (tool.category) {
+            categories.add(tool.category);
+        }
+
+        if (tool.updatedAt && tool.updatedAt > latestUpdate) {
+            latestUpdate = tool.updatedAt;
+        }
+
+    });
+
+    if (totalToolsCard)
+        totalToolsCard.textContent = total;
+
+    if (activeToolsCard)
+        activeToolsCard.textContent = active;
+
+    if (totalCategoriesCard)
+        totalCategoriesCard.textContent = categories.size;
+
+    if (lastUpdatedCard) {
+
+        if (latestUpdate === 0) {
+
+            lastUpdatedCard.textContent = "--";
+
+        } else {
+
+            lastUpdatedCard.textContent =
+            new Date(latestUpdate).toLocaleDateString();
+
+        }
+
+    }
+
+}
+
+// ------------------------------------------------------
+// Refresh Dashboard after Every Firebase Change
+// ------------------------------------------------------
+
+toolsRef.on("value", function () {
+
+    updateDashboard();
+
+});
+
+// ------------------------------------------------------
+// Empty State
+// ------------------------------------------------------
+
+function showEmptyState() {
+
+    toolGrid.innerHTML = `
+
+        <div class="empty-state">
+
+            <i class="fas fa-toolbox"
+               style="
+                    font-size:60px;
+                    color:#3b82f6;
+                    margin-bottom:20px;">
+            </i>
+
+            <h2>No Tools Found</h2>
+
+            <p>
+            Click "Add Tool" to create your first tool.
+            </p>
+
+        </div>
+
+    `;
+
+}
+
+// ------------------------------------------------------
+// Refresh Dashboard Every Minute
+// ------------------------------------------------------
+
+setInterval(function () {
+
+    updateDashboard();
+
+}, 60000);
+
+// ------------------------------------------------------
+// Console
+// ------------------------------------------------------
+
+console.log("✅ Dashboard Statistics Ready");
+
+// ======================================================
+// BloggerSaaS Ultimate V3
+// Tool Manager
+// Part 8
+// Dashboard + Auto Refresh + Final Initialisation
+// ======================================================
+
+// ------------------------------------------------------
+// Dashboard Statistics
+// ------------------------------------------------------
+
+function updateDashboard() {
+
+    const total = toolsCache.length;
+
+    const active = toolsCache.filter(t => t.active !== false).length;
+
+    const categories = new Set();
+
+    let latest = 0;
+
+    toolsCache.forEach(tool => {
+
+        if (tool.category) {
+
+            categories.add(tool.category);
+
+        }
+
+        if (tool.updatedAt && tool.updatedAt > latest) {
+
+            latest = tool.updatedAt;
+
+        }
+
+    });
+
+    if (totalToolsCard)
+        totalToolsCard.textContent = total;
+
+    if (activeToolsCard)
+        activeToolsCard.textContent = active;
+
+    if (totalCategoriesCard)
+        totalCategoriesCard.textContent = categories.size;
+
+    if (lastUpdatedCard)
+        lastUpdatedCard.textContent =
+        latest
+            ? new Date(latest).toLocaleString()
+            : "--";
+
+}
+
+// ------------------------------------------------------
+// Refresh Everything
+// ------------------------------------------------------
+
+function refreshDashboard() {
+
+    updateDashboard();
+
+    renderTools();
+
+}
+
+// ------------------------------------------------------
+// Keyboard Shortcuts
+// ------------------------------------------------------
+
+document.addEventListener("keydown", function (e) {
+
+    // ESC closes popup
+
+    if (e.key === "Escape") {
+
+        closeModal();
+
+    }
+
+    // Ctrl + N
+
+    if (e.ctrlKey && e.key.toLowerCase() === "n") {
+
+        e.preventDefault();
+
+        openAddModal();
+
+    }
+
+});
+
+// ------------------------------------------------------
+// Export JSON (Future)
+// ------------------------------------------------------
+
+function exportTools() {
+
+    console.log("Export coming soon.");
+
+}
+
+// ------------------------------------------------------
+// Import JSON (Future)
+// ------------------------------------------------------
+
+function importTools() {
+
+    console.log("Import coming soon.");
+
+}
+
+// ------------------------------------------------------
+// Application Initialisation
+// ------------------------------------------------------
+
+function initializeToolManager() {
+
+    initialiseEvents();
+
+    loadTools();
+
+}
+
+// ------------------------------------------------------
+// Firebase Live Refresh
+// ------------------------------------------------------
+
+toolsRef.on("value", function () {
+
+    console.log("Firebase Updated");
+
+});
+
+// ------------------------------------------------------
+// Console Banner
+// ------------------------------------------------------
+
+console.log(
+"%c BloggerSaaS Ultimate V3 Loaded",
+"color:#38bdf8;font-size:16px;font-weight:bold;"
+);
+
+console.log(
+"%c Tool Manager Ready",
+"color:#22c55e;font-size:14px;"
+);
+
+// ======================================================
+// End of File
+// ======================================================
