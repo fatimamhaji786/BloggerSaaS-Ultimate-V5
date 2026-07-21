@@ -4,200 +4,186 @@
  * Core Manifest
  */
 
-"use strict";
+(function (global) {
 
-const PACKAGE_MANIFEST = Object.freeze({
+  "use strict";
 
-  id: "package-41-50",
+  const PACKAGE_MANIFEST = Object.freeze({
 
-  name:
-    "Enterprise Core Integration, Health Monitoring, Verification and Test Center",
+    id: "package-41-50",
 
-  version: "5.0.0",
+    name:
+      "Enterprise Core Integration, Health Monitoring, Verification and Test Center",
 
-  platform:
-    "BloggerSaaS Ultimate V5 Enterprise",
+    version: "5.0.0",
 
-  status: "development",
+    platform:
+      "BloggerSaaS Ultimate V5 Enterprise",
 
-  environment: "safe-development",
+    status: "development",
 
-  packageRange: Object.freeze({
-    start: 41,
-    end: 50
-  }),
+    environment: "safe-development",
 
-  modules: Object.freeze({
-
-    integration: {
-      id: "core-integration",
-      path: "./integration.js",
-      status: "active"
+    packageRange: {
+      start: 41,
+      end: 50
     },
 
-    firebase: {
-      id: "core-firebase",
-      path: "./firebase.js",
-      status: "active"
-    },
+    modules: Object.freeze({
 
-    health: {
-      id: "core-health",
-      path: "./health.js",
-      status: "active"
-    },
+      integration: {
+        id: "core-integration",
+        path: "./integration.js",
+        status: "implemented"
+      },
 
-    dashboard: {
-      id: "core-dashboard",
-      path: "./dashboard.js",
-      status: "active"
-    },
+      firebase: {
+        id: "core-firebase",
+        path: "./firebase.js",
+        status: "implemented"
+      },
 
-    verification: {
-      id: "core-verification",
-      path: "./verification.js",
-      status: "active"
-    },
+      health: {
+        id: "core-health",
+        path: "./health.js",
+        status: "implemented"
+      },
 
-    final: {
-      id: "core-final",
-      path: "./final.js",
-      status: "active"
-    }
+      dashboard: {
+        id: "core-dashboard",
+        path: "./dashboard.js",
+        status: "implemented"
+      },
 
-  }),
+      verification: {
+        id: "core-verification",
+        path: "./verification.js",
+        status: "implemented"
+      },
 
-  testing: Object.freeze({
+      final: {
+        id: "core-final",
+        path: "./final.js",
+        status: "implemented"
+      }
 
-    suite: {
-      id: "test-suite",
-      path: "../testing/test-suite.js",
-      status: "active"
-    },
+    }),
 
-    report: {
-      id: "test-report",
-      path: "../testing/test-report.js",
-      status: "active"
-    },
+    testing: Object.freeze({
 
-    launcher: {
-      id: "test-launcher",
-      path: "../testing/test-launcher.js",
-      status: "active"
-    },
+      suite: {
+        id: "test-suite",
+        path: "../testing/test-suite.js",
+        status: "implemented"
+      },
 
-    integrationTest: {
-      id: "integration-test",
-      path: "../testing/integration-test.js",
-      status: "active"
-    },
+      center: {
+        id: "test-center",
+        path: "../testing/test-center.js",
+        status: "implemented"
+      }
 
-    testCenter: {
-      id: "test-center",
-      path: "../testing/test-center.js",
-      status: "active"
-    }
+    }),
 
-  }),
+    ui: Object.freeze({
 
-  safety: Object.freeze({
+      dashboard: {
+        id: "dashboard-ui",
+        path: "../ui/dashboard.css",
+        status: "planned"
+      }
 
-    productionModification: false,
+    }),
 
-    liveFirebaseModification: false,
+    safety: Object.freeze({
 
-    userAccountModification: false,
+      productionModification: false,
 
-    automaticDeployment: false,
+      liveFirebaseModification: false,
 
-    externalDataDeletion: false
+      userAccountModification: false,
 
-  }),
+      automaticDeployment: false,
 
-  dependencies: Object.freeze([
+      externalDataDeletion: false
 
-    "firebase",
+    }),
 
-    "event-bus",
+    dependencies: Object.freeze([
 
-    "module-registry",
+      "firebase",
 
-    "health-monitor",
+      "event-bus",
 
-    "verification-layer",
+      "module-registry",
 
-    "test-center"
+      "health-monitor",
 
-  ]),
+      "verification-layer",
 
-  lifecycle: Object.freeze([
+      "test-center"
 
-    "INITIALIZE",
+    ]),
 
-    "VERIFY_DEPENDENCIES",
+    lifecycle: Object.freeze([
 
-    "RUN_HEALTH_CHECK",
+      "INITIALIZE",
 
-    "RUN_PACKAGE_VERIFICATION",
+      "VERIFY_DEPENDENCIES",
 
-    "RUN_TEST_SUITE",
+      "RUN_HEALTH_CHECK",
 
-    "GENERATE_TEST_REPORT",
+      "RUN_PACKAGE_VERIFICATION",
 
-    "CALCULATE_READINESS",
+      "RUN_TEST_SUITE",
 
-    "CONTROLLED_INTEGRATION"
+      "GENERATE_TEST_REPORT",
 
-  ])
+      "CALCULATE_READINESS",
 
-});
+      "CONTROLLED_INTEGRATION"
 
-function getPackageManifest() {
+    ])
 
-  return PACKAGE_MANIFEST;
+  });
 
-}
+  function getPackageManifest() {
 
-function getCoreModules() {
+    return PACKAGE_MANIFEST;
 
-  return PACKAGE_MANIFEST.modules;
+  }
 
-}
+  function getCoreModules() {
 
-function getTestingModules() {
+    return PACKAGE_MANIFEST.modules;
 
-  return PACKAGE_MANIFEST.testing;
+  }
 
-}
+  function getTestingModules() {
 
-function isProductionSafe() {
+    return PACKAGE_MANIFEST.testing;
 
-  return (
+  }
 
-    PACKAGE_MANIFEST.safety.productionModification === false &&
+  function isProductionSafe() {
 
-    PACKAGE_MANIFEST.safety.liveFirebaseModification === false &&
+    return (
 
-    PACKAGE_MANIFEST.safety.userAccountModification === false &&
+      PACKAGE_MANIFEST.safety.productionModification === false &&
 
-    PACKAGE_MANIFEST.safety.automaticDeployment === false &&
+      PACKAGE_MANIFEST.safety.liveFirebaseModification === false &&
 
-    PACKAGE_MANIFEST.safety.externalDataDeletion === false
+      PACKAGE_MANIFEST.safety.userAccountModification === false &&
 
-  );
+      PACKAGE_MANIFEST.safety.automaticDeployment === false &&
 
-}
+      PACKAGE_MANIFEST.safety.externalDataDeletion === false
 
-if (typeof globalThis !== "undefined") {
+    );
 
-  globalThis.PACKAGE_MANIFEST = PACKAGE_MANIFEST;
+  }
 
-}
-
-if (typeof module !== "undefined" && module.exports) {
-
-  module.exports = {
+  const manifestAPI = {
 
     PACKAGE_MANIFEST,
 
@@ -211,4 +197,31 @@ if (typeof module !== "undefined" && module.exports) {
 
   };
 
-}
+  // Critical fix:
+  // Make the manifest available to all other browser modules.
+
+  global.PACKAGE_MANIFEST = PACKAGE_MANIFEST;
+
+  global.BloggerSaaSManifest = manifestAPI;
+
+  if (
+
+    typeof module !== "undefined" &&
+
+    module.exports
+
+  ) {
+
+    module.exports = manifestAPI;
+
+  }
+
+})(
+
+  typeof globalThis !== "undefined"
+
+    ? globalThis
+
+    : this
+
+);
