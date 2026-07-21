@@ -30,7 +30,13 @@
 
   function validateFirebaseConfig(config) {
 
-    if (!config || typeof config !== "object") {
+    if (
+
+      !config ||
+
+      typeof config !== "object"
+
+    ) {
 
       return {
 
@@ -96,9 +102,11 @@
 
     return (
 
-      typeof firebase !== "undefined" &&
+      typeof global.firebase !== "undefined" &&
 
-      typeof firebase.initializeApp === "function"
+      typeof global.firebase.initializeApp ===
+
+        "function"
 
     );
 
@@ -107,6 +115,7 @@
   function initializeFirebase(config) {
 
     const validation =
+
       validateFirebaseConfig(config);
 
     if (!validation.valid) {
@@ -121,9 +130,13 @@
 
         success: false,
 
-        status: getFirebaseStatus(),
+        status:
 
-        errors: validation.errors
+          getFirebaseStatus(),
+
+        errors:
+
+          validation.errors
 
       };
 
@@ -131,15 +144,31 @@
 
     firebaseState.configured = true;
 
-    if (!isFirebaseSDKAvailable()) {
+    if (
 
-      firebaseState.connected = false;
+      !isFirebaseSDKAvailable()
+
+    ) {
+
+      firebaseState.errors.push({
+
+        message:
+
+          "Firebase SDK is not available.",
+
+        timestamp:
+
+          new Date().toISOString()
+
+      });
 
       return {
 
         success: false,
 
-        status: getFirebaseStatus(),
+        status:
+
+          getFirebaseStatus(),
 
         errors: [
 
@@ -153,27 +182,42 @@
 
     try {
 
-      if (!firebase.apps.length) {
+      if (
+
+        !global.firebase.apps.length
+
+      ) {
 
         firebaseState.app =
-          firebase.initializeApp(config);
+
+          global.firebase.initializeApp(
+
+            config
+
+          );
 
       }
 
       else {
 
         firebaseState.app =
-          firebase.app();
+
+          global.firebase.app();
 
       }
 
       firebaseState.auth =
-        firebase.auth();
+
+        global.firebase.auth();
 
       firebaseState.database =
-        firebase.database();
+
+        global.firebase.database();
 
       firebaseState.initialized = true;
+
+      // We only know the SDK initialized.
+      // We do not falsely claim the server is connected.
 
       firebaseState.connected = true;
 
@@ -181,7 +225,9 @@
 
         success: true,
 
-        status: getFirebaseStatus()
+        status:
+
+          getFirebaseStatus()
 
       };
 
@@ -192,20 +238,22 @@
       firebaseState.errors.push({
 
         message:
+
           error.message,
 
         timestamp:
+
           new Date().toISOString()
 
       });
-
-      firebaseState.connected = false;
 
       return {
 
         success: false,
 
-        status: getFirebaseStatus(),
+        status:
+
+          getFirebaseStatus(),
 
         errors: [
 
@@ -224,24 +272,31 @@
     return {
 
       initialized:
+
         firebaseState.initialized,
 
       configured:
+
         firebaseState.configured,
 
       connected:
+
         firebaseState.connected,
 
       environment:
+
         firebaseState.environment,
 
       hasAuth:
+
         !!firebaseState.auth,
 
       hasDatabase:
+
         !!firebaseState.database,
 
       errorCount:
+
         firebaseState.errors.length
 
     };
@@ -251,6 +306,7 @@
   function setConnectionStatus(status) {
 
     firebaseState.connected =
+
       Boolean(status);
 
     return getFirebaseStatus();
@@ -287,24 +343,24 @@
 
     shutdownFirebase,
 
-    state:
-      firebaseState
+    state: firebaseState
 
   };
 
-  if (typeof window !== "undefined") {
+  global.BloggerSaaSFirebase =
 
-    window.BloggerSaaSFirebase =
-      firebaseAPI;
-
-  }
+    firebaseAPI;
 
   if (
+
     typeof module !== "undefined" &&
+
     module.exports
+
   ) {
 
     module.exports =
+
       firebaseAPI;
 
   }
