@@ -2,127 +2,104 @@
  * BloggerSaaS Ultimate V5
  * Package 41–50
  * Core Manifest
- *
- * Central package identity and module registry.
- *
- * This file contains no Firebase secrets and does not modify
- * production systems.
  */
+
+"use strict";
 
 const PACKAGE_MANIFEST = Object.freeze({
 
-  // ─────────────────────────────────────────────
-  // Package Identity
-  // ─────────────────────────────────────────────
-
   id: "package-41-50",
 
-  name: "Enterprise Core Integration, Health Monitoring, Verification and Test Center",
+  name:
+    "Enterprise Core Integration, Health Monitoring, Verification and Test Center",
 
   version: "5.0.0",
 
-  platform: "BloggerSaaS Ultimate V5 Enterprise",
+  platform:
+    "BloggerSaaS Ultimate V5 Enterprise",
 
   status: "development",
 
   environment: "safe-development",
 
-  // ─────────────────────────────────────────────
-  // Package Range
-  // ─────────────────────────────────────────────
-
-  packageRange: {
+  packageRange: Object.freeze({
     start: 41,
     end: 50
-  },
-
-  // ─────────────────────────────────────────────
-  // Core Modules
-  // ─────────────────────────────────────────────
+  }),
 
   modules: Object.freeze({
 
     integration: {
       id: "core-integration",
       path: "./integration.js",
-      status: "planned"
+      status: "active"
     },
 
     firebase: {
       id: "core-firebase",
       path: "./firebase.js",
-      status: "planned"
+      status: "active"
     },
 
     health: {
       id: "core-health",
       path: "./health.js",
-      status: "planned"
+      status: "active"
     },
 
     dashboard: {
       id: "core-dashboard",
       path: "./dashboard.js",
-      status: "planned"
+      status: "active"
     },
 
     verification: {
       id: "core-verification",
       path: "./verification.js",
-      status: "planned"
+      status: "active"
     },
 
     final: {
       id: "core-final",
       path: "./final.js",
-      status: "planned"
+      status: "active"
     }
 
   }),
-
-  // ─────────────────────────────────────────────
-  // Testing Modules
-  // ─────────────────────────────────────────────
 
   testing: Object.freeze({
 
     suite: {
       id: "test-suite",
       path: "../testing/test-suite.js",
-      status: "planned"
+      status: "active"
     },
 
     report: {
       id: "test-report",
       path: "../testing/test-report.js",
-      status: "planned"
+      status: "active"
     },
 
     launcher: {
       id: "test-launcher",
       path: "../testing/test-launcher.js",
-      status: "planned"
+      status: "active"
+    },
+
+    integrationTest: {
+      id: "integration-test",
+      path: "../testing/integration-test.js",
+      status: "active"
+    },
+
+    testCenter: {
+      id: "test-center",
+      path: "../testing/test-center.js",
+      status: "active"
     }
 
   }),
-
-  // ─────────────────────────────────────────────
-  // UI Modules
-  // ─────────────────────────────────────────────
-
-  ui: Object.freeze({
-
-    dashboard: {
-      id: "dashboard-ui",
-      path: "../ui/dashboard.css",
-      status: "planned"
-    }
-
-  }),
-
-  // ─────────────────────────────────────────────
-  // Safety Rules
-  // ─────────────────────────────────────────────
 
   safety: Object.freeze({
 
@@ -137,10 +114,6 @@ const PACKAGE_MANIFEST = Object.freeze({
     externalDataDeletion: false
 
   }),
-
-  // ─────────────────────────────────────────────
-  // Required Dependencies
-  // ─────────────────────────────────────────────
 
   dependencies: Object.freeze([
 
@@ -157,10 +130,6 @@ const PACKAGE_MANIFEST = Object.freeze({
     "test-center"
 
   ]),
-
-  // ─────────────────────────────────────────────
-  // Package Lifecycle
-  // ─────────────────────────────────────────────
 
   lifecycle: Object.freeze([
 
@@ -184,21 +153,22 @@ const PACKAGE_MANIFEST = Object.freeze({
 
 });
 
-
-// ─────────────────────────────────────────────
-// Manifest Helper Functions
-// ─────────────────────────────────────────────
-
 function getPackageManifest() {
+
   return PACKAGE_MANIFEST;
+
 }
 
 function getCoreModules() {
+
   return PACKAGE_MANIFEST.modules;
+
 }
 
 function getTestingModules() {
+
   return PACKAGE_MANIFEST.testing;
+
 }
 
 function isProductionSafe() {
@@ -219,10 +189,11 @@ function isProductionSafe() {
 
 }
 
+if (typeof globalThis !== "undefined") {
 
-// ─────────────────────────────────────────────
-// Export
-// ─────────────────────────────────────────────
+  globalThis.PACKAGE_MANIFEST = PACKAGE_MANIFEST;
+
+}
 
 if (typeof module !== "undefined" && module.exports) {
 
@@ -240,4 +211,4 @@ if (typeof module !== "undefined" && module.exports) {
 
   };
 
-      }
+}
