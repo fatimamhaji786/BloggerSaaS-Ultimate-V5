@@ -1,23 +1,12 @@
-
 /**
  * BloggerSaaS Ultimate V5
  * Package 41–50
  * Core Health Monitoring
- *
- * Monitors the health of the package core layers.
- *
- * This module performs diagnostic checks only.
- * It does not modify production systems.
  */
 
 (function (global) {
 
   "use strict";
-
-
-  // ─────────────────────────────────────────────
-  // Health State
-  // ─────────────────────────────────────────────
 
   const healthState = {
 
@@ -36,11 +25,6 @@
     errors: []
 
   };
-
-
-  // ─────────────────────────────────────────────
-  // Health Check Result
-  // ─────────────────────────────────────────────
 
   function createCheckResult(
 
@@ -65,336 +49,207 @@
       details,
 
       timestamp:
-
         new Date().toISOString()
 
     };
 
   }
 
-
-  // ─────────────────────────────────────────────
-  // Check Firebase Availability
-  // ─────────────────────────────────────────────
-
   function checkFirebase() {
 
-    const firebaseAvailable =
+    const firebase =
+      global.BloggerSaaSFirebase;
 
-      typeof global.BloggerSaaSFirebase !==
+    const available =
+      typeof firebase !== "undefined";
 
-      "undefined";
+    const apiValid =
 
+      available &&
 
-    const result =
+      typeof firebase.getFirebaseStatus ===
+        "function";
 
-      createCheckResult(
+    return createCheckResult(
 
-        "firebase",
+      "firebase",
 
-        firebaseAvailable
+      apiValid
+        ? "HEALTHY"
+        : "WARNING",
 
-          ? "HEALTHY"
+      apiValid
+        ? "Firebase bridge is available."
+        : "Firebase bridge is not registered.",
 
-          : "WARNING",
+      {
 
-        firebaseAvailable
+        available,
 
-          ? "Firebase bridge is available."
+        apiValid
 
-          : "Firebase bridge is not registered.",
+      }
 
-        {
-
-          available:
-
-            firebaseAvailable
-
-        }
-
-      );
-
-
-    healthState.checks.firebase = result;
-
-
-    return result;
+    );
 
   }
-
-
-  // ─────────────────────────────────────────────
-  // Check Integration Availability
-  // ─────────────────────────────────────────────
 
   function checkIntegration() {
 
-    const integrationAvailable =
+    const integration =
+      global.BloggerSaaSIntegration;
 
-      typeof global.BloggerSaaSIntegration !==
+    const available =
+      typeof integration !== "undefined";
 
-      "undefined";
+    const apiValid =
 
+      available &&
 
-    const result =
+      typeof integration.initializeIntegration ===
+        "function" &&
 
-      createCheckResult(
+      typeof integration.registerModule ===
+        "function" &&
 
-        "integration",
+      typeof integration.getModule ===
+        "function" &&
 
-        integrationAvailable
+      typeof integration.getIntegrationStatus ===
+        "function";
 
-          ? "HEALTHY"
+    return createCheckResult(
 
-          : "WARNING",
+      "integration",
 
-        integrationAvailable
+      apiValid
+        ? "HEALTHY"
+        : "WARNING",
 
-          ? "Integration layer is available."
+      apiValid
+        ? "Integration layer is available."
+        : "Integration layer is not registered.",
 
-          : "Integration layer is not registered.",
+      {
 
-        {
+        available,
 
-          available:
+        apiValid
 
-            integrationAvailable
+      }
 
-        }
-
-      );
-
-
-    healthState.checks.integration = result;
-
-
-    return result;
+    );
 
   }
-
-
-  // ─────────────────────────────────────────────
-  // Check Dashboard Availability
-  // ─────────────────────────────────────────────
 
   function checkDashboard() {
 
-    const dashboardAvailable =
+    const dashboard =
+      global.BloggerSaaSDashboard;
 
-      typeof global.BloggerSaaSDashboard !==
+    const available =
+      typeof dashboard !== "undefined";
 
-      "undefined";
+    const apiValid =
 
+      available &&
 
-    const result =
+      typeof dashboard.initializeDashboard ===
+        "function" &&
 
-      createCheckResult(
+      typeof dashboard.getDashboardStatus ===
+        "function";
 
-        "dashboard",
+    return createCheckResult(
 
-        dashboardAvailable
+      "dashboard",
 
-          ? "HEALTHY"
+      apiValid
+        ? "HEALTHY"
+        : "WARNING",
 
-          : "WARNING",
+      apiValid
+        ? "Dashboard bridge is available."
+        : "Dashboard bridge is not registered.",
 
-        dashboardAvailable
+      {
 
-          ? "Dashboard bridge is available."
+        available,
 
-          : "Dashboard bridge is not registered.",
+        apiValid
 
-        {
+      }
 
-          available:
-
-            dashboardAvailable
-
-        }
-
-      );
-
-
-    healthState.checks.dashboard = result;
-
-
-    return result;
+    );
 
   }
-
-
-  // ─────────────────────────────────────────────
-  // Check Core Package Safety
-  // ─────────────────────────────────────────────
 
   function checkSafety() {
 
-    const safetySafe = true;
+    const safetyRules = {
 
+      productionModification: false,
 
-    const result =
+      liveFirebaseModification: false,
 
-      createCheckResult(
+      userAccountModification: false,
 
-        "safety",
+      automaticDeployment: false,
 
-        safetySafe
+      externalDataDeletion: false
 
-          ? "HEALTHY"
+    };
 
-          : "ERROR",
+    const safe =
+      Object.values(safetyRules)
+        .every(value => value === false);
 
-        safetySafe
+    return createCheckResult(
 
-          ? "Production safety rules are active."
+      "safety",
 
-          : "Production safety check failed.",
+      safe
+        ? "HEALTHY"
+        : "ERROR",
 
-        {
+      safe
+        ? "Production safety rules are active."
+        : "Production safety check failed.",
 
-          productionModification:
+      safetyRules
 
-            false,
-
-          liveFirebaseModification:
-
-            false,
-
-          userAccountModification:
-
-            false,
-
-          automaticDeployment:
-
-            false,
-
-          externalDataDeletion:
-
-            false
-
-        }
-
-      );
-
-
-    healthState.checks.safety = result;
-
-
-    return result;
+    );
 
   }
-
-
-  // ─────────────────────────────────────────────
-  // Check Environment
-  // ─────────────────────────────────────────────
 
   function checkEnvironment() {
 
-    const safeEnvironment =
-
+    const safe =
       healthState.environment ===
-
       "safe-development";
 
+    return createCheckResult(
 
-    const result =
+      "environment",
 
-      createCheckResult(
+      safe
+        ? "HEALTHY"
+        : "WARNING",
 
-        "environment",
+      safe
+        ? "Safe development environment detected."
+        : "Environment requires review.",
 
-        safeEnvironment
+      {
 
-          ? "HEALTHY"
+        environment:
+          healthState.environment
 
-          : "WARNING",
+      }
 
-        safeEnvironment
-
-          ? "Safe development environment detected."
-
-          : "Environment requires review.",
-
-        {
-
-          environment:
-
-            healthState.environment
-
-        }
-
-      );
-
-
-    healthState.checks.environment = result;
-
-
-    return result;
+    );
 
   }
-
-
-  // ─────────────────────────────────────────────
-  // Calculate Overall Health
-  // ─────────────────────────────────────────────
-
-  function calculateOverallHealth() {
-
-    const results =
-
-      Object.values(
-
-        healthState.checks
-
-      );
-
-
-    if (
-
-      results.some(
-
-        check => check.status === "ERROR"
-
-      )
-
-    ) {
-
-      return "ERROR";
-
-    }
-
-
-    if (
-
-      results.some(
-
-        check => check.status === "WARNING"
-
-      )
-
-    ) {
-
-      return "WARNING";
-
-    }
-
-
-    if (results.length === 0) {
-
-      return "UNKNOWN";
-
-    }
-
-
-    return "HEALTHY";
-
-  }
-
-
-  // ─────────────────────────────────────────────
-  // Run Complete Health Check
-  // ─────────────────────────────────────────────
 
   function runHealthCheck() {
 
@@ -402,17 +257,24 @@
 
     healthState.errors = [];
 
+    healthState.checks = {
 
-    checkFirebase();
+      firebase:
+        checkFirebase(),
 
-    checkIntegration();
+      integration:
+        checkIntegration(),
 
-    checkDashboard();
+      dashboard:
+        checkDashboard(),
 
-    checkSafety();
+      safety:
+        checkSafety(),
 
-    checkEnvironment();
+      environment:
+        checkEnvironment()
 
+    };
 
     Object.values(
 
@@ -426,7 +288,6 @@
 
       }
 
-
       if (check.status === "ERROR") {
 
         healthState.errors.push(check);
@@ -435,78 +296,99 @@
 
     });
 
-
     healthState.status =
-
       calculateOverallHealth();
 
-
     healthState.lastChecked =
-
       new Date().toISOString();
-
 
     return getHealthStatus();
 
   }
 
+  function calculateOverallHealth() {
 
-  // ─────────────────────────────────────────────
-  // Get Health Status
-  // ─────────────────────────────────────────────
+    const results =
+      Object.values(
+        healthState.checks
+      );
+
+    if (
+
+      results.some(
+
+        check =>
+          check.status === "ERROR"
+
+      )
+
+    ) {
+
+      return "ERROR";
+
+    }
+
+    if (
+
+      results.some(
+
+        check =>
+          check.status === "WARNING"
+
+      )
+
+    ) {
+
+      return "WARNING";
+
+    }
+
+    if (results.length === 0) {
+
+      return "UNKNOWN";
+
+    }
+
+    return "HEALTHY";
+
+  }
 
   function getHealthStatus() {
 
     return {
 
       status:
-
         healthState.status,
 
       environment:
-
         healthState.environment,
 
       initialized:
-
         healthState.initialized,
 
       lastChecked:
-
         healthState.lastChecked,
 
       checkCount:
-
         Object.keys(
-
           healthState.checks
-
         ).length,
 
       warningCount:
-
         healthState.warnings.length,
 
       errorCount:
-
         healthState.errors.length,
 
-      checks:
+      checks: {
 
-        {
+        ...healthState.checks
 
-          ...healthState.checks
-
-        }
+      }
 
     };
 
   }
-
-
-  // ─────────────────────────────────────────────
-  // Initialize Health Monitoring
-  // ─────────────────────────────────────────────
 
   function initializeHealth() {
 
@@ -516,24 +398,19 @@
 
     }
 
-
     healthState.initialized = true;
-
 
     return runHealthCheck();
 
   }
 
-
-  // ─────────────────────────────────────────────
-  // Reset Health Monitoring
-  // ─────────────────────────────────────────────
-
   function resetHealth() {
 
-    healthState.status = "UNKNOWN";
+    healthState.status =
+      "UNKNOWN";
 
-    healthState.lastChecked = null;
+    healthState.lastChecked =
+      null;
 
     healthState.checks = {};
 
@@ -541,15 +418,11 @@
 
     healthState.errors = [];
 
+    healthState.initialized = false;
 
     return getHealthStatus();
 
   }
-
-
-  // ─────────────────────────────────────────────
-  // Public API
-  // ─────────────────────────────────────────────
 
   const healthAPI = {
 
@@ -564,45 +437,26 @@
     resetHealth,
 
     state:
-
       healthState
 
   };
 
-
-  // ─────────────────────────────────────────────
-  // Browser Global
-  // ─────────────────────────────────────────────
-
-  if (
-
-    typeof window !== "undefined"
-
-  ) {
+  if (typeof window !== "undefined") {
 
     window.BloggerSaaSHealth =
-
       healthAPI;
 
   }
 
-
-  // ─────────────────────────────────────────────
-  // Node / Test Export
-  // ─────────────────────────────────────────────
-
   if (
-
     typeof module !== "undefined" &&
-
     module.exports
-
   ) {
 
-    module.exports = healthAPI;
+    module.exports =
+      healthAPI;
 
   }
-
 
 })(
 
