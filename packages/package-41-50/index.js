@@ -127,6 +127,18 @@ function initializePackage() {
 const integrationStatus =
 integration.initializeIntegration();
 
+ integration.registerModule("manifest", manifest);
+integration.registerModule("firebase", firebase);
+integration.registerModule("health", health);
+integration.registerModule("dashboard", dashboard);
+integration.registerModule("verification", verification);
+integration.registerModule("final", finalCore);
+integration.registerModule("testSuite", testSuite);
+integration.registerModule("testReport", testReport);
+integration.registerModule("testLauncher", testLauncher);
+integration.registerModule("integrationTest", integrationTest);
+integration.registerModule("testCenter", testCenter);
+
 return {
 
 packageId: PACKAGE_ID,
