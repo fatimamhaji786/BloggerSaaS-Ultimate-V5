@@ -2,20 +2,11 @@
  * BloggerSaaS Ultimate V5
  * Package 41–50
  * Core Integration Layer
- *
- * Coordinates package modules in a safe development environment.
- *
- * This module does not automatically modify production systems.
  */
 
 (function (global) {
 
   "use strict";
-
-
-  // ─────────────────────────────────────────────
-  // Integration State
-  // ─────────────────────────────────────────────
 
   const integrationState = {
 
@@ -31,15 +22,9 @@
 
   };
 
-
-  // ─────────────────────────────────────────────
-  // Event Bus
-  // ─────────────────────────────────────────────
-
   const eventBus = {
 
     listeners: {},
-
 
     on(eventName, callback) {
 
@@ -59,8 +44,9 @@
 
       this.listeners[eventName].push(callback);
 
-    },
+      return true;
 
+    },
 
     emit(eventName, payload = {}) {
 
@@ -83,7 +69,9 @@
 
           callback(payload);
 
-        } catch (error) {
+        }
+
+        catch (error) {
 
           integrationState.errors.push({
 
@@ -99,21 +87,19 @@
 
       });
 
-    },
+      return true;
 
+    },
 
     clear() {
 
       this.listeners = {};
 
+      return true;
+
     }
 
   };
-
-
-  // ─────────────────────────────────────────────
-  // Module Registration
-  // ─────────────────────────────────────────────
 
   function registerModule(moduleName, moduleInstance) {
 
@@ -152,21 +138,39 @@
 
   }
 
+  function registerModules(modules = {}) {
 
-  // ─────────────────────────────────────────────
-  // Module Retrieval
-  // ─────────────────────────────────────────────
+    Object.keys(modules).forEach(moduleName => {
 
-  function getModule(moduleName) {
+      if (modules[moduleName]) {
 
-    return integrationState.modules[moduleName] || null;
+        registerModule(
+
+          moduleName,
+
+          modules[moduleName]
+
+        );
+
+      }
+
+    });
+
+    return getIntegrationStatus();
 
   }
 
+  function getModule(moduleName) {
 
-  // ─────────────────────────────────────────────
-  // Module Status
-  // ─────────────────────────────────────────────
+    return (
+
+      integrationState.modules[moduleName] ||
+
+      null
+
+    );
+
+  }
 
   function getIntegrationStatus() {
 
@@ -179,8 +183,11 @@
         integrationState.environment,
 
       registeredModules:
+
         Object.keys(
+
           integrationState.modules
+
         ),
 
       eventCount:
@@ -192,11 +199,6 @@
     };
 
   }
-
-
-  // ─────────────────────────────────────────────
-  // Initialization
-  // ─────────────────────────────────────────────
 
   function initializeIntegration() {
 
@@ -225,11 +227,6 @@
 
   }
 
-
-  // ─────────────────────────────────────────────
-  // Safe Shutdown
-  // ─────────────────────────────────────────────
-
   function shutdownIntegration() {
 
     eventBus.emit(
@@ -244,14 +241,11 @@
 
     eventBus.clear();
 
+    integrationState.modules = {};
+
     return true;
 
   }
-
-
-  // ─────────────────────────────────────────────
-  // Public API
-  // ─────────────────────────────────────────────
 
   const integrationAPI = {
 
@@ -261,20 +255,18 @@
 
     registerModule,
 
+    registerModules,
+
     getModule,
 
     getIntegrationStatus,
 
     eventBus,
 
-    state: integrationState
+    state:
+      integrationState
 
   };
-
-
-  // ─────────────────────────────────────────────
-  // Browser Global
-  // ─────────────────────────────────────────────
 
   if (typeof window !== "undefined") {
 
@@ -283,22 +275,19 @@
 
   }
 
-
-  // ─────────────────────────────────────────────
-  // Node / Test Export
-  // ─────────────────────────────────────────────
-
-  if (
-    typeof module !== "undefined" &&
-    module.exports
-  ) {
+  if (typeof module !== "undefined" && module.exports) {
 
     module.exports =
       integrationAPI;
 
   }
 
+})(
 
-})(typeof globalThis !== "undefined"
-  ? globalThis
-  : this);
+  typeof globalThis !== "undefined"
+
+    ? globalThis
+
+    : this
+
+);
