@@ -28,10 +28,32 @@
 
     on(eventName, callback) {
 
-      if (typeof callback !== "function") {
+      if (
+
+        typeof eventName !== "string" ||
+
+        !eventName.trim()
+
+      ) {
+
+        throw new Error(
+
+          "Event name is required."
+
+        );
+
+      }
+
+      if (
+
+        typeof callback !== "function"
+
+      ) {
 
         throw new TypeError(
+
           "Event listener must be a function."
+
         );
 
       }
@@ -48,19 +70,42 @@
 
     },
 
+    off(eventName, callback) {
+
+      if (!this.listeners[eventName]) {
+
+        return false;
+
+      }
+
+      this.listeners[eventName] =
+
+        this.listeners[eventName].filter(
+
+          listener => listener !== callback
+
+        );
+
+      return true;
+
+    },
+
     emit(eventName, payload = {}) {
 
       integrationState.events.push({
 
         event: eventName,
 
-        timestamp: new Date().toISOString(),
+        timestamp:
+
+          new Date().toISOString(),
 
         payload
 
       });
 
       const listeners =
+
         this.listeners[eventName] || [];
 
       listeners.forEach(callback => {
@@ -79,7 +124,9 @@
 
             message: error.message,
 
-            timestamp: new Date().toISOString()
+            timestamp:
+
+              new Date().toISOString()
 
           });
 
@@ -87,26 +134,36 @@
 
       });
 
-      return true;
-
     },
 
     clear() {
 
       this.listeners = {};
 
-      return true;
-
     }
 
   };
 
-  function registerModule(moduleName, moduleInstance) {
+  function registerModule(
 
-    if (!moduleName) {
+    moduleName,
+
+    moduleInstance
+
+  ) {
+
+    if (
+
+      typeof moduleName !== "string" ||
+
+      !moduleName.trim()
+
+    ) {
 
       throw new Error(
+
         "Module name is required."
+
       );
 
     }
@@ -114,12 +171,15 @@
     if (!moduleInstance) {
 
       throw new Error(
+
         "Module instance is required."
+
       );
 
     }
 
     integrationState.modules[moduleName] =
+
       moduleInstance;
 
     eventBus.emit(
@@ -135,28 +195,6 @@
     );
 
     return true;
-
-  }
-
-  function registerModules(modules = {}) {
-
-    Object.keys(modules).forEach(moduleName => {
-
-      if (modules[moduleName]) {
-
-        registerModule(
-
-          moduleName,
-
-          modules[moduleName]
-
-        );
-
-      }
-
-    });
-
-    return getIntegrationStatus();
 
   }
 
@@ -177,9 +215,11 @@
     return {
 
       initialized:
+
         integrationState.initialized,
 
       environment:
+
         integrationState.environment,
 
       registeredModules:
@@ -191,9 +231,11 @@
         ),
 
       eventCount:
+
         integrationState.events.length,
 
       errorCount:
+
         integrationState.errors.length
 
     };
@@ -202,7 +244,11 @@
 
   function initializeIntegration() {
 
-    if (integrationState.initialized) {
+    if (
+
+      integrationState.initialized
+
+    ) {
 
       return getIntegrationStatus();
 
@@ -217,6 +263,7 @@
       {
 
         environment:
+
           integrationState.environment
 
       }
@@ -241,8 +288,6 @@
 
     eventBus.clear();
 
-    integrationState.modules = {};
-
     return true;
 
   }
@@ -255,29 +300,30 @@
 
     registerModule,
 
-    registerModules,
-
     getModule,
 
     getIntegrationStatus,
 
     eventBus,
 
-    state:
-      integrationState
+    state: integrationState
 
   };
 
-  if (typeof window !== "undefined") {
+  global.BloggerSaaSIntegration =
 
-    window.BloggerSaaSIntegration =
-      integrationAPI;
+    integrationAPI;
 
-  }
+  if (
 
-  if (typeof module !== "undefined" && module.exports) {
+    typeof module !== "undefined" &&
+
+    module.exports
+
+  ) {
 
     module.exports =
+
       integrationAPI;
 
   }
@@ -290,4 +336,4 @@
 
     : this
 
-);
+);_
