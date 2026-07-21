@@ -2,21 +2,11 @@
  * BloggerSaaS Ultimate V5
  * Package 41–50
  * Core Firebase Bridge
- *
- * Provides safe Firebase initialization and status
- * management for the package.
- *
- * This module does not modify production data automatically.
  */
 
 (function (global) {
 
   "use strict";
-
-
-  // ─────────────────────────────────────────────
-  // Firebase State
-  // ─────────────────────────────────────────────
 
   const firebaseState = {
 
@@ -38,11 +28,6 @@
 
   };
 
-
-  // ─────────────────────────────────────────────
-  // Firebase Configuration Validation
-  // ─────────────────────────────────────────────
-
   function validateFirebaseConfig(config) {
 
     if (!config || typeof config !== "object") {
@@ -61,7 +46,6 @@
 
     }
 
-
     const requiredFields = [
 
       "apiKey",
@@ -74,9 +58,7 @@
 
     ];
 
-
     const errors = [];
-
 
     requiredFields.forEach(field => {
 
@@ -98,21 +80,17 @@
 
     });
 
-
     return {
 
-      valid: errors.length === 0,
+      valid:
+
+        errors.length === 0,
 
       errors
 
     };
 
   }
-
-
-  // ─────────────────────────────────────────────
-  // Firebase SDK Detection
-  // ─────────────────────────────────────────────
 
   function isFirebaseSDKAvailable() {
 
@@ -126,17 +104,10 @@
 
   }
 
-
-  // ─────────────────────────────────────────────
-  // Safe Firebase Initialization
-  // ─────────────────────────────────────────────
-
   function initializeFirebase(config) {
 
     const validation =
-
       validateFirebaseConfig(config);
-
 
     if (!validation.valid) {
 
@@ -158,11 +129,11 @@
 
     }
 
-
     firebaseState.configured = true;
 
-
     if (!isFirebaseSDKAvailable()) {
+
+      firebaseState.connected = false;
 
       return {
 
@@ -180,14 +151,11 @@
 
     }
 
-
     try {
-
 
       if (!firebase.apps.length) {
 
         firebaseState.app =
-
           firebase.initializeApp(config);
 
       }
@@ -195,26 +163,19 @@
       else {
 
         firebaseState.app =
-
           firebase.app();
 
       }
 
-
       firebaseState.auth =
-
         firebase.auth();
 
-
       firebaseState.database =
-
         firebase.database();
-
 
       firebaseState.initialized = true;
 
       firebaseState.connected = true;
-
 
       return {
 
@@ -224,20 +185,21 @@
 
       };
 
-
     }
 
     catch (error) {
 
-
       firebaseState.errors.push({
 
-        message: error.message,
+        message:
+          error.message,
 
-        timestamp: new Date().toISOString()
+        timestamp:
+          new Date().toISOString()
 
       });
 
+      firebaseState.connected = false;
 
       return {
 
@@ -257,67 +219,43 @@
 
   }
 
-
-  // ─────────────────────────────────────────────
-  // Firebase Status
-  // ─────────────────────────────────────────────
-
   function getFirebaseStatus() {
 
     return {
 
       initialized:
-
         firebaseState.initialized,
 
       configured:
-
         firebaseState.configured,
 
       connected:
-
         firebaseState.connected,
 
       environment:
-
         firebaseState.environment,
 
       hasAuth:
-
         !!firebaseState.auth,
 
       hasDatabase:
-
         !!firebaseState.database,
 
       errorCount:
-
         firebaseState.errors.length
 
     };
 
   }
 
-
-  // ─────────────────────────────────────────────
-  // Connection Status
-  // ─────────────────────────────────────────────
-
   function setConnectionStatus(status) {
 
     firebaseState.connected =
-
       Boolean(status);
-
 
     return getFirebaseStatus();
 
   }
-
-
-  // ─────────────────────────────────────────────
-  // Safe Shutdown
-  // ─────────────────────────────────────────────
 
   function shutdownFirebase() {
 
@@ -331,15 +269,9 @@
 
     firebaseState.database = null;
 
-
     return true;
 
   }
-
-
-  // ─────────────────────────────────────────────
-  // Public API
-  // ─────────────────────────────────────────────
 
   const firebaseAPI = {
 
@@ -355,40 +287,27 @@
 
     shutdownFirebase,
 
-    state: firebaseState
+    state:
+      firebaseState
 
   };
-
-
-  // ─────────────────────────────────────────────
-  // Browser Global
-  // ─────────────────────────────────────────────
 
   if (typeof window !== "undefined") {
 
     window.BloggerSaaSFirebase =
-
       firebaseAPI;
 
   }
 
-
-  // ─────────────────────────────────────────────
-  // Node / Test Export
-  // ─────────────────────────────────────────────
-
   if (
-
     typeof module !== "undefined" &&
-
     module.exports
-
   ) {
 
-    module.exports = firebaseAPI;
+    module.exports =
+      firebaseAPI;
 
   }
-
 
 })(
 
