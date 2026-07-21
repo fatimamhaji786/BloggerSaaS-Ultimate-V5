@@ -1,130 +1,80 @@
 /**
 
-BloggerSaaS Ultimate V5 Package 41–50 Configuration Entry Point Central configuration registry for the package. This module only loads and validates configuration. It does not modify production systems. */ 
+BloggerSaaS Ultimate V5 Package 41–50 Configuration Index Central configuration registry. This module provides safe access to package configuration modules without modifying production systems. */ 
+
+(function (global) {
 
 "use strict";
 
-// ───────────────────────────────────────────── // Configuration Modules // ─────────────────────────────────────────────
+// ───────────────────────────────────────────── // Configuration State // ─────────────────────────────────────────────
 
-const firebaseConfig =
+const configurationState = {
 
-require("./firebase-config.example.js");
-
-const packageTestConfig =
-
-require("./package-test-config.js");
-
-const dependencyMap =
-
-require("./dependency-map.js");
-
-// ───────────────────────────────────────────── // Configuration Identity // ─────────────────────────────────────────────
-
-const CONFIGURATION_ID =
-
-"package-41-50-config";
-
-const PACKAGE_ID =
-
-"package-41-50";
-
-const ENVIRONMENT =
-
-"safe-development";
-
-// ───────────────────────────────────────────── // Get Complete Configuration // ─────────────────────────────────────────────
-
-function getConfiguration() {
-
-return {
-
-packageId: PACKAGE_ID, configurationId: CONFIGURATION_ID, environment: ENVIRONMENT, firebase: firebaseConfig, testing: packageTestConfig, dependencies: dependencyMap 
+initialized: false, environment: "safe-development", sources: {}, errors: [] 
 
 };
 
-}
+// ───────────────────────────────────────────── // Configuration Registration // ─────────────────────────────────────────────
 
-// ───────────────────────────────────────────── // Validate All Configuration // ─────────────────────────────────────────────
+function registerConfig(configName, configObject) {
 
-function validateAllConfiguration() {
-
-const errors = [];
-
-// Firebase configuration validation
-
-if (
-
-firebaseConfig && typeof firebaseConfig.validateFirebaseConfig === "function" 
-
-) {
-
-const firebaseValidation = firebaseConfig.validateFirebaseConfig( firebaseConfig.FIREBASE_CONFIG_EXAMPLE ); // The example configuration is intentionally // incomplete and is therefore not considered // production-ready. if ( !firebaseValidation || typeof firebaseValidation !== "object" ) { errors.push( "Firebase configuration validation failed." ); } 
+if (!configName) { throw new Error( "Configuration name is required." ); } if (!configObject) { throw new Error( "Configuration object is required." ); } configurationState.sources[configName] = configObject; return true; 
 
 }
 
-// Test configuration validation
+// ───────────────────────────────────────────── // Configuration Retrieval // ─────────────────────────────────────────────
 
-if (
+function getConfig(configName) {
 
-packageTestConfig && typeof packageTestConfig.validateTestConfiguration === "function" 
-
-) {
-
-const testValidation = packageTestConfig.validateTestConfiguration( packageTestConfig.PACKAGE_TEST_CONFIG ); if ( !testValidation.valid ) { errors.push( ...testValidation.errors ); } 
+return ( configurationState.sources[configName] || null ); 
 
 }
 
-// Dependency map validation
+// ───────────────────────────────────────────── // Configuration Existence Check // ─────────────────────────────────────────────
 
-if (
+function hasConfig(configName) {
 
-dependencyMap && typeof dependencyMap.validateDependencyRegistry === "function" 
-
-) {
-
-const dependencyValidation = dependencyMap.validateDependencyRegistry(); if ( !dependencyValidation.valid ) { errors.push( ...dependencyValidation.errors ); } 
+return Boolean( configurationState.sources[configName] ); 
 
 }
 
-return {
+// ───────────────────────────────────────────── // List Registered Configurations // ─────────────────────────────────────────────
 
-valid: errors.length === 0, errors 
+function listConfigs() {
 
-};
-
-}
-
-// ───────────────────────────────────────────── // Safe Environment Check // ─────────────────────────────────────────────
-
-function isSafeConfiguration() {
-
-if (
-
-packageTestConfig && typeof packageTestConfig.isSafeTestEnvironment === "function" 
-
-) {
-
-return packageTestConfig.isSafeTestEnvironment( packageTestConfig.PACKAGE_TEST_CONFIG ); 
+return Object.keys( configurationState.sources ); 
 
 }
 
-return false;
+// ───────────────────────────────────────────── // Configuration Validation // ─────────────────────────────────────────────
+
+function validateConfig(configName) {
+
+const config = getConfig(configName); if (!config) { return { valid: false, configName, message: "Configuration not registered." }; } return { valid: true, configName, message: "Configuration is registered." }; 
 
 }
 
-// ───────────────────────────────────────────── // Configuration Summary // ─────────────────────────────────────────────
+// ───────────────────────────────────────────── // Initialize Configuration System // ─────────────────────────────────────────────
 
-function getConfigurationSummary() {
+function initializeConfig() {
 
-const validation =
+if ( configurationState.initialized ) { return getConfigStatus(); } configurationState.initialized = true; return getConfigStatus(); 
 
-validateAllConfiguration(); 
+}
 
-return {
+// ───────────────────────────────────────────── // Configuration Status // ─────────────────────────────────────────────
 
-packageId: PACKAGE_ID, configurationId: CONFIGURATION_ID, environment: ENVIRONMENT, safe: isSafeConfiguration(), valid: validation.valid, firebaseExample: firebaseConfig && typeof firebaseConfig.isExampleConfiguration === "function" ? firebaseConfig.isExampleConfiguration( firebaseConfig.FIREBASE_CONFIG_EXAMPLE ) : true, dependencyCount: dependencyMap && typeof dependencyMap.getRequiredDependencyIds === "function" ? dependencyMap.getRequiredDependencyIds().length : 0, errors: validation.errors 
+function getConfigStatus() {
 
-};
+return { initialized: configurationState.initialized, environment: configurationState.environment, registeredConfigs: listConfigs(), configCount: listConfigs().length, errorCount: configurationState.errors.length }; 
+
+}
+
+// ───────────────────────────────────────────── // Safe Reset // ─────────────────────────────────────────────
+
+function resetConfig() {
+
+configurationState.sources = {}; configurationState.errors = []; configurationState.initialized = false; return true; 
 
 }
 
@@ -132,55 +82,25 @@ packageId: PACKAGE_ID, configurationId: CONFIGURATION_ID, environment: ENVIRONME
 
 const configurationAPI = {
 
-CONFIGURATION_ID,
-
-PACKAGE_ID,
-
-ENVIRONMENT,
-
-firebaseConfig,
-
-packageTestConfig,
-
-dependencyMap,
-
-getConfiguration,
-
-validateAllConfiguration,
-
-isSafeConfiguration,
-
-getConfigurationSummary
+initializeConfig, registerConfig, getConfig, hasConfig, listConfigs, validateConfig, getConfigStatus, resetConfig, state: configurationState 
 
 };
 
-// ───────────────────────────────────────────── // Node / Test Export // ─────────────────────────────────────────────
-
-if (
-
-typeof module !== "undefined" &&
-
-module.exports
-
-) {
-
-module.exports =
-
-configurationAPI; 
-
-}
-
 // ───────────────────────────────────────────── // Browser Global // ─────────────────────────────────────────────
 
-if (
+if ( typeof window !== "undefined" ) {
 
-typeof window !== "undefined"
-
-) {
-
-window.BloggerSaaSPackageConfig =
-
-configurationAPI; 
+window.BloggerSaaSConfig = configurationAPI; 
 
 }
+
+// ───────────────────────────────────────────── // Node / Test Export // ─────────────────────────────────────────────
+
+if ( typeof module !== "undefined" && module.exports ) {
+
+module.exports = configurationAPI; 
+
+}
+
+})( typeof globalThis !== "undefined" ? globalThis : this );
 
