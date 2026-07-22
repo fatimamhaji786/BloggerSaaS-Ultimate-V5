@@ -271,233 +271,332 @@
 
 
   // ─────────────────────────────────────────────
-  // Run Tests and Generate Report
-  // ─────────────────────────────────────────────
+// Run Tests and Generate Report
+// ─────────────────────────────────────────────
 
-  function runAndGetSummary() {
+function runAndGetSummary() {
 
-    if (
+  if (
 
-      launcherState.running
+    launcherState.running
 
-    ) {
+  ) {
 
-      return {
+    return {
 
-        success: false,
+      success: false,
 
-        status: "already-running",
+      status: "already-running",
 
-        message:
+      message:
 
-          "Test Launcher is already running."
+        "Test Launcher is already running."
 
-      };
+    };
 
-    }
+  }
 
 
-    launcherState.running = true;
+  launcherState.running = true;
 
-    launcherState.initialized = true;
+  launcherState.initialized = true;
 
-    launcherState.status = "running";
+  launcherState.status = "running";
 
-    launcherState.runCount++;
+  launcherState.runCount++;
 
-    launcherState.startedAt =
+  launcherState.startedAt =
 
-      new Date().toISOString();
+    new Date().toISOString();
 
 
-    try {
+  try {
 
-      // 1. Run the complete test suite.
+    // 1. Run the complete test suite.
 
-      const testResult =
+    const testResult =
 
-        runTestSuite();
+      runTestSuite();
 
 
-      // 2. Generate a structured report.
+    // 2. Generate a structured report.
 
-      const reportResult =
+    const reportResult =
 
-        generateReport(
+      generateReport(
 
-          testResult
-
-        );
-
-
-      const testsPassed =
-
-        testResult &&
-
-        (
-
-          testResult.status ===
-
-            "passed" ||
-
-          testResult.status ===
-
-            "PASS" ||
-
-          testResult.status ===
-
-            "PASSED" ||
-
-          testResult.success ===
-
-            true
-
-        );
-
-
-      const reportPassed =
-
-        reportResult &&
-
-        (
-
-          reportResult.success ===
-
-            true
-
-        );
-
-
-      const success =
-
-        testsPassed &&
-
-        reportPassed;
-
-
-      launcherState.status =
-
-        success
-
-          ? "passed"
-
-          : "failed";
-
-
-      launcherState.completedAt =
-
-        new Date().toISOString();
-
-
-      launcherState.running = false;
-
-
-      const finalResult = {
-
-        success,
-
-        status:
-
-          launcherState.status,
-
-        environment:
-
-          launcherState.environment,
-
-        runCount:
-
-          launcherState.runCount,
-
-        startedAt:
-
-          launcherState.startedAt,
-
-        completedAt:
-
-          launcherState.completedAt,
-
-        tests:
-
-          testResult,
-
-        report:
-
-          reportResult
-
-      };
-
-
-      launcherState.lastReport =
-
-        finalResult;
-
-
-      return finalResult;
-
-    }
-
-    catch (error) {
-
-      launcherState.running = false;
-
-      launcherState.status = "error";
-
-      launcherState.completedAt =
-
-        new Date().toISOString();
-
-
-      const errorRecord = {
-
-        message:
-
-          error && error.message
-
-            ? error.message
-
-            : String(error),
-
-        timestamp:
-
-          new Date().toISOString()
-
-      };
-
-
-      launcherState.errors.push(
-
-        errorRecord
+        testResult
 
       );
 
 
-      const finalResult = {
+    // 3. Determine whether tests passed.
 
-        success: false,
+    const testsPassed =
 
-        status: "error",
+      testResult &&
 
-        environment:
+      (
 
-          launcherState.environment,
+        testResult.status ===
 
-        error:
+          "passed" ||
 
-          errorRecord
+        testResult.status ===
 
-      };
+          "PASS" ||
+
+        testResult.status ===
+
+          "PASSED" ||
+
+        testResult.success ===
+
+          true
+
+      );
 
 
-      launcherState.lastReport =
+    // 4. Determine whether report generation passed.
 
-        finalResult;
+    const reportPassed =
+
+      reportResult &&
+
+      reportResult.success ===
+
+        true;
 
 
-      return finalResult;
+    // 5. Extract report data.
 
-    }
+    const reportData =
+
+      reportResult &&
+
+      reportResult.report
+
+        ? reportResult.report
+
+        : null;
+
+
+    // 6. Create normalized summary.
+
+    const summary =
+
+      reportData &&
+
+      reportData.summary
+
+        ? reportData.summary
+
+        : {
+
+            total:
+
+              testResult &&
+
+              testResult.total
+
+                ? testResult.total
+
+                : 0,
+
+            passed:
+
+              testResult &&
+
+              testResult.passed
+
+                ? testResult.passed
+
+                : 0,
+
+            failed:
+
+              testResult &&
+
+              testResult.failed
+
+                ? testResult.failed
+
+                : 0,
+
+            skipped:
+
+              testResult &&
+
+              testResult.skipped
+
+                ? testResult.skipped
+
+                : 0,
+
+            percentage:
+
+              testResult &&
+
+              testResult.percentage
+
+                ? testResult.percentage
+
+                : 0,
+
+            status:
+
+              testResult &&
+
+              testResult.status
+
+                ? testResult.status
+
+                : "not-run"
+
+          };
+
+
+    // 7. Final success result.
+
+    const success =
+
+      testsPassed &&
+
+      reportPassed;
+
+
+    launcherState.status =
+
+      success
+
+        ? "passed"
+
+        : "failed";
+
+
+    launcherState.completedAt =
+
+      new Date().toISOString();
+
+
+    launcherState.running = false;
+
+
+    // 8. Consolidated final result.
+
+    const finalResult = {
+
+      success,
+
+      status:
+
+        launcherState.status,
+
+      environment:
+
+        launcherState.environment,
+
+      runCount:
+
+        launcherState.runCount,
+
+      startedAt:
+
+        launcherState.startedAt,
+
+      completedAt:
+
+        launcherState.completedAt,
+
+      tests:
+
+        testResult,
+
+      report:
+
+        reportResult,
+
+      summary
+
+    };
+
+
+    launcherState.lastReport =
+
+      finalResult;
+
+
+    return finalResult;
 
   }
+
+
+  catch (error) {
+
+    launcherState.running = false;
+
+    launcherState.status =
+
+      "error";
+
+    launcherState.completedAt =
+
+      new Date().toISOString();
+
+
+    const errorRecord = {
+
+      message:
+
+        error &&
+
+        error.message
+
+          ? error.message
+
+          : String(error),
+
+      timestamp:
+
+        new Date().toISOString()
+
+    };
+
+
+    launcherState.errors.push(
+
+      errorRecord
+
+    );
+
+
+    const finalResult = {
+
+      success: false,
+
+      status: "error",
+
+      environment:
+
+        launcherState.environment,
+
+      error:
+
+        errorRecord
+
+    };
+
+
+    launcherState.lastReport =
+
+      finalResult;
+
+
+    return finalResult;
+
+  }
+
+}
 
 
   // ─────────────────────────────────────────────
