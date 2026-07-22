@@ -34,7 +34,11 @@
 
   function initializeDashboard() {
 
-    if (dashboardState.initialized) {
+    if (
+
+      dashboardState.initialized
+
+    ) {
 
       return getDashboardStatus();
 
@@ -43,15 +47,26 @@
     dashboardState.initialized = true;
 
     dashboardState.lastUpdated =
+
       new Date().toISOString();
 
     return getDashboardStatus();
 
   }
 
-  function updateDashboardStatus(status = {}) {
+  function updateDashboardStatus(
 
-    if (!status || typeof status !== "object") {
+    status = {}
+
+  ) {
+
+    if (
+
+      !status ||
+
+      typeof status !== "object"
+
+    ) {
 
       throw new TypeError(
 
@@ -61,56 +76,100 @@
 
     }
 
-    if (status.health !== undefined) {
+    if (
+
+      status.health !== undefined
+
+    ) {
 
       dashboardState.health =
+
         status.health;
 
     }
 
-    if (status.firebase !== undefined) {
+    if (
+
+      status.firebase !== undefined
+
+    ) {
 
       dashboardState.firebase =
+
         status.firebase;
 
     }
 
-    if (status.integration !== undefined) {
+    if (
+
+      status.integration !== undefined
+
+    ) {
 
       dashboardState.integration =
+
         status.integration;
 
     }
 
-    if (status.verification !== undefined) {
+    if (
+
+      status.verification !== undefined
+
+    ) {
 
       dashboardState.verification =
+
         status.verification;
 
     }
 
-    if (status.tests !== undefined) {
+    if (
+
+      status.tests !== undefined
+
+    ) {
 
       dashboardState.tests =
+
         status.tests;
 
     }
 
-    if (Array.isArray(status.warnings)) {
+    if (
+
+      Array.isArray(
+
+        status.warnings
+
+      )
+
+    ) {
 
       dashboardState.warnings =
+
         [...status.warnings];
 
     }
 
-    if (Array.isArray(status.errors)) {
+    if (
+
+      Array.isArray(
+
+        status.errors
+
+      )
+
+    ) {
 
       dashboardState.errors =
+
         [...status.errors];
 
     }
 
     dashboardState.lastUpdated =
+
       new Date().toISOString();
 
     return getDashboardStatus();
@@ -128,14 +187,17 @@
     dashboardState.warnings.push({
 
       message:
+
         String(message),
 
       timestamp:
+
         new Date().toISOString()
 
     });
 
     dashboardState.lastUpdated =
+
       new Date().toISOString();
 
     return true;
@@ -153,14 +215,17 @@
     dashboardState.errors.push({
 
       message:
+
         String(message),
 
       timestamp:
+
         new Date().toISOString()
 
     });
 
     dashboardState.lastUpdated =
+
       new Date().toISOString();
 
     return true;
@@ -169,13 +234,21 @@
 
   function calculateOverallStatus() {
 
-    if (dashboardState.errors.length > 0) {
+    if (
+
+      dashboardState.errors.length > 0
+
+    ) {
 
       return "ERROR";
 
     }
 
-    if (dashboardState.warnings.length > 0) {
+    if (
+
+      dashboardState.warnings.length > 0
+
+    ) {
 
       return "WARNING";
 
@@ -190,36 +263,47 @@
     return {
 
       initialized:
+
         dashboardState.initialized,
 
       environment:
+
         dashboardState.environment,
 
       overallStatus:
+
         calculateOverallStatus(),
 
       lastUpdated:
+
         dashboardState.lastUpdated,
 
       health:
+
         dashboardState.health,
 
       firebase:
+
         dashboardState.firebase,
 
       integration:
+
         dashboardState.integration,
 
       verification:
+
         dashboardState.verification,
 
       tests:
+
         dashboardState.tests,
 
       warningCount:
+
         dashboardState.warnings.length,
 
       errorCount:
+
         dashboardState.errors.length
 
     };
@@ -231,15 +315,19 @@
     return {
 
       generatedAt:
+
         new Date().toISOString(),
 
       status:
+
         getDashboardStatus(),
 
       warnings:
+
         [...dashboardState.warnings],
 
       errors:
+
         [...dashboardState.errors]
 
     };
@@ -251,6 +339,7 @@
     dashboardState.initialized = false;
 
     dashboardState.lastUpdated =
+
       new Date().toISOString();
 
     return true;
@@ -275,24 +364,24 @@
 
     shutdownDashboard,
 
-    state:
-      dashboardState
+    state: dashboardState
 
   };
 
-  if (typeof window !== "undefined") {
+  global.BloggerSaaSDashboard =
 
-    window.BloggerSaaSDashboard =
-      dashboardAPI;
-
-  }
+    dashboardAPI;
 
   if (
+
     typeof module !== "undefined" &&
+
     module.exports
+
   ) {
 
     module.exports =
+
       dashboardAPI;
 
   }
