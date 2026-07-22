@@ -2,11 +2,25 @@
  * BloggerSaaS Ultimate V5
  * Package 41–50
  * Core Health Monitoring
+ *
+ * Safe development health monitoring layer.
+ *
+ * Safety:
+ * - Does not modify production systems.
+ * - Does not modify live Firebase data.
+ * - Does not modify user accounts.
+ * - Does not deploy automatically.
+ * - Does not delete external data.
  */
 
 (function (global) {
 
   "use strict";
+
+
+  // ─────────────────────────────────────────────
+  // Health State
+  // ─────────────────────────────────────────────
 
   const healthState = {
 
@@ -25,6 +39,11 @@
     errors: []
 
   };
+
+
+  // ─────────────────────────────────────────────
+  // Check Result Factory
+  // ─────────────────────────────────────────────
 
   function createCheckResult(
 
@@ -56,15 +75,22 @@
 
   }
 
+
+  // ─────────────────────────────────────────────
+  // Firebase Check
+  // ─────────────────────────────────────────────
+
   function checkFirebase() {
 
     const firebase =
 
       global.BloggerSaaSFirebase;
 
+
     const available =
 
       !!firebase;
+
 
     const apiValid =
 
@@ -74,15 +100,19 @@
 
         "function";
 
+
     let status = "HEALTHY";
+
 
     let message =
 
       "Firebase bridge API is available.";
 
+
     if (!available) {
 
       status = "WARNING";
+
 
       message =
 
@@ -90,15 +120,18 @@
 
     }
 
+
     else if (!apiValid) {
 
       status = "ERROR";
+
 
       message =
 
         "Firebase bridge API is incomplete.";
 
     }
+
 
     return (
 
@@ -126,15 +159,22 @@
 
   }
 
+
+  // ─────────────────────────────────────────────
+  // Integration Check
+  // ─────────────────────────────────────────────
+
   function checkIntegration() {
 
     const integration =
 
       global.BloggerSaaSIntegration;
 
+
     const available =
 
       !!integration;
+
 
     const apiValid =
 
@@ -156,7 +196,8 @@
 
         "function";
 
-    let status =
+
+    const status =
 
       apiValid
 
@@ -164,13 +205,15 @@
 
         : "WARNING";
 
-    let message =
+
+    const message =
 
       apiValid
 
         ? "Integration layer is available."
 
         : "Integration layer requires review.";
+
 
     return (
 
@@ -198,15 +241,22 @@
 
   }
 
+
+  // ─────────────────────────────────────────────
+  // Dashboard Check
+  // ─────────────────────────────────────────────
+
   function checkDashboard() {
 
     const dashboard =
 
       global.BloggerSaaSDashboard;
 
+
     const available =
 
       !!dashboard;
+
 
     const apiValid =
 
@@ -219,6 +269,7 @@
       typeof dashboard.getDashboardStatus ===
 
         "function";
+
 
     return (
 
@@ -254,15 +305,22 @@
 
   }
 
+
+  // ─────────────────────────────────────────────
+  // Verification Check
+  // ─────────────────────────────────────────────
+
   function checkVerification() {
 
     const verification =
 
       global.BloggerSaaSVerification;
 
+
     const available =
 
       !!verification;
+
 
     const apiValid =
 
@@ -275,6 +333,7 @@
       typeof verification.getVerificationStatus ===
 
         "function";
+
 
     return (
 
@@ -310,33 +369,89 @@
 
   }
 
+
+  // ─────────────────────────────────────────────
+  // Safety Check
+  // ─────────────────────────────────────────────
+
   function checkSafety() {
 
-    const safetyRules = {
+    const manifest =
 
-      productionModification: false,
+      global.PACKAGE_MANIFEST;
 
-      liveFirebaseModification: false,
 
-      userAccountModification: false,
+    // If manifest is not loaded,
+    // do not silently claim safety.
 
-      automaticDeployment: false,
+    if (!manifest) {
 
-      externalDataDeletion: false
+      return (
 
-    };
+        healthState.checks.safety =
+
+          createCheckResult(
+
+            "safety",
+
+            "WARNING",
+
+            "Package manifest is unavailable.",
+
+            {
+
+              manifestAvailable: false
+
+            }
+
+          )
+
+      );
+
+    }
+
+
+    const safetyRules =
+
+      manifest.safety || {};
+
+
+    const requiredRules = [
+
+      "productionModification",
+
+      "liveFirebaseModification",
+
+      "userAccountModification",
+
+      "automaticDeployment",
+
+      "externalDataDeletion"
+
+    ];
+
+
+    const missingRules =
+
+      requiredRules.filter(
+
+        function (rule) {
+
+          return (
+
+            safetyRules[rule] !== false
+
+          );
+
+        }
+
+      );
+
 
     const safe =
 
-      Object.values(
+      missingRules.length === 0;
 
-        safetyRules
-
-      ).every(
-
-        value => value === false
-
-      );
 
     return (
 
@@ -358,13 +473,36 @@
 
             : "One or more safety rules failed.",
 
-          safetyRules
+          {
+
+            manifestAvailable: true,
+
+            safetyRules:
+
+              Object.assign(
+
+                {},
+
+                safetyRules
+
+              ),
+
+            failedRules:
+
+              missingRules
+
+          }
 
         )
 
     );
 
   }
+
+
+  // ─────────────────────────────────────────────
+  // Environment Check
+  // ─────────────────────────────────────────────
 
   function checkEnvironment() {
 
@@ -373,6 +511,7 @@
       healthState.environment ===
 
       "safe-development";
+
 
     return (
 
@@ -408,6 +547,11 @@
 
   }
 
+
+  // ─────────────────────────────────────────────
+  // Calculate Overall Health
+  // ─────────────────────────────────────────────
+
   function calculateOverallHealth() {
 
     const results =
@@ -418,13 +562,16 @@
 
       );
 
+
     if (
 
       results.some(
 
-        check =>
+        function (check) {
 
-          check.status === "ERROR"
+          return check.status === "ERROR";
+
+        }
 
       )
 
@@ -434,13 +581,16 @@
 
     }
 
+
     if (
 
       results.some(
 
-        check =>
+        function (check) {
 
-          check.status === "WARNING"
+          return check.status === "WARNING";
+
+        }
 
       )
 
@@ -449,6 +599,7 @@
       return "WARNING";
 
     }
+
 
     if (
 
@@ -460,15 +611,22 @@
 
     }
 
+
     return "HEALTHY";
 
   }
+
+
+  // ─────────────────────────────────────────────
+  // Run Health Check
+  // ─────────────────────────────────────────────
 
   function runHealthCheck() {
 
     healthState.warnings = [];
 
     healthState.errors = [];
+
 
     checkFirebase();
 
@@ -482,57 +640,67 @@
 
     checkEnvironment();
 
+
     Object.values(
 
       healthState.checks
 
-    ).forEach(check => {
+    ).forEach(
 
-      if (
+      function (check) {
 
-        check.status ===
+        if (
 
-        "WARNING"
+          check.status === "WARNING"
 
-      ) {
+        ) {
 
-        healthState.warnings.push(
+          healthState.warnings.push(
 
-          check
+            check
 
-        );
+          );
+
+        }
+
+
+        if (
+
+          check.status === "ERROR"
+
+        ) {
+
+          healthState.errors.push(
+
+            check
+
+          );
+
+        }
 
       }
 
-      if (
+    );
 
-        check.status ===
-
-        "ERROR"
-
-      ) {
-
-        healthState.errors.push(
-
-          check
-
-        );
-
-      }
-
-    });
 
     healthState.status =
 
       calculateOverallHealth();
 
+
     healthState.lastChecked =
 
       new Date().toISOString();
 
+
     return getHealthStatus();
 
   }
+
+
+  // ─────────────────────────────────────────────
+  // Get Health Status
+  // ─────────────────────────────────────────────
 
   function getHealthStatus() {
 
@@ -570,15 +738,24 @@
 
         healthState.errors.length,
 
-      checks: {
+      checks:
 
-        ...healthState.checks
+        Object.assign(
 
-      }
+          {},
+
+          healthState.checks
+
+        )
 
     };
 
   }
+
+
+  // ─────────────────────────────────────────────
+  // Initialize Health
+  // ─────────────────────────────────────────────
 
   function initializeHealth() {
 
@@ -592,11 +769,18 @@
 
     }
 
+
     healthState.initialized = true;
+
 
     return runHealthCheck();
 
   }
+
+
+  // ─────────────────────────────────────────────
+  // Reset Health
+  // ─────────────────────────────────────────────
 
   function resetHealth() {
 
@@ -604,21 +788,34 @@
 
       "UNKNOWN";
 
+
     healthState.initialized =
 
       false;
 
-    healthState.lastChecked = null;
+
+    healthState.lastChecked =
+
+      null;
+
 
     healthState.checks = {};
 
+
     healthState.warnings = [];
 
+
     healthState.errors = [];
+
 
     return getHealthStatus();
 
   }
+
+
+  // ─────────────────────────────────────────────
+  // Public API
+  // ─────────────────────────────────────────────
 
   const healthAPI = {
 
@@ -632,13 +829,25 @@
 
     resetHealth,
 
-    state: healthState
+    state:
+
+      healthState
 
   };
+
+
+  // ─────────────────────────────────────────────
+  // Browser Global
+  // ─────────────────────────────────────────────
 
   global.BloggerSaaSHealth =
 
     healthAPI;
+
+
+  // ─────────────────────────────────────────────
+  // Node / Test Export
+  // ─────────────────────────────────────────────
 
   if (
 
@@ -648,9 +857,12 @@
 
   ) {
 
-    module.exports = healthAPI;
+    module.exports =
+
+      healthAPI;
 
   }
+
 
 })(
 
