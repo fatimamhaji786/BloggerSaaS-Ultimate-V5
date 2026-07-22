@@ -1,1033 +1,1124 @@
-
 /**
-
-* BloggerSaaS Ultimate V5
-* Package 41–50
-* Testing Layer
-* Test Suite
-* 
-* Safe development test runner for the core package.
-* 
-* This module:
-* - Does not modify production systems.
-* - Does not modify live Firebase data.
-* - Does not modify user accounts.
-* - Does not deploy automatically.
-* - Does not delete external data.
-    */
+ * BloggerSaaS Ultimate V5
+ * Package 41–50
+ * Testing Layer
+ * Test Suite
+ */
 
 (function (global) {
 
-"use strict";
+  "use strict";
 
-// ─────────────────────────────────────────────
-// Test Suite State
-// ─────────────────────────────────────────────
+  const testState = {
 
-const testState = {
+    initialized: false,
 
-initialized: false,
+    environment: "safe-development",
 
-environment: "safe-development",
+    startedAt: null,
 
-startedAt: null,
+    completedAt: null,
 
-completedAt: null,
+    tests: [],
 
-tests: [],
+    passed: 0,
 
-passed: 0,
+    failed: 0,
 
-failed: 0,
+    skipped: 0,
 
-skipped: 0,
+    status: "not-run"
 
-status: "not-run"
+  };
 
-};
+  function addTest(
 
-// ─────────────────────────────────────────────
-// Test Registration
-// ─────────────────────────────────────────────
+    name,
 
-function addTest(
+    category,
 
-name,
+    testFunction
 
-category,
-
-testFunction
-
-) {
-
-if (
-
-  typeof name !== "string" ||
-
-  !name.trim()
-
-) {
-
-  throw new Error(
-
-    "Test name is required."
-
-  );
-
-}
-
-
-if (
-
-  typeof testFunction !== "function"
-
-) {
-
-  throw new TypeError(
-
-    "Test function must be callable."
-
-  );
-
-}
-
-
-testState.tests.push({
-
-  name,
-
-  category:
-
-    category || "general",
-
-  testFunction,
-
-  status:
-
-    "pending",
-
-  message:
-
-    null,
-
-  startedAt:
-
-    null,
-
-  completedAt:
-
-    null
-
-});
-
-}
-
-// ─────────────────────────────────────────────
-// Assertion Helpers
-// ─────────────────────────────────────────────
-
-function assertTrue(
-
-condition,
-
-message
-
-) {
-
-if (!condition) {
-
-  throw new Error(
-
-    message ||
-
-    "Expected condition to be true."
-
-  );
-
-}
-
-return true;
-
-}
-
-function assertFalse(
-
-condition,
-
-message
-
-) {
-
-if (condition) {
-
-  throw new Error(
-
-    message ||
-
-    "Expected condition to be false."
-
-  );
-
-}
-
-return true;
-
-}
-
-function assertEqual(
-
-actual,
-
-expected,
-
-message
-
-) {
-
-if (actual !== expected) {
-
-  throw new Error(
-
-    message ||
-
-    `Expected ${expected}, received ${actual}.`
-
-  );
-
-}
-
-return true;
-
-}
-
-function assertExists(
-
-value,
-
-message
-
-) {
-
-if (
-
-  value === null ||
-
-  value === undefined
-
-) {
-
-  throw new Error(
-
-    message ||
-
-    "Expected value to exist."
-
-  );
-
-}
-
-return true;
-
-}
-
-// ─────────────────────────────────────────────
-// Module Discovery
-// ─────────────────────────────────────────────
-
-function getModule(
-
-moduleName
-
-) {
-
-return global[moduleName] || null;
-
-}
-
-// ─────────────────────────────────────────────
-// Core Module Tests
-// ─────────────────────────────────────────────
-
-function registerDefaultTests() {
-
-testState.tests = [];
-
-
-addTest(
-
-  "Integration module is available",
-
-  "core",
-
-  function () {
-
-    const module =
-
-      getModule(
-
-        "BloggerSaaSIntegration"
-
-      );
-
-
-    assertExists(
-
-      module,
-
-      "Integration module is not available."
-
-    );
-
-
-    return true;
-
-  }
-
-);
-
-
-addTest(
-
-  "Health module is available",
-
-  "core",
-
-  function () {
-
-    const module =
-
-      getModule(
-
-        "BloggerSaaSHealth"
-
-      );
-
-
-    assertExists(
-
-      module,
-
-      "Health module is not available."
-
-    );
-
-
-    return true;
-
-  }
-
-);
-
-
-addTest(
-
-  "Firebase module is available",
-
-  "core",
-
-  function () {
-
-    const module =
-
-      getModule(
-
-        "BloggerSaaSFirebase"
-
-      );
-
-
-    assertExists(
-
-      module,
-
-      "Firebase module is not available."
-
-    );
-
-
-    return true;
-
-  }
-
-);
-
-
-addTest(
-
-  "Dashboard module is available",
-
-  "core",
-
-  function () {
-
-    const module =
-
-      getModule(
-
-        "BloggerSaaSDashboard"
-
-      );
-
-
-    assertExists(
-
-      module,
-
-      "Dashboard module is not available."
-
-    );
-
-
-    return true;
-
-  }
-
-);
-
-
-addTest(
-
-  "Verification module is available",
-
-  "core",
-
-  function () {
-
-    const module =
-
-      getModule(
-
-        "BloggerSaaSVerification"
-
-      );
-
-
-    assertExists(
-
-      module,
-
-      "Verification module is not available."
-
-    );
-
-
-    return true;
-
-  }
-
-);
-
-
-addTest(
-
-  "Final module is available",
-
-  "core",
-
-  function () {
-
-    const module =
-
-      getModule(
-
-        "BloggerSaaSFinal"
-
-      );
-
-
-    assertExists(
-
-      module,
-
-      "Final module is not available."
-
-    );
-
-
-    return true;
-
-  }
-
-);
-
-
-addTest(
-
-  "Integration module exposes status API",
-
-  "api",
-
-  function () {
-
-    const module =
-
-      getModule(
-
-        "BloggerSaaSIntegration"
-
-      );
-
-
-    assertExists(
-
-      module.getIntegrationStatus,
-
-      "Integration status API is missing."
-
-    );
-
-
-    const status =
-
-      module.getIntegrationStatus();
-
-
-    assertExists(
-
-      status,
-
-      "Integration status is unavailable."
-
-    );
-
-
-    return true;
-
-  }
-
-);
-
-
-addTest(
-
-  "Health module exposes health API",
-
-  "api",
-
-  function () {
-
-    const module =
-
-      getModule(
-
-        "BloggerSaaSHealth"
-
-      );
-
-
-    assertExists(
-
-      module.getHealthStatus,
-
-      "Health status API is missing."
-
-    );
-
-
-    return true;
-
-  }
-
-);
-
-
-addTest(
-
-  "Verification module exposes verification API",
-
-  "api",
-
-  function () {
-
-    const module =
-
-      getModule(
-
-        "BloggerSaaSVerification"
-
-      );
-
-
-    assertExists(
-
-      module,
-
-      "Verification API is missing."
-
-    );
-
-
-    return true;
-
-  }
-
-);
-
-
-addTest(
-
-  "Final module exposes readiness API",
-
-  "api",
-
-  function () {
-
-    const module =
-
-      getModule(
-
-        "BloggerSaaSFinal"
-
-      );
-
-
-    assertExists(
-
-      module.calculateReadiness,
-
-      "Readiness API is missing."
-
-    );
-
-
-    return true;
-
-  }
-
-);
-
-
-addTest(
-
-  "Production safety remains disabled",
-
-  "safety",
-
-  function () {
-
-    const manifest =
-
-      global.PACKAGE_MANIFEST;
-
-
-    if (!manifest) {
-
-      return true;
-
-    }
-
-
-    assertEqual(
-
-      manifest.safety.productionModification,
-
-      false,
-
-      "Production modification must remain disabled."
-
-    );
-
-
-    assertEqual(
-
-      manifest.safety.liveFirebaseModification,
-
-      false,
-
-      "Live Firebase modification must remain disabled."
-
-    );
-
-
-    assertEqual(
-
-      manifest.safety.automaticDeployment,
-
-      false,
-
-      "Automatic deployment must remain disabled."
-
-    );
-
-
-    return true;
-
-  }
-
-);
-
-}
-
-// ─────────────────────────────────────────────
-// Execute One Test
-// ─────────────────────────────────────────────
-
-function executeTest(
-
-test
-
-) {
-
-test.startedAt =
-
-  new Date().toISOString();
-
-
-try {
-
-  const result =
-
-    test.testFunction();
-
-
-  test.status =
-
-    result === false
-
-      ? "failed"
-
-      : "passed";
-
-
-  test.message =
-
-    test.status === "passed"
-
-      ? "Test passed."
-
-      : "Test returned false.";
-
-
-}
-
-catch (error) {
-
-  test.status =
-
-    "failed";
-
-
-  test.message =
-
-    error.message;
-
-}
-
-
-test.completedAt =
-
-  new Date().toISOString();
-
-
-return test;
-
-}
-
-// ─────────────────────────────────────────────
-// Run Complete Test Suite
-// ─────────────────────────────────────────────
-
-function runTests() {
-
-testState.initialized = true;
-
-testState.startedAt =
-
-  new Date().toISOString();
-
-
-testState.passed = 0;
-
-testState.failed = 0;
-
-testState.skipped = 0;
-
-
-registerDefaultTests();
-
-
-testState.tests.forEach(
-
-  executeTest
-
-);
-
-
-testState.tests.forEach(
-
-  function (test) {
+  ) {
 
     if (
 
-      test.status === "passed"
+      typeof name !== "string" ||
+
+      !name.trim()
 
     ) {
 
-      testState.passed++;
+      throw new Error(
+
+        "Test name is required."
+
+      );
 
     }
 
-    else if (
+    if (
 
-      test.status === "failed"
+      typeof testFunction !==
+
+      "function"
 
     ) {
 
-      testState.failed++;
+      throw new TypeError(
+
+        "Test function must be callable."
+
+      );
 
     }
 
-    else if (
+    testState.tests.push({
 
-      test.status === "skipped"
+      name,
 
-    ) {
+      category:
 
-      testState.skipped++;
+        category ||
 
-    }
+        "general",
+
+      testFunction,
+
+      status:
+
+        "pending",
+
+      message:
+
+        null,
+
+      startedAt:
+
+        null,
+
+      completedAt:
+
+        null
+
+    });
 
   }
 
-);
+  function assertTrue(
 
+    condition,
 
-testState.completedAt =
+    message
 
-  new Date().toISOString();
+  ) {
 
+    if (!condition) {
 
-if (
+      throw new Error(
 
-  testState.failed === 0
+        message ||
 
-) {
+        "Expected condition to be true."
 
-  testState.status =
+      );
 
-    "passed";
+    }
 
-}
+    return true;
 
-else {
+  }
 
-  testState.status =
+  function assertFalse(
 
-    "failed";
+    condition,
 
-}
+    message
 
+  ) {
 
-return getTestReport();
+    if (condition) {
 
-}
+      throw new Error(
 
-// ─────────────────────────────────────────────
-// Test Report
-// ─────────────────────────────────────────────
+        message ||
 
-function getTestReport() {
+        "Expected condition to be false."
 
-const total =
+      );
 
-  testState.tests.length;
+    }
 
+    return true;
 
-const percentage =
+  }
 
-  total > 0
+  function assertEqual(
 
-    ? Math.round(
+    actual,
 
-        (
+    expected,
 
-          testState.passed /
+    message
 
-          total
+  ) {
 
-        ) * 100
+    if (
 
-      )
+      actual !== expected
 
-    : 0;
+    ) {
 
+      throw new Error(
 
-return {
+        message ||
 
-  initialized:
+        `Expected ${expected}, received ${actual}.`
 
-    testState.initialized,
+      );
 
-  environment:
+    }
 
-    testState.environment,
+    return true;
 
-  startedAt:
+  }
 
-    testState.startedAt,
+  function assertExists(
 
-  completedAt:
+    value,
 
-    testState.completedAt,
+    message
 
-  total,
+  ) {
 
-  passed:
+    if (
 
-    testState.passed,
+      value === null ||
 
-  failed:
+      value === undefined
 
-    testState.failed,
+    ) {
 
-  skipped:
+      throw new Error(
 
-    testState.skipped,
+        message ||
 
-  percentage,
+        "Expected value to exist."
 
-  status:
+      );
 
-    testState.status,
+    }
 
-  tests:
+    return true;
 
-    testState.tests.map(
+  }
 
-      function (test) {
+  function getModule(
 
-        return {
+    moduleName
 
-          name:
+  ) {
 
-            test.name,
+    return (
 
-          category:
+      global[moduleName] ||
 
-            test.category,
+      null
 
-          status:
+    );
 
-            test.status,
+  }
 
-          message:
+  function registerDefaultTests() {
 
-            test.message,
+    testState.tests = [];
 
-          startedAt:
+    addTest(
 
-            test.startedAt,
+      "Package manifest is available",
 
-          completedAt:
+      "core",
 
-            test.completedAt
+      function () {
 
-        };
+        assertExists(
+
+          global.PACKAGE_MANIFEST,
+
+          "Package manifest is unavailable."
+
+        );
+
+        return true;
 
       }
 
-    )
+    );
 
-};
+    addTest(
 
-}
+      "Integration module is available",
 
-// ─────────────────────────────────────────────
-// Reset Test Suite
-// ─────────────────────────────────────────────
+      "core",
 
-function resetTests() {
+      function () {
 
-testState.tests = [];
+        const module =
 
-testState.passed = 0;
+          getModule(
 
-testState.failed = 0;
+            "BloggerSaaSIntegration"
 
-testState.skipped = 0;
+          );
 
-testState.status =
+        assertExists(
 
-  "not-run";
+          module,
 
-testState.startedAt = null;
+          "Integration module is unavailable."
 
-testState.completedAt = null;
+        );
 
-return true;
+        return true;
 
-}
+      }
 
-// ─────────────────────────────────────────────
-// Public API
-// ─────────────────────────────────────────────
+    );
 
-const testSuiteAPI = {
+    addTest(
 
-runTests,
+      "Health module is available",
 
-executeTest,
+      "core",
 
-getTestReport,
+      function () {
 
-addTest,
+        const module =
 
-resetTests,
+          getModule(
 
-assertTrue,
+            "BloggerSaaSHealth"
 
-assertFalse,
+          );
 
-assertEqual,
+        assertExists(
 
-assertExists,
+          module,
 
-state:
+          "Health module is unavailable."
 
-  testState
+        );
 
-};
+        return true;
 
-// ─────────────────────────────────────────────
-// Browser Global
-// ─────────────────────────────────────────────
+      }
 
-if (
+    );
 
-typeof window !== "undefined"
+    addTest(
 
-) {
+      "Firebase module is available",
 
-window.BloggerSaaSTestSuite =
+      "core",
 
-  testSuiteAPI;
+      function () {
 
-}
+        const module =
 
-// ─────────────────────────────────────────────
-// Node / Test Export
-// ─────────────────────────────────────────────
+          getModule(
 
-if (
+            "BloggerSaaSFirebase"
 
-typeof module !== "undefined" &&
+          );
 
-module.exports
+        assertExists(
 
-) {
+          module,
 
-module.exports =
+          "Firebase module is unavailable."
 
-  testSuiteAPI;
+        );
 
-}
+        return true;
+
+      }
+
+    );
+
+    addTest(
+
+      "Dashboard module is available",
+
+      "core",
+
+      function () {
+
+        const module =
+
+          getModule(
+
+            "BloggerSaaSDashboard"
+
+          );
+
+        assertExists(
+
+          module,
+
+          "Dashboard module is unavailable."
+
+        );
+
+        return true;
+
+      }
+
+    );
+
+    addTest(
+
+      "Verification module is available",
+
+      "core",
+
+      function () {
+
+        const module =
+
+          getModule(
+
+            "BloggerSaaSVerification"
+
+          );
+
+        assertExists(
+
+          module,
+
+          "Verification module is unavailable."
+
+        );
+
+        return true;
+
+      }
+
+    );
+
+    addTest(
+
+      "Final module is available",
+
+      "core",
+
+      function () {
+
+        const module =
+
+          getModule(
+
+            "BloggerSaaSFinal"
+
+          );
+
+        assertExists(
+
+          module,
+
+          "Final module is unavailable."
+
+        );
+
+        return true;
+
+      }
+
+    );
+
+    addTest(
+
+      "Integration API is valid",
+
+      "api",
+
+      function () {
+
+        const module =
+
+          getModule(
+
+            "BloggerSaaSIntegration"
+
+          );
+
+        assertTrue(
+
+          typeof module.initializeIntegration ===
+
+            "function",
+
+          "initializeIntegration API is missing."
+
+        );
+
+        assertTrue(
+
+          typeof module.registerModule ===
+
+            "function",
+
+          "registerModule API is missing."
+
+        );
+
+        assertTrue(
+
+          typeof module.getModule ===
+
+            "function",
+
+          "getModule API is missing."
+
+        );
+
+        assertTrue(
+
+          typeof module.getIntegrationStatus ===
+
+            "function",
+
+          "getIntegrationStatus API is missing."
+
+        );
+
+        return true;
+
+      }
+
+    );
+
+    addTest(
+
+      "Health API is valid",
+
+      "api",
+
+      function () {
+
+        const module =
+
+          getModule(
+
+            "BloggerSaaSHealth"
+
+          );
+
+        assertTrue(
+
+          typeof module.initializeHealth ===
+
+            "function",
+
+          "initializeHealth API is missing."
+
+        );
+
+        assertTrue(
+
+          typeof module.runHealthCheck ===
+
+            "function",
+
+          "runHealthCheck API is missing."
+
+        );
+
+        assertTrue(
+
+          typeof module.getHealthStatus ===
+
+            "function",
+
+          "getHealthStatus API is missing."
+
+        );
+
+        return true;
+
+      }
+
+    );
+
+    addTest(
+
+      "Firebase API is valid",
+
+      "api",
+
+      function () {
+
+        const module =
+
+          getModule(
+
+            "BloggerSaaSFirebase"
+
+          );
+
+        assertTrue(
+
+          typeof module.getFirebaseStatus ===
+
+            "function",
+
+          "getFirebaseStatus API is missing."
+
+        );
+
+        assertTrue(
+
+          typeof module.validateFirebaseConfig ===
+
+            "function",
+
+          "validateFirebaseConfig API is missing."
+
+        );
+
+        return true;
+
+      }
+
+    );
+
+    addTest(
+
+      "Dashboard API is valid",
+
+      "api",
+
+      function () {
+
+        const module =
+
+          getModule(
+
+            "BloggerSaaSDashboard"
+
+          );
+
+        assertTrue(
+
+          typeof module.initializeDashboard ===
+
+            "function",
+
+          "initializeDashboard API is missing."
+
+        );
+
+        assertTrue(
+
+          typeof module.getDashboardStatus ===
+
+            "function",
+
+          "getDashboardStatus API is missing."
+
+        );
+
+        return true;
+
+      }
+
+    );
+
+    addTest(
+
+      "Verification API is valid",
+
+      "api",
+
+      function () {
+
+        const module =
+
+          getModule(
+
+            "BloggerSaaSVerification"
+
+          );
+
+        assertTrue(
+
+          typeof module.runVerification ===
+
+            "function",
+
+          "runVerification API is missing."
+
+        );
+
+        assertTrue(
+
+          typeof module.getVerificationStatus ===
+
+            "function",
+
+          "getVerificationStatus API is missing."
+
+        );
+
+        return true;
+
+      }
+
+    );
+
+    addTest(
+
+      "Final API is valid",
+
+      "api",
+
+      function () {
+
+        const module =
+
+          getModule(
+
+            "BloggerSaaSFinal"
+
+          );
+
+        assertTrue(
+
+          typeof module.startFinalLayer ===
+
+            "function",
+
+          "startFinalLayer API is missing."
+
+        );
+
+        assertTrue(
+
+          typeof module.calculateReadiness ===
+
+            "function",
+
+          "calculateReadiness API is missing."
+
+        );
+
+        assertTrue(
+
+          typeof module.getFinalStatus ===
+
+            "function",
+
+          "getFinalStatus API is missing."
+
+        );
+
+        return true;
+
+      }
+
+    );
+
+    addTest(
+
+      "Production safety remains disabled",
+
+      "safety",
+
+      function () {
+
+        const manifest =
+
+          global.PACKAGE_MANIFEST;
+
+        assertExists(
+
+          manifest,
+
+          "Package manifest is unavailable."
+
+        );
+
+        assertEqual(
+
+          manifest.safety.productionModification,
+
+          false,
+
+          "Production modification must remain disabled."
+
+        );
+
+        assertEqual(
+
+          manifest.safety.liveFirebaseModification,
+
+          false,
+
+          "Live Firebase modification must remain disabled."
+
+        );
+
+        assertEqual(
+
+          manifest.safety.userAccountModification,
+
+          false,
+
+          "User account modification must remain disabled."
+
+        );
+
+        assertEqual(
+
+          manifest.safety.automaticDeployment,
+
+          false,
+
+          "Automatic deployment must remain disabled."
+
+        );
+
+        assertEqual(
+
+          manifest.safety.externalDataDeletion,
+
+          false,
+
+          "External data deletion must remain disabled."
+
+        );
+
+        return true;
+
+      }
+
+    );
+
+  }
+
+  function executeTest(test) {
+
+    test.startedAt =
+
+      new Date().toISOString();
+
+    try {
+
+      const result =
+
+        test.testFunction();
+
+      test.status =
+
+        result === false
+
+          ? "failed"
+
+          : "passed";
+
+      test.message =
+
+        test.status === "passed"
+
+          ? "Test passed."
+
+          : "Test returned false.";
+
+    }
+
+    catch (error) {
+
+      test.status =
+
+        "failed";
+
+      test.message =
+
+        error && error.message
+
+          ? error.message
+
+          : String(error);
+
+    }
+
+    test.completedAt =
+
+      new Date().toISOString();
+
+    return test;
+
+  }
+
+  function runTests() {
+
+    testState.initialized = true;
+
+    testState.startedAt =
+
+      new Date().toISOString();
+
+    testState.passed = 0;
+
+    testState.failed = 0;
+
+    testState.skipped = 0;
+
+    registerDefaultTests();
+
+    testState.tests.forEach(
+
+      executeTest
+
+    );
+
+    testState.tests.forEach(
+
+      function (test) {
+
+        if (
+
+          test.status === "passed"
+
+        ) {
+
+          testState.passed++;
+
+        }
+
+        else if (
+
+          test.status === "failed"
+
+        ) {
+
+          testState.failed++;
+
+        }
+
+        else if (
+
+          test.status === "skipped"
+
+        ) {
+
+          testState.skipped++;
+
+        }
+
+      }
+
+    );
+
+    testState.completedAt =
+
+      new Date().toISOString();
+
+    testState.status =
+
+      testState.failed === 0
+
+        ? "passed"
+
+        : "failed";
+
+    return getTestReport();
+
+  }
+
+  function getTestReport() {
+
+    const total =
+
+      testState.tests.length;
+
+    const percentage =
+
+      total > 0
+
+        ? Math.round(
+
+            (
+
+              testState.passed /
+
+              total
+
+            ) * 100
+
+          )
+
+        : 0;
+
+    return {
+
+      initialized:
+
+        testState.initialized,
+
+      environment:
+
+        testState.environment,
+
+      startedAt:
+
+        testState.startedAt,
+
+      completedAt:
+
+        testState.completedAt,
+
+      total,
+
+      passed:
+
+        testState.passed,
+
+      failed:
+
+        testState.failed,
+
+      skipped:
+
+        testState.skipped,
+
+      percentage,
+
+      status:
+
+        testState.status,
+
+      tests:
+
+        testState.tests.map(
+
+          function (test) {
+
+            return {
+
+              name:
+
+                test.name,
+
+              category:
+
+                test.category,
+
+              status:
+
+                test.status,
+
+              message:
+
+                test.message,
+
+              startedAt:
+
+                test.startedAt,
+
+              completedAt:
+
+                test.completedAt
+
+            };
+
+          }
+
+        )
+
+    };
+
+  }
+
+  function resetTests() {
+
+    testState.tests = [];
+
+    testState.passed = 0;
+
+    testState.failed = 0;
+
+    testState.skipped = 0;
+
+    testState.status =
+
+      "not-run";
+
+    testState.startedAt =
+
+      null;
+
+    testState.completedAt =
+
+      null;
+
+    testState.initialized =
+
+      false;
+
+    return true;
+
+  }
+
+  const testSuiteAPI = {
+
+    runTests,
+
+    executeTest,
+
+    getTestReport,
+
+    addTest,
+
+    resetTests,
+
+    assertTrue,
+
+    assertFalse,
+
+    assertEqual,
+
+    assertExists,
+
+    state:
+
+      testState
+
+  };
+
+  global.BloggerSaaSTestSuite =
+
+    testSuiteAPI;
+
+  if (
+
+    typeof module !== "undefined" &&
+
+    module.exports
+
+  ) {
+
+    module.exports =
+
+      testSuiteAPI;
+
+  }
 
 })(
 
-typeof globalThis !== "undefined"
+  typeof globalThis !== "undefined"
 
-? globalThis
+    ? globalThis
 
-: this
+    : this
 
 );
