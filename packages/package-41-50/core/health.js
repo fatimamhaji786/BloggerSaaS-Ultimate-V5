@@ -49,6 +49,7 @@
       details,
 
       timestamp:
+
         new Date().toISOString()
 
     };
@@ -58,37 +59,68 @@
   function checkFirebase() {
 
     const firebase =
+
       global.BloggerSaaSFirebase;
 
     const available =
-      typeof firebase !== "undefined";
+
+      !!firebase;
 
     const apiValid =
 
       available &&
 
       typeof firebase.getFirebaseStatus ===
+
         "function";
 
-    return createCheckResult(
+    let status = "HEALTHY";
 
-      "firebase",
+    let message =
 
-      apiValid
-        ? "HEALTHY"
-        : "WARNING",
+      "Firebase bridge API is available.";
 
-      apiValid
-        ? "Firebase bridge is available."
-        : "Firebase bridge is not registered.",
+    if (!available) {
 
-      {
+      status = "WARNING";
 
-        available,
+      message =
 
-        apiValid
+        "Firebase bridge is not registered.";
 
-      }
+    }
+
+    else if (!apiValid) {
+
+      status = "ERROR";
+
+      message =
+
+        "Firebase bridge API is incomplete.";
+
+    }
+
+    return (
+
+      healthState.checks.firebase =
+
+        createCheckResult(
+
+          "firebase",
+
+          status,
+
+          message,
+
+          {
+
+            available,
+
+            apiValid
+
+          }
+
+        )
 
     );
 
@@ -97,46 +129,70 @@
   function checkIntegration() {
 
     const integration =
+
       global.BloggerSaaSIntegration;
 
     const available =
-      typeof integration !== "undefined";
+
+      !!integration;
 
     const apiValid =
 
       available &&
 
       typeof integration.initializeIntegration ===
+
         "function" &&
 
       typeof integration.registerModule ===
+
         "function" &&
 
       typeof integration.getModule ===
+
         "function" &&
 
       typeof integration.getIntegrationStatus ===
+
         "function";
 
-    return createCheckResult(
-
-      "integration",
+    let status =
 
       apiValid
+
         ? "HEALTHY"
-        : "WARNING",
+
+        : "WARNING";
+
+    let message =
 
       apiValid
+
         ? "Integration layer is available."
-        : "Integration layer is not registered.",
 
-      {
+        : "Integration layer requires review.";
 
-        available,
+    return (
 
-        apiValid
+      healthState.checks.integration =
 
-      }
+        createCheckResult(
+
+          "integration",
+
+          status,
+
+          message,
+
+          {
+
+            available,
+
+            apiValid
+
+          }
+
+        )
 
     );
 
@@ -145,40 +201,110 @@
   function checkDashboard() {
 
     const dashboard =
+
       global.BloggerSaaSDashboard;
 
     const available =
-      typeof dashboard !== "undefined";
+
+      !!dashboard;
 
     const apiValid =
 
       available &&
 
       typeof dashboard.initializeDashboard ===
+
         "function" &&
 
       typeof dashboard.getDashboardStatus ===
+
         "function";
 
-    return createCheckResult(
+    return (
 
-      "dashboard",
+      healthState.checks.dashboard =
 
-      apiValid
-        ? "HEALTHY"
-        : "WARNING",
+        createCheckResult(
 
-      apiValid
-        ? "Dashboard bridge is available."
-        : "Dashboard bridge is not registered.",
+          "dashboard",
 
-      {
+          apiValid
 
-        available,
+            ? "HEALTHY"
 
-        apiValid
+            : "WARNING",
 
-      }
+          apiValid
+
+            ? "Dashboard bridge is available."
+
+            : "Dashboard bridge requires review.",
+
+          {
+
+            available,
+
+            apiValid
+
+          }
+
+        )
+
+    );
+
+  }
+
+  function checkVerification() {
+
+    const verification =
+
+      global.BloggerSaaSVerification;
+
+    const available =
+
+      !!verification;
+
+    const apiValid =
+
+      available &&
+
+      typeof verification.runVerification ===
+
+        "function" &&
+
+      typeof verification.getVerificationStatus ===
+
+        "function";
+
+    return (
+
+      healthState.checks.verification =
+
+        createCheckResult(
+
+          "verification",
+
+          apiValid
+
+            ? "HEALTHY"
+
+            : "WARNING",
+
+          apiValid
+
+            ? "Verification layer is available."
+
+            : "Verification layer requires review.",
+
+          {
+
+            available,
+
+            apiValid
+
+          }
+
+        )
 
     );
 
@@ -201,22 +327,40 @@
     };
 
     const safe =
-      Object.values(safetyRules)
-        .every(value => value === false);
 
-    return createCheckResult(
+      Object.values(
 
-      "safety",
+        safetyRules
 
-      safe
-        ? "HEALTHY"
-        : "ERROR",
+      ).every(
 
-      safe
-        ? "Production safety rules are active."
-        : "Production safety check failed.",
+        value => value === false
 
-      safetyRules
+      );
+
+    return (
+
+      healthState.checks.safety =
+
+        createCheckResult(
+
+          "safety",
+
+          safe
+
+            ? "HEALTHY"
+
+            : "ERROR",
+
+          safe
+
+            ? "Production safety rules are active."
+
+            : "One or more safety rules failed.",
+
+          safetyRules
+
+        )
 
     );
 
@@ -225,92 +369,53 @@
   function checkEnvironment() {
 
     const safe =
+
       healthState.environment ===
+
       "safe-development";
 
-    return createCheckResult(
+    return (
 
-      "environment",
+      healthState.checks.environment =
 
-      safe
-        ? "HEALTHY"
-        : "WARNING",
+        createCheckResult(
 
-      safe
-        ? "Safe development environment detected."
-        : "Environment requires review.",
+          "environment",
 
-      {
+          safe
 
-        environment:
-          healthState.environment
+            ? "HEALTHY"
 
-      }
+            : "WARNING",
+
+          safe
+
+            ? "Safe development environment detected."
+
+            : "Environment requires review.",
+
+          {
+
+            environment:
+
+              healthState.environment
+
+          }
+
+        )
 
     );
-
-  }
-
-  function runHealthCheck() {
-
-    healthState.warnings = [];
-
-    healthState.errors = [];
-
-    healthState.checks = {
-
-      firebase:
-        checkFirebase(),
-
-      integration:
-        checkIntegration(),
-
-      dashboard:
-        checkDashboard(),
-
-      safety:
-        checkSafety(),
-
-      environment:
-        checkEnvironment()
-
-    };
-
-    Object.values(
-
-      healthState.checks
-
-    ).forEach(check => {
-
-      if (check.status === "WARNING") {
-
-        healthState.warnings.push(check);
-
-      }
-
-      if (check.status === "ERROR") {
-
-        healthState.errors.push(check);
-
-      }
-
-    });
-
-    healthState.status =
-      calculateOverallHealth();
-
-    healthState.lastChecked =
-      new Date().toISOString();
-
-    return getHealthStatus();
 
   }
 
   function calculateOverallHealth() {
 
     const results =
+
       Object.values(
+
         healthState.checks
+
       );
 
     if (
@@ -318,6 +423,7 @@
       results.some(
 
         check =>
+
           check.status === "ERROR"
 
       )
@@ -333,6 +439,7 @@
       results.some(
 
         check =>
+
           check.status === "WARNING"
 
       )
@@ -343,7 +450,11 @@
 
     }
 
-    if (results.length === 0) {
+    if (
+
+      results.length === 0
+
+    ) {
 
       return "UNKNOWN";
 
@@ -353,31 +464,110 @@
 
   }
 
+  function runHealthCheck() {
+
+    healthState.warnings = [];
+
+    healthState.errors = [];
+
+    checkFirebase();
+
+    checkIntegration();
+
+    checkDashboard();
+
+    checkVerification();
+
+    checkSafety();
+
+    checkEnvironment();
+
+    Object.values(
+
+      healthState.checks
+
+    ).forEach(check => {
+
+      if (
+
+        check.status ===
+
+        "WARNING"
+
+      ) {
+
+        healthState.warnings.push(
+
+          check
+
+        );
+
+      }
+
+      if (
+
+        check.status ===
+
+        "ERROR"
+
+      ) {
+
+        healthState.errors.push(
+
+          check
+
+        );
+
+      }
+
+    });
+
+    healthState.status =
+
+      calculateOverallHealth();
+
+    healthState.lastChecked =
+
+      new Date().toISOString();
+
+    return getHealthStatus();
+
+  }
+
   function getHealthStatus() {
 
     return {
 
       status:
+
         healthState.status,
 
       environment:
+
         healthState.environment,
 
       initialized:
+
         healthState.initialized,
 
       lastChecked:
+
         healthState.lastChecked,
 
       checkCount:
+
         Object.keys(
+
           healthState.checks
+
         ).length,
 
       warningCount:
+
         healthState.warnings.length,
 
       errorCount:
+
         healthState.errors.length,
 
       checks: {
@@ -392,7 +582,11 @@
 
   function initializeHealth() {
 
-    if (healthState.initialized) {
+    if (
+
+      healthState.initialized
+
+    ) {
 
       return getHealthStatus();
 
@@ -407,18 +601,20 @@
   function resetHealth() {
 
     healthState.status =
+
       "UNKNOWN";
 
-    healthState.lastChecked =
-      null;
+    healthState.initialized =
+
+      false;
+
+    healthState.lastChecked = null;
 
     healthState.checks = {};
 
     healthState.warnings = [];
 
     healthState.errors = [];
-
-    healthState.initialized = false;
 
     return getHealthStatus();
 
@@ -436,25 +632,23 @@
 
     resetHealth,
 
-    state:
-      healthState
+    state: healthState
 
   };
 
-  if (typeof window !== "undefined") {
+  global.BloggerSaaSHealth =
 
-    window.BloggerSaaSHealth =
-      healthAPI;
-
-  }
+    healthAPI;
 
   if (
+
     typeof module !== "undefined" &&
+
     module.exports
+
   ) {
 
-    module.exports =
-      healthAPI;
+    module.exports = healthAPI;
 
   }
 
