@@ -6,8 +6,13 @@
 * 
 * Safe package-level integration entry.
 * 
-* This file does not automatically modify production systems.
-  */
+* This file:
+* - Does not automatically modify production systems.
+* - Does not modify live Firebase data.
+* - Does not modify user accounts.
+* - Does not deploy automatically.
+* - Does not delete external data.
+    */
 
 "use strict";
 
@@ -69,6 +74,12 @@ const testCenter =
 require("./testing/test-center.js");
 
 // ─────────────────────────────────────────────
+// Package State
+// ─────────────────────────────────────────────
+
+let packageInitialized = false;
+
+// ─────────────────────────────────────────────
 // Package API
 // ─────────────────────────────────────────────
 
@@ -80,9 +91,11 @@ name: PACKAGE_NAME,
 
 version: PACKAGE_VERSION,
 
-platform: "BloggerSaaS Ultimate V5 Enterprise",
+platform:
+"BloggerSaaS Ultimate V5 Enterprise",
 
-environment: PACKAGE_ENVIRONMENT,
+environment:
+PACKAGE_ENVIRONMENT,
 
 modules: {
 
@@ -98,7 +111,8 @@ dashboard,
 
 verification,
 
-final: finalCore
+final:
+  finalCore
 
 },
 
@@ -124,36 +138,108 @@ testCenter
 
 function initializePackage() {
 
-const integrationStatus =
-integration.initializeIntegration();
-
- integration.registerModule("manifest", manifest);
-integration.registerModule("firebase", firebase);
-integration.registerModule("health", health);
-integration.registerModule("dashboard", dashboard);
-integration.registerModule("verification", verification);
-integration.registerModule("final", finalCore);
-integration.registerModule("testSuite", testSuite);
-integration.registerModule("testReport", testReport);
-integration.registerModule("testLauncher", testLauncher);
-integration.registerModule("integrationTest", integrationTest);
-integration.registerModule("testCenter", testCenter);
+if (packageInitialized) {
 
 return {
 
-packageId: PACKAGE_ID,
+  packageId:
+    PACKAGE_ID,
 
-packageName: PACKAGE_NAME,
+  packageName:
+    PACKAGE_NAME,
 
-version: PACKAGE_VERSION,
+  version:
+    PACKAGE_VERSION,
 
-environment: PACKAGE_ENVIRONMENT,
+  environment:
+    PACKAGE_ENVIRONMENT,
 
-integration: integrationStatus,
+  initialized:
+    true,
 
-initialized: true,
+  alreadyInitialized:
+    true,
 
-timestamp: new Date().toISOString()
+  timestamp:
+    new Date().toISOString()
+
+};
+
+}
+
+const integrationStatus =
+integration.initializeIntegration();
+
+const modules = {
+
+manifest,
+
+firebase,
+
+health,
+
+dashboard,
+
+verification,
+
+final:
+  finalCore,
+
+testSuite,
+
+testReport,
+
+testLauncher,
+
+integrationTest,
+
+testCenter
+
+};
+
+Object.keys(modules).forEach(
+
+function (moduleName) {
+
+  integration.registerModule(
+
+    moduleName,
+
+    modules[moduleName]
+
+  );
+
+}
+
+);
+
+packageInitialized = true;
+
+return {
+
+packageId:
+  PACKAGE_ID,
+
+packageName:
+  PACKAGE_NAME,
+
+version:
+  PACKAGE_VERSION,
+
+environment:
+  PACKAGE_ENVIRONMENT,
+
+integration:
+  integrationStatus,
+
+initialized:
+  true,
+
+alreadyInitialized:
+  false,
+
+timestamp:
+  new Date().toISOString()
 
 };
 
@@ -166,8 +252,13 @@ timestamp: new Date().toISOString()
 function getPackageHealth() {
 
 if (
+
 health &&
-typeof health.runHealthCheck === "function"
+
+typeof health.runHealthCheck ===
+
+  "function"
+
 ) {
 
 return health.runHealthCheck();
@@ -176,9 +267,11 @@ return health.runHealthCheck();
 
 return {
 
-status: "UNKNOWN",
+status:
+  "UNKNOWN",
 
-message: "Health module is not available."
+message:
+  "Health module is not available."
 
 };
 
@@ -191,8 +284,13 @@ message: "Health module is not available."
 function verifyPackage() {
 
 if (
+
 verification &&
-typeof verification.verifyPackage === "function"
+
+typeof verification.verifyPackage ===
+
+  "function"
+
 ) {
 
 return verification.verifyPackage();
@@ -201,9 +299,11 @@ return verification.verifyPackage();
 
 return {
 
-status: "UNKNOWN",
+status:
+  "UNKNOWN",
 
-message: "Verification module is not available."
+message:
+  "Verification module is not available."
 
 };
 
@@ -215,29 +315,61 @@ message: "Verification module is not available."
 
 function runTests() {
 
+// Preferred testing entry point.
+
 if (
+
 testCenter &&
-typeof testCenter.runAllTests === "function"
+
+typeof testCenter.run ===
+
+  "function"
+
 ) {
 
-return testCenter.runAllTests();
+return testCenter.run();
 
 }
 
+// Fallback to the test launcher.
+
 if (
-testSuite &&
-typeof testSuite.runTestSuite === "function"
+
+testLauncher &&
+
+typeof testLauncher.runAndGetSummary ===
+
+  "function"
+
 ) {
 
-return testSuite.runTestSuite();
+return testLauncher.runAndGetSummary();
+
+}
+
+// Fallback to the raw test suite.
+
+if (
+
+testSuite &&
+
+typeof testSuite.runTests ===
+
+  "function"
+
+) {
+
+return testSuite.runTests();
 
 }
 
 return {
 
-status: "UNKNOWN",
+status:
+  "UNKNOWN",
 
-message: "Testing modules are not available."
+message:
+  "Testing modules are not available."
 
 };
 
@@ -259,43 +391,111 @@ const testResult =
 runTests();
 
 const healthPassed =
+
 healthResult &&
+
 (
-healthResult.status === "HEALTHY" ||
-healthResult.status === "PASS" ||
-healthResult.status === "PASSED"
+
+  healthResult.status ===
+
+    "HEALTHY" ||
+
+  healthResult.status ===
+
+    "PASS" ||
+
+  healthResult.status ===
+
+    "PASSED" ||
+
+  healthResult.success ===
+
+    true
+
 );
 
 const verificationPassed =
+
 verificationResult &&
+
 (
-verificationResult.status === "VERIFIED" ||
-verificationResult.status === "PASS" ||
-verificationResult.status === "PASSED"
+
+  verificationResult.status ===
+
+    "VERIFIED" ||
+
+  verificationResult.status ===
+
+    "PASS" ||
+
+  verificationResult.status ===
+
+    "PASSED" ||
+
+  verificationResult.success ===
+
+    true
+
 );
 
 const testsPassed =
+
 testResult &&
+
 (
-testResult.status === "PASS" ||
-testResult.status === "PASSED" ||
-testResult.passed === true
+
+  testResult.status ===
+
+    "PASS" ||
+
+  testResult.status ===
+
+    "PASSED" ||
+
+  testResult.status ===
+
+    "passed" ||
+
+  testResult.success ===
+
+    true
+
 );
 
 return {
 
 ready:
-  healthPassed &&
-  verificationPassed &&
-  testsPassed,
 
-health: healthResult,
+  !!(
 
-verification: verificationResult,
+    healthPassed &&
 
-tests: testResult,
+    verificationPassed &&
 
-timestamp: new Date().toISOString()
+    testsPassed
+
+  ),
+
+healthPassed:
+  !!healthPassed,
+
+verificationPassed:
+  !!verificationPassed,
+
+testsPassed:
+  !!testsPassed,
+
+health:
+  healthResult,
+
+verification:
+  verificationResult,
+
+tests:
+  testResult,
+
+timestamp:
+  new Date().toISOString()
 
 };
 
@@ -308,23 +508,37 @@ timestamp: new Date().toISOString()
 function shutdownPackage() {
 
 if (
+
 integration &&
-typeof integration.shutdownIntegration === "function"
+
+typeof integration.shutdownIntegration ===
+
+  "function"
+
 ) {
 
 integration.shutdownIntegration();
 
 }
 
+packageInitialized = false;
+
 return {
 
-packageId: PACKAGE_ID,
+packageId:
+  PACKAGE_ID,
 
-initialized: false,
+initialized:
+  false,
 
-shutdown: true,
+shutdown:
+  true,
 
-timestamp: new Date().toISOString()
+environment:
+  PACKAGE_ENVIRONMENT,
+
+timestamp:
+  new Date().toISOString()
 
 };
 
