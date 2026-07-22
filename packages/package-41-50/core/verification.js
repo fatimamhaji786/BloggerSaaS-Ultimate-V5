@@ -912,7 +912,6 @@
 
         function (check) {
 
-
           if (
 
             check.status ===
@@ -971,7 +970,6 @@
 
     catch (error) {
 
-
       const verificationError = {
 
         name: "verification",
@@ -1014,6 +1012,17 @@
       return getVerificationStatus();
 
     }
+
+  }
+
+
+  // ─────────────────────────────────────────────
+  // Compatibility Alias
+  // ─────────────────────────────────────────────
+
+  function verifyPackage() {
+
+    return runVerification();
 
   }
 
@@ -1135,6 +1144,8 @@
     initializeVerification,
 
     runVerification,
+
+    verifyPackage,
 
     getVerificationStatus,
 
