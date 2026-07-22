@@ -2,11 +2,25 @@
  * BloggerSaaS Ultimate V5
  * Package 41–50
  * Core Integration Layer
+ *
+ * Safe development integration controller.
+ *
+ * Safety:
+ * - Does not modify production systems.
+ * - Does not modify live Firebase data.
+ * - Does not modify user accounts.
+ * - Does not deploy automatically.
+ * - Does not delete external data.
  */
 
 (function (global) {
 
   "use strict";
+
+
+  // ─────────────────────────────────────────────
+  // Integration State
+  // ─────────────────────────────────────────────
 
   const integrationState = {
 
@@ -22,9 +36,19 @@
 
   };
 
+
+  // ─────────────────────────────────────────────
+  // Event Bus
+  // ─────────────────────────────────────────────
+
   const eventBus = {
 
     listeners: {},
+
+
+    // ─────────────────────────────────────────
+    // Register Listener
+    // ─────────────────────────────────────────
 
     on(eventName, callback) {
 
@@ -44,6 +68,7 @@
 
       }
 
+
       if (
 
         typeof callback !== "function"
@@ -58,39 +83,98 @@
 
       }
 
-      if (!this.listeners[eventName]) {
+
+      if (
+
+        !this.listeners[eventName]
+
+      ) {
 
         this.listeners[eventName] = [];
 
       }
 
-      this.listeners[eventName].push(callback);
+
+      this.listeners[eventName].push(
+
+        callback
+
+      );
+
 
       return true;
 
     },
 
+
+    // ─────────────────────────────────────────
+    // Remove Listener
+    // ─────────────────────────────────────────
+
     off(eventName, callback) {
 
-      if (!this.listeners[eventName]) {
+      if (
+
+        typeof eventName !== "string"
+
+      ) {
 
         return false;
 
       }
 
+
+      if (
+
+        !this.listeners[eventName]
+
+      ) {
+
+        return false;
+
+      }
+
+
       this.listeners[eventName] =
 
         this.listeners[eventName].filter(
 
-          listener => listener !== callback
+          listener =>
+
+            listener !== callback
 
         );
+
 
       return true;
 
     },
 
-    emit(eventName, payload = {}) {
+
+    // ─────────────────────────────────────────
+    // Emit Event
+    // ─────────────────────────────────────────
+
+    emit(
+
+      eventName,
+
+      payload = {}
+
+    ) {
+
+      if (
+
+        typeof eventName !== "string" ||
+
+        !eventName.trim()
+
+      ) {
+
+        return false;
+
+      }
+
 
       integrationState.events.push({
 
@@ -104,37 +188,61 @@
 
       });
 
-      const listeners =
 
-        this.listeners[eventName] || [];
+      const listeners = [
 
-      listeners.forEach(callback => {
+        ...(
 
-        try {
+          this.listeners[eventName] ||
 
-          callback(payload);
+          []
+
+        )
+
+      ];
+
+
+      listeners.forEach(
+
+        callback => {
+
+          try {
+
+            callback(payload);
+
+          }
+
+          catch (error) {
+
+            integrationState.errors.push({
+
+              event: eventName,
+
+              message:
+
+                error.message,
+
+              timestamp:
+
+                new Date().toISOString()
+
+            });
+
+          }
 
         }
 
-        catch (error) {
+      );
 
-          integrationState.errors.push({
 
-            event: eventName,
-
-            message: error.message,
-
-            timestamp:
-
-              new Date().toISOString()
-
-          });
-
-        }
-
-      });
+      return true;
 
     },
+
+
+    // ─────────────────────────────────────────
+    // Clear Listeners
+    // ─────────────────────────────────────────
 
     clear() {
 
@@ -143,6 +251,11 @@
     }
 
   };
+
+
+  // ─────────────────────────────────────────────
+  // Register Module
+  // ─────────────────────────────────────────────
 
   function registerModule(
 
@@ -168,7 +281,12 @@
 
     }
 
-    if (!moduleInstance) {
+
+    if (
+
+      !moduleInstance
+
+    ) {
 
       throw new Error(
 
@@ -178,9 +296,32 @@
 
     }
 
-    integrationState.modules[moduleName] =
 
-      moduleInstance;
+    if (
+
+      integrationState.modules[
+
+        moduleName
+
+      ]
+
+    ) {
+
+      throw new Error(
+
+        `Module "${moduleName}" is already registered.`
+
+      );
+
+    }
+
+
+    integrationState.modules[
+
+      moduleName
+
+    ] = moduleInstance;
+
 
     eventBus.emit(
 
@@ -194,21 +335,53 @@
 
     );
 
+
     return true;
 
   }
 
-  function getModule(moduleName) {
+
+  // ─────────────────────────────────────────────
+  // Get Module
+  // ─────────────────────────────────────────────
+
+  function getModule(
+
+    moduleName
+
+  ) {
+
+    if (
+
+      typeof moduleName !== "string" ||
+
+      !moduleName.trim()
+
+    ) {
+
+      return null;
+
+    }
+
 
     return (
 
-      integrationState.modules[moduleName] ||
+      integrationState.modules[
+
+        moduleName
+
+      ] ||
 
       null
 
     );
 
   }
+
+
+  // ─────────────────────────────────────────────
+  // Integration Status
+  // ─────────────────────────────────────────────
 
   function getIntegrationStatus() {
 
@@ -242,6 +415,11 @@
 
   }
 
+
+  // ─────────────────────────────────────────────
+  // Initialize Integration
+  // ─────────────────────────────────────────────
+
   function initializeIntegration() {
 
     if (
@@ -254,7 +432,9 @@
 
     }
 
+
     integrationState.initialized = true;
+
 
     eventBus.emit(
 
@@ -270,9 +450,15 @@
 
     );
 
+
     return getIntegrationStatus();
 
   }
+
+
+  // ─────────────────────────────────────────────
+  // Shutdown Integration
+  // ─────────────────────────────────────────────
 
   function shutdownIntegration() {
 
@@ -284,13 +470,24 @@
 
     );
 
+
     integrationState.initialized = false;
 
+
+    integrationState.modules = {};
+
+
     eventBus.clear();
+
 
     return true;
 
   }
+
+
+  // ─────────────────────────────────────────────
+  // Public API
+  // ─────────────────────────────────────────────
 
   const integrationAPI = {
 
@@ -306,13 +503,25 @@
 
     eventBus,
 
-    state: integrationState
+    state:
+
+      integrationState
 
   };
+
+
+  // ─────────────────────────────────────────────
+  // Browser Global
+  // ─────────────────────────────────────────────
 
   global.BloggerSaaSIntegration =
 
     integrationAPI;
+
+
+  // ─────────────────────────────────────────────
+  // Node / Test Export
+  // ─────────────────────────────────────────────
 
   if (
 
@@ -328,12 +537,11 @@
 
   }
 
-})(
 
+})(
   typeof globalThis !== "undefined"
 
     ? globalThis
 
     : this
-
 );
