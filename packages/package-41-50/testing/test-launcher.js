@@ -1,134 +1,699 @@
 /**
-
-BloggerSaaS Ultimate V5 Package 41–50 Testing Layer Test Launcher Coordinates: test-suite.js test-report.js Safe development only. This module: Does not modify production systems. Does not modify live Firebase data. Does not modify user accounts. Does not deploy automatically. Does not delete external data. */ 
+ * BloggerSaaS Ultimate V5
+ * Package 41–50
+ * Testing Layer
+ * Test Launcher
+ *
+ * Coordinates execution of the test suite
+ * and generation of the final test report.
+ *
+ * Safe development only.
+ *
+ * This module:
+ * - Does not modify production systems.
+ * - Does not modify live Firebase data.
+ * - Does not modify user accounts.
+ * - Does not deploy automatically.
+ * - Does not delete external data.
+ */
 
 (function (global) {
 
-"use strict";
+  "use strict";
 
-// ───────────────────────────────────────────── // Launcher State // ─────────────────────────────────────────────
 
-const launcherState = {
+  // ─────────────────────────────────────────────
+  // Launcher State
+  // ─────────────────────────────────────────────
 
-initialized: false, environment: "safe-development", running: false, lastRunAt: null, lastCompletedAt: null, runCount: 0, status: "not-run", lastReport: null, errors: [] 
+  const launcherState = {
 
-};
+    initialized: false,
 
-// ───────────────────────────────────────────── // Module Discovery // ─────────────────────────────────────────────
+    environment: "safe-development",
 
-function getTestSuite() {
+    running: false,
 
-return ( global.BloggerSaaSTestSuite || null ); 
+    runCount: 0,
 
-}
+    startedAt: null,
 
-function getTestReport() {
+    completedAt: null,
 
-return ( global.BloggerSaaSTestReport || null ); 
+    status: "not-run",
 
-}
+    lastReport: null,
 
-// ───────────────────────────────────────────── // Validate Dependencies // ─────────────────────────────────────────────
+    errors: []
 
-function validateDependencies() {
+  };
 
-const dependencies = { testSuite: getTestSuite(), testReport: getTestReport() }; const missing = []; if ( !dependencies.testSuite ) { missing.push( "BloggerSaaSTestSuite" ); } if ( !dependencies.testReport ) { missing.push( "BloggerSaaSTestReport" ); } return { valid: missing.length === 0, dependencies, missing }; 
 
-}
+  // ─────────────────────────────────────────────
+  // Module Discovery
+  // ─────────────────────────────────────────────
 
-// ───────────────────────────────────────────── // Initialize Launcher // ─────────────────────────────────────────────
+  function getTestSuite() {
 
-function initializeLauncher() {
+    return (
 
-if ( launcherState.initialized ) { return getLauncherStatus(); } launcherState.initialized = true; launcherState.status = "ready"; return getLauncherStatus(); 
+      global.BloggerSaaSTestSuite ||
 
-}
+      null
 
-// ───────────────────────────────────────────── // Run Test Suite // ─────────────────────────────────────────────
+    );
 
-function runTestSuite() {
+  }
 
-if ( launcherState.running ) { return { success: false, status: "already-running", message: "Test suite is already running.", report: launcherState.lastReport }; } const dependencyCheck = validateDependencies(); if ( !dependencyCheck.valid ) { launcherState.status = "dependency-error"; const error = { type: "DEPENDENCY_ERROR", message: "Required testing modules are missing.", missing: dependencyCheck.missing, timestamp: new Date().toISOString() }; launcherState.errors.push( error ); return { success: false, status: launcherState.status, error }; } launcherState.running = true; launcherState.status = "running"; launcherState.lastRunAt = new Date().toISOString(); launcherState.runCount++; try { const testSuite = dependencyCheck .dependencies .testSuite; const testReport = dependencyCheck .dependencies .testReport; if ( typeof testSuite.runTests !== "function" ) { throw new Error( "Test suite does not expose runTests()." ); } if ( typeof testReport.generateReport !== "function" ) { throw new Error( "Test report does not expose generateReport()." ); } // Run all registered tests. const rawReport = testSuite.runTests(); // Generate normalized report. const finalReport = testReport.generateReport( rawReport ); launcherState.lastReport = finalReport; launcherState.status = finalReport.status; launcherState.lastCompletedAt = new Date().toISOString(); launcherState.running = false; return { success: finalReport.status === "passed", status: finalReport.status, report: finalReport }; } catch (error) { launcherState.running = false; launcherState.status = "error"; launcherState.lastCompletedAt = new Date().toISOString(); const launcherError = { type: "TEST_LAUNCH_ERROR", message: error.message, timestamp: new Date().toISOString() }; launcherState.errors.push( launcherError ); return { success: false, status: launcherState.status, error: launcherError }; } 
 
-}
+  function getTestReport() {
 
-// ───────────────────────────────────────────── // Run Tests and Return Summary // ─────────────────────────────────────────────
+    return (
 
-function runAndGetSummary() {
+      global.BloggerSaaSTestReport ||
 
-const result = runTestSuite(); if ( !result.success && !result.report ) { return result; } const report = result.report; return { success: result.success, status: result.status, summary: report.summary || null, categories: report.categories || {}, failures: report.failures || [], warnings: report.warnings || [], report }; 
+      null
 
-}
+    );
 
-// ───────────────────────────────────────────── // Get Last Report // ─────────────────────────────────────────────
+  }
 
-function getLastReport() {
 
-return ( launcherState.lastReport ); 
+  // ─────────────────────────────────────────────
+  // Initialize Launcher
+  // ─────────────────────────────────────────────
 
-}
+  function initialize() {
 
-// ───────────────────────────────────────────── // Get Launcher Status // ─────────────────────────────────────────────
+    launcherState.initialized = true;
 
-function getLauncherStatus() {
+    launcherState.status = "initialized";
 
-return { initialized: launcherState.initialized, environment: launcherState.environment, running: launcherState.running, lastRunAt: launcherState.lastRunAt, lastCompletedAt: launcherState.lastCompletedAt, runCount: launcherState.runCount, status: launcherState.status, hasReport: launcherState.lastReport !== null, errorCount: launcherState.errors.length }; 
+    return getStatus();
 
-}
+  }
 
-// ───────────────────────────────────────────── // Get Launcher Errors // ─────────────────────────────────────────────
 
-function getErrors() {
+  // ─────────────────────────────────────────────
+  // Run Test Suite
+  // ─────────────────────────────────────────────
 
-return launcherState.errors.slice(); 
+  function runTestSuite() {
 
-}
+    const suite = getTestSuite();
 
-// ───────────────────────────────────────────── // Reset Launcher // ─────────────────────────────────────────────
 
-function resetLauncher() {
+    if (!suite) {
 
-launcherState.initialized = false; launcherState.running = false; launcherState.lastRunAt = null; launcherState.lastCompletedAt = null; launcherState.runCount = 0; launcherState.status = "not-run"; launcherState.lastReport = null; launcherState.errors = []; return true; 
+      return {
 
-}
+        success: false,
 
-// ───────────────────────────────────────────── // Public API // ─────────────────────────────────────────────
+        status: "unavailable",
 
-const testLauncherAPI = {
+        message:
 
-initializeLauncher, validateDependencies, runTestSuite, runAndGetSummary, getLastReport, getLauncherStatus, getErrors, resetLauncher, state: launcherState 
+          "Test Suite module is unavailable."
 
-};
+      };
 
-// ───────────────────────────────────────────── // Browser Global // ─────────────────────────────────────────────
+    }
 
-if (
 
-typeof window !== "undefined" 
+    try {
 
-) {
+      if (
 
-window.BloggerSaaSTestLauncher = testLauncherAPI; 
+        typeof suite.runTests ===
 
-}
+        "function"
 
-// ───────────────────────────────────────────── // Node / Test Export // ─────────────────────────────────────────────
+      ) {
 
-if (
+        return suite.runTests();
 
-typeof module !== "undefined" && module.exports 
+      }
 
-) {
 
-module.exports = testLauncherAPI; 
+      return {
 
-}
+        success: false,
+
+        status: "unsupported",
+
+        message:
+
+          "No supported Test Suite API found."
+
+      };
+
+    }
+
+    catch (error) {
+
+      return {
+
+        success: false,
+
+        status: "error",
+
+        message:
+
+          error && error.message
+
+            ? error.message
+
+            : String(error)
+
+      };
+
+    }
+
+  }
+
+
+  // ─────────────────────────────────────────────
+  // Generate Test Report
+  // ─────────────────────────────────────────────
+
+  function generateReport(
+
+    sourceReport
+
+  ) {
+
+    const reportModule =
+
+      getTestReport();
+
+
+    if (!reportModule) {
+
+      return {
+
+        success: false,
+
+        status: "unavailable",
+
+        message:
+
+          "Test Report module is unavailable."
+
+      };
+
+    }
+
+
+    try {
+
+      if (
+
+        typeof reportModule.generateReport ===
+
+        "function"
+
+      ) {
+
+        return {
+
+          success: true,
+
+          status: "completed",
+
+          report:
+
+            reportModule.generateReport(
+
+              sourceReport
+
+            )
+
+        };
+
+      }
+
+
+      return {
+
+        success: false,
+
+        status: "unsupported",
+
+        message:
+
+          "No supported Test Report API found."
+
+      };
+
+    }
+
+    catch (error) {
+
+      return {
+
+        success: false,
+
+        status: "error",
+
+        message:
+
+          error && error.message
+
+            ? error.message
+
+            : String(error)
+
+      };
+
+    }
+
+  }
+
+
+  // ─────────────────────────────────────────────
+  // Run Tests and Generate Report
+  // ─────────────────────────────────────────────
+
+  function runAndGetSummary() {
+
+    if (
+
+      launcherState.running
+
+    ) {
+
+      return {
+
+        success: false,
+
+        status: "already-running",
+
+        message:
+
+          "Test Launcher is already running."
+
+      };
+
+    }
+
+
+    launcherState.running = true;
+
+    launcherState.initialized = true;
+
+    launcherState.status = "running";
+
+    launcherState.runCount++;
+
+    launcherState.startedAt =
+
+      new Date().toISOString();
+
+
+    try {
+
+      // 1. Run the complete test suite.
+
+      const testResult =
+
+        runTestSuite();
+
+
+      // 2. Generate a structured report.
+
+      const reportResult =
+
+        generateReport(
+
+          testResult
+
+        );
+
+
+      const testsPassed =
+
+        testResult &&
+
+        (
+
+          testResult.status ===
+
+            "passed" ||
+
+          testResult.status ===
+
+            "PASS" ||
+
+          testResult.status ===
+
+            "PASSED" ||
+
+          testResult.success ===
+
+            true
+
+        );
+
+
+      const reportPassed =
+
+        reportResult &&
+
+        (
+
+          reportResult.success ===
+
+            true
+
+        );
+
+
+      const success =
+
+        testsPassed &&
+
+        reportPassed;
+
+
+      launcherState.status =
+
+        success
+
+          ? "passed"
+
+          : "failed";
+
+
+      launcherState.completedAt =
+
+        new Date().toISOString();
+
+
+      launcherState.running = false;
+
+
+      const finalResult = {
+
+        success,
+
+        status:
+
+          launcherState.status,
+
+        environment:
+
+          launcherState.environment,
+
+        runCount:
+
+          launcherState.runCount,
+
+        startedAt:
+
+          launcherState.startedAt,
+
+        completedAt:
+
+          launcherState.completedAt,
+
+        tests:
+
+          testResult,
+
+        report:
+
+          reportResult
+
+      };
+
+
+      launcherState.lastReport =
+
+        finalResult;
+
+
+      return finalResult;
+
+    }
+
+    catch (error) {
+
+      launcherState.running = false;
+
+      launcherState.status = "error";
+
+      launcherState.completedAt =
+
+        new Date().toISOString();
+
+
+      const errorRecord = {
+
+        message:
+
+          error && error.message
+
+            ? error.message
+
+            : String(error),
+
+        timestamp:
+
+          new Date().toISOString()
+
+      };
+
+
+      launcherState.errors.push(
+
+        errorRecord
+
+      );
+
+
+      const finalResult = {
+
+        success: false,
+
+        status: "error",
+
+        environment:
+
+          launcherState.environment,
+
+        error:
+
+          errorRecord
+
+      };
+
+
+      launcherState.lastReport =
+
+        finalResult;
+
+
+      return finalResult;
+
+    }
+
+  }
+
+
+  // ─────────────────────────────────────────────
+  // Compatibility Aliases
+  // ─────────────────────────────────────────────
+
+  function run() {
+
+    return runAndGetSummary();
+
+  }
+
+
+  function runAllTests() {
+
+    return runAndGetSummary();
+
+  }
+
+
+  function runTestSuiteAndReport() {
+
+    return runAndGetSummary();
+
+  }
+
+
+  // ─────────────────────────────────────────────
+  // Get Status
+  // ─────────────────────────────────────────────
+
+  function getStatus() {
+
+    return {
+
+      initialized:
+
+        launcherState.initialized,
+
+      running:
+
+        launcherState.running,
+
+      environment:
+
+        launcherState.environment,
+
+      runCount:
+
+        launcherState.runCount,
+
+      startedAt:
+
+        launcherState.startedAt,
+
+      completedAt:
+
+        launcherState.completedAt,
+
+      status:
+
+        launcherState.status,
+
+      errorCount:
+
+        launcherState.errors.length,
+
+      hasResult:
+
+        launcherState.lastReport !== null
+
+    };
+
+  }
+
+
+  // ─────────────────────────────────────────────
+  // Get Last Result
+  // ─────────────────────────────────────────────
+
+  function getLastResult() {
+
+    return launcherState.lastReport;
+
+  }
+
+
+  // ─────────────────────────────────────────────
+  // Get Errors
+  // ─────────────────────────────────────────────
+
+  function getErrors() {
+
+    return [
+
+      ...launcherState.errors
+
+    ];
+
+  }
+
+
+  // ─────────────────────────────────────────────
+  // Reset
+  // ─────────────────────────────────────────────
+
+  function reset() {
+
+    launcherState.initialized = false;
+
+    launcherState.running = false;
+
+    launcherState.runCount = 0;
+
+    launcherState.startedAt = null;
+
+    launcherState.completedAt = null;
+
+    launcherState.status = "not-run";
+
+    launcherState.lastReport = null;
+
+    launcherState.errors = [];
+
+    return true;
+
+  }
+
+
+  // ─────────────────────────────────────────────
+  // Public API
+  // ─────────────────────────────────────────────
+
+  const testLauncherAPI = {
+
+    initialize,
+
+    run,
+
+    runAllTests,
+
+    runTestSuite,
+
+    generateReport,
+
+    runAndGetSummary,
+
+    runTestSuiteAndReport,
+
+    getStatus,
+
+    getLastResult,
+
+    getErrors,
+
+    reset,
+
+    state:
+
+      launcherState
+
+  };
+
+
+  // ─────────────────────────────────────────────
+  // Browser Global
+  // ─────────────────────────────────────────────
+
+  global.BloggerSaaSTestLauncher =
+
+    testLauncherAPI;
+
+
+  // ─────────────────────────────────────────────
+  // Node / Test Export
+  // ─────────────────────────────────────────────
+
+  if (
+
+    typeof module !== "undefined" &&
+
+    module.exports
+
+  ) {
+
+    module.exports =
+
+      testLauncherAPI;
+
+  }
+
 
 })(
+  typeof globalThis !== "undefined"
 
-typeof globalThis !== "undefined"
+    ? globalThis
 
-? globalThis : this 
-
+    : this
 );
-
