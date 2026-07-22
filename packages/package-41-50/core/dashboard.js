@@ -2,11 +2,25 @@
  * BloggerSaaS Ultimate V5
  * Package 41–50
  * Core Dashboard Bridge
+ *
+ * Safe development dashboard status aggregator.
+ *
+ * Safety:
+ * - Does not modify production systems.
+ * - Does not modify live Firebase data.
+ * - Does not modify user accounts.
+ * - Does not deploy automatically.
+ * - Does not delete external data.
  */
 
 (function (global) {
 
   "use strict";
+
+
+  // ─────────────────────────────────────────────
+  // Dashboard State
+  // ─────────────────────────────────────────────
 
   const dashboardState = {
 
@@ -32,6 +46,11 @@
 
   };
 
+
+  // ─────────────────────────────────────────────
+  // Initialize Dashboard
+  // ─────────────────────────────────────────────
+
   function initializeDashboard() {
 
     if (
@@ -44,15 +63,23 @@
 
     }
 
+
     dashboardState.initialized = true;
+
 
     dashboardState.lastUpdated =
 
       new Date().toISOString();
 
+
     return getDashboardStatus();
 
   }
+
+
+  // ─────────────────────────────────────────────
+  // Update Dashboard Status
+  // ─────────────────────────────────────────────
 
   function updateDashboardStatus(
 
@@ -64,17 +91,20 @@
 
       !status ||
 
-      typeof status !== "object"
+      typeof status !== "object" ||
+
+      Array.isArray(status)
 
     ) {
 
       throw new TypeError(
 
-        "Dashboard status must be an object."
+        "Dashboard status must be a plain object."
 
       );
 
     }
+
 
     if (
 
@@ -88,6 +118,7 @@
 
     }
 
+
     if (
 
       status.firebase !== undefined
@@ -99,6 +130,7 @@
         status.firebase;
 
     }
+
 
     if (
 
@@ -112,6 +144,7 @@
 
     }
 
+
     if (
 
       status.verification !== undefined
@@ -123,6 +156,7 @@
         status.verification;
 
     }
+
 
     if (
 
@@ -136,6 +170,7 @@
 
     }
 
+
     if (
 
       Array.isArray(
@@ -148,9 +183,14 @@
 
       dashboardState.warnings =
 
-        [...status.warnings];
+        [
+
+          ...status.warnings
+
+        ];
 
     }
+
 
     if (
 
@@ -164,25 +204,183 @@
 
       dashboardState.errors =
 
-        [...status.errors];
+        [
+
+          ...status.errors
+
+        ];
 
     }
+
 
     dashboardState.lastUpdated =
 
       new Date().toISOString();
 
+
     return getDashboardStatus();
 
   }
 
+
+  // ─────────────────────────────────────────────
+  // Refresh From Registered Modules
+  // ─────────────────────────────────────────────
+
+  function refreshFromModules() {
+
+    const health =
+
+      global.BloggerSaaSHealth;
+
+
+    const firebase =
+
+      global.BloggerSaaSFirebase;
+
+
+    const integration =
+
+      global.BloggerSaaSIntegration;
+
+
+    const verification =
+
+      global.BloggerSaaSVerification;
+
+
+    const testSuite =
+
+      global.BloggerSaaSTestSuite;
+
+
+    const updates = {};
+
+
+    // Health
+
+    if (
+
+      health &&
+
+      typeof health.getHealthStatus ===
+
+        "function"
+
+    ) {
+
+      updates.health =
+
+        health.getHealthStatus();
+
+    }
+
+
+    // Firebase
+
+    if (
+
+      firebase &&
+
+      typeof firebase.getFirebaseStatus ===
+
+        "function"
+
+    ) {
+
+      updates.firebase =
+
+        firebase.getFirebaseStatus();
+
+    }
+
+
+    // Integration
+
+    if (
+
+      integration &&
+
+      typeof integration.getIntegrationStatus ===
+
+        "function"
+
+    ) {
+
+      updates.integration =
+
+        integration.getIntegrationStatus();
+
+    }
+
+
+    // Verification
+
+    if (
+
+      verification &&
+
+      typeof verification.getVerificationStatus ===
+
+        "function"
+
+    ) {
+
+      updates.verification =
+
+        verification.getVerificationStatus();
+
+    }
+
+
+    // Test Suite
+
+    if (
+
+      testSuite &&
+
+      typeof testSuite.getTestReport ===
+
+        "function"
+
+    ) {
+
+      updates.tests =
+
+        testSuite.getTestReport();
+
+    }
+
+
+    return updateDashboardStatus(
+
+      updates
+
+    );
+
+  }
+
+
+  // ─────────────────────────────────────────────
+  // Add Warning
+  // ─────────────────────────────────────────────
+
   function addWarning(message) {
 
-    if (!message) {
+    if (
+
+      message === null ||
+
+      message === undefined ||
+
+      String(message).trim() === ""
+
+    ) {
 
       return false;
 
     }
+
 
     dashboardState.warnings.push({
 
@@ -196,21 +394,37 @@
 
     });
 
+
     dashboardState.lastUpdated =
 
       new Date().toISOString();
+
 
     return true;
 
   }
 
+
+  // ─────────────────────────────────────────────
+  // Add Error
+  // ─────────────────────────────────────────────
+
   function addError(message) {
 
-    if (!message) {
+    if (
+
+      message === null ||
+
+      message === undefined ||
+
+      String(message).trim() === ""
+
+    ) {
 
       return false;
 
     }
+
 
     dashboardState.errors.push({
 
@@ -224,13 +438,20 @@
 
     });
 
+
     dashboardState.lastUpdated =
 
       new Date().toISOString();
 
+
     return true;
 
   }
+
+
+  // ─────────────────────────────────────────────
+  // Calculate Overall Status
+  // ─────────────────────────────────────────────
 
   function calculateOverallStatus() {
 
@@ -244,6 +465,7 @@
 
     }
 
+
     if (
 
       dashboardState.warnings.length > 0
@@ -254,9 +476,35 @@
 
     }
 
+
+    const hasAnyStatus =
+
+      dashboardState.health !== null ||
+
+      dashboardState.firebase !== null ||
+
+      dashboardState.integration !== null ||
+
+      dashboardState.verification !== null ||
+
+      dashboardState.tests !== null;
+
+
+    if (!hasAnyStatus) {
+
+      return "NO-DATA";
+
+    }
+
+
     return "HEALTHY";
 
   }
+
+
+  // ─────────────────────────────────────────────
+  // Get Dashboard Status
+  // ─────────────────────────────────────────────
 
   function getDashboardStatus() {
 
@@ -310,6 +558,11 @@
 
   }
 
+
+  // ─────────────────────────────────────────────
+  // Create Dashboard Snapshot
+  // ─────────────────────────────────────────────
+
   function createDashboardSnapshot() {
 
     return {
@@ -324,27 +577,85 @@
 
       warnings:
 
-        [...dashboardState.warnings],
+        [
+
+          ...dashboardState.warnings
+
+        ],
 
       errors:
 
-        [...dashboardState.errors]
+        [
+
+          ...dashboardState.errors
+
+        ]
 
     };
 
   }
 
-  function shutdownDashboard() {
 
-    dashboardState.initialized = false;
+  // ─────────────────────────────────────────────
+  // Clear Warnings
+  // ─────────────────────────────────────────────
+
+  function clearWarnings() {
+
+    dashboardState.warnings = [];
+
 
     dashboardState.lastUpdated =
 
       new Date().toISOString();
 
+
     return true;
 
   }
+
+
+  // ─────────────────────────────────────────────
+  // Clear Errors
+  // ─────────────────────────────────────────────
+
+  function clearErrors() {
+
+    dashboardState.errors = [];
+
+
+    dashboardState.lastUpdated =
+
+      new Date().toISOString();
+
+
+    return true;
+
+  }
+
+
+  // ─────────────────────────────────────────────
+  // Shutdown Dashboard
+  // ─────────────────────────────────────────────
+
+  function shutdownDashboard() {
+
+    dashboardState.initialized = false;
+
+
+    dashboardState.lastUpdated =
+
+      new Date().toISOString();
+
+
+    return true;
+
+  }
+
+
+  // ─────────────────────────────────────────────
+  // Public API
+  // ─────────────────────────────────────────────
 
   const dashboardAPI = {
 
@@ -352,9 +663,15 @@
 
     updateDashboardStatus,
 
+    refreshFromModules,
+
     addWarning,
 
     addError,
+
+    clearWarnings,
+
+    clearErrors,
 
     calculateOverallStatus,
 
@@ -364,13 +681,25 @@
 
     shutdownDashboard,
 
-    state: dashboardState
+    state:
+
+      dashboardState
 
   };
+
+
+  // ─────────────────────────────────────────────
+  // Browser Global
+  // ─────────────────────────────────────────────
 
   global.BloggerSaaSDashboard =
 
     dashboardAPI;
+
+
+  // ─────────────────────────────────────────────
+  // Node / Test Export
+  // ─────────────────────────────────────────────
 
   if (
 
@@ -385,6 +714,7 @@
       dashboardAPI;
 
   }
+
 
 })(
 
