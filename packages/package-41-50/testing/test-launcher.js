@@ -178,94 +178,166 @@
 
   function generateReport(
 
-    sourceReport
+  sourceReport
+
+) {
+
+  const reportModule =
+
+    getTestReport();
+
+
+  if (
+
+    !reportModule
 
   ) {
 
-    const reportModule =
+    return {
 
-      getTestReport();
+      success: true,
 
+      status: "fallback",
 
-    if (!reportModule) {
+      report: {
 
-      return {
+        summary: {
 
-        success: false,
+          total:
 
-        status: "unavailable",
+            sourceReport &&
 
-        message:
+            sourceReport.total
 
-          "Test Report module is unavailable."
+              ? sourceReport.total
 
-      };
+              : 0,
 
-    }
+          passed:
 
+            sourceReport &&
 
-    try {
+            sourceReport.passed
 
-      if (
+              ? sourceReport.passed
 
-        typeof reportModule.generateReport ===
+              : 0,
 
-        "function"
+          failed:
 
-      ) {
+            sourceReport &&
 
-        return {
+            sourceReport.failed
 
-          success: true,
+              ? sourceReport.failed
 
-          status: "completed",
+              : 0,
 
-          report:
+          skipped:
 
-            reportModule.generateReport(
+            sourceReport &&
 
-              sourceReport
+            sourceReport.skipped
 
-            )
+              ? sourceReport.skipped
 
-        };
+              : 0,
+
+          percentage:
+
+            sourceReport &&
+
+            sourceReport.percentage
+
+              ? sourceReport.percentage
+
+              : 0,
+
+          status:
+
+            sourceReport &&
+
+            sourceReport.status
+
+              ? sourceReport.status
+
+              : "not-run"
+
+        },
+
+        source:
+
+          sourceReport
 
       }
 
+    };
+
+  }
+
+
+  try {
+
+    if (
+
+      typeof reportModule.generateReport ===
+
+      "function"
+
+    ) {
 
       return {
 
-        success: false,
+        success: true,
 
-        status: "unsupported",
+        status: "completed",
 
-        message:
+        report:
 
-          "No supported Test Report API found."
+          reportModule.generateReport(
+
+            sourceReport
+
+          )
 
       };
 
     }
 
-    catch (error) {
 
-      return {
+    return {
 
-        success: false,
+      success: false,
 
-        status: "error",
+      status: "unsupported",
 
-        message:
+      message:
 
-          error && error.message
+        "No supported Test Report API found."
 
-            ? error.message
+    };
 
-            : String(error)
+  }
 
-      };
+  catch (error) {
 
-    }
+    return {
+
+      success: false,
+
+      status: "error",
+
+      message:
+
+        error && error.message
+
+          ? error.message
+
+          : String(error)
+
+    };
+
+  }
 
   }
 
