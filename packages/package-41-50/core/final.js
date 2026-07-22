@@ -1,7 +1,7 @@
 /**
  * BloggerSaaS Ultimate V5
  * Package 41–50
- * Final Core Layer
+ * Final Core Orchestration Layer
  */
 
 (function (global) {
@@ -67,45 +67,65 @@
   function resolveModules() {
 
     finalState.integration =
+
       getDependency(
+
         "BloggerSaaSIntegration"
+
       );
 
     finalState.health =
+
       getDependency(
+
         "BloggerSaaSHealth"
+
       );
 
     finalState.verification =
+
       getDependency(
+
         "BloggerSaaSVerification"
+
       );
 
     finalState.firebase =
+
       getDependency(
+
         "BloggerSaaSFirebase"
+
       );
 
     finalState.dashboard =
+
       getDependency(
+
         "BloggerSaaSDashboard"
+
       );
 
     return {
 
       integration:
+
         !!finalState.integration,
 
       health:
+
         !!finalState.health,
 
       verification:
+
         !!finalState.verification,
 
       firebase:
+
         !!finalState.firebase,
 
       dashboard:
+
         !!finalState.dashboard
 
     };
@@ -121,6 +141,7 @@
   ) {
 
     finalState.lifecycle.current =
+
       stepName;
 
     try {
@@ -128,6 +149,7 @@
       const result =
 
         typeof callback ===
+
         "function"
 
           ? callback()
@@ -137,12 +159,15 @@
       finalState.lifecycle.completed.push({
 
         step:
+
           stepName,
 
         status:
+
           "completed",
 
         timestamp:
+
           new Date().toISOString(),
 
         result
@@ -152,9 +177,11 @@
       return {
 
         step:
+
           stepName,
 
         status:
+
           "completed",
 
         result
@@ -168,21 +195,27 @@
       const errorRecord = {
 
         step:
+
           stepName,
 
         status:
+
           "failed",
 
         message:
+
           error.message,
 
         timestamp:
+
           new Date().toISOString()
 
       };
 
       finalState.lifecycle.errors.push(
+
         errorRecord
+
       );
 
       return errorRecord;
@@ -194,71 +227,85 @@
   function calculateReadiness() {
 
     const modules =
+
       resolveModules();
 
-    const checks = [
+    const checks = [];
 
-      {
+    checks.push({
 
-        name:
-          "Integration module",
+      name:
 
-        passed:
-          modules.integration
+        "Integration module",
 
-      },
+      passed:
 
-      {
+        modules.integration
 
-        name:
-          "Health module",
+    });
 
-        passed:
-          modules.health
+    checks.push({
 
-      },
+      name:
 
-      {
+        "Health module",
 
-        name:
-          "Verification module",
+      passed:
 
-        passed:
-          modules.verification
+        modules.health
 
-      },
+    });
 
-      {
+    checks.push({
 
-        name:
-          "Firebase module",
+      name:
 
-        passed:
-          modules.firebase
+        "Verification module",
 
-      },
+      passed:
 
-      {
+        modules.verification
 
-        name:
-          "Dashboard module",
+    });
 
-        passed:
-          modules.dashboard
+    checks.push({
 
-      }
+      name:
 
-    ];
+        "Firebase module",
+
+      passed:
+
+        modules.firebase
+
+    });
+
+    checks.push({
+
+      name:
+
+        "Dashboard module",
+
+      passed:
+
+        modules.dashboard
+
+    });
 
     const passed =
+
       checks.filter(
+
         check => check.passed
+
       ).length;
 
     const total =
+
       checks.length;
 
     const percentage =
+
       total > 0
 
         ? Math.round(
@@ -276,25 +323,41 @@
         : 0;
 
     let status =
+
       "not-ready";
 
-    if (percentage === 100) {
+    if (
+
+      percentage === 100
+
+    ) {
 
       status =
+
         "ready";
 
     }
 
-    else if (percentage >= 80) {
+    else if (
+
+      percentage >= 80
+
+    ) {
 
       status =
+
         "mostly-ready";
 
     }
 
-    else if (percentage >= 50) {
+    else if (
+
+      percentage >= 50
+
+    ) {
 
       status =
+
         "partially-ready";
 
     }
@@ -302,6 +365,7 @@
     finalState.readiness = {
 
       score:
+
         passed,
 
       total,
@@ -331,6 +395,7 @@
     }
 
     finalState.startedAt =
+
       new Date().toISOString();
 
     finalState.lifecycle.completed = [];
@@ -376,6 +441,7 @@
     );
 
     finalState.completedAt =
+
       new Date().toISOString();
 
     return getFinalStatus();
@@ -385,23 +451,29 @@
   function controlledIntegration() {
 
     const readiness =
+
       calculateReadiness();
 
     if (
 
-      readiness.status !== "ready"
+      readiness.status !==
+
+      "ready"
 
     ) {
 
       return {
 
         success:
+
           false,
 
         status:
+
           "blocked",
 
         reason:
+
           "Required core modules are not ready.",
 
         readiness
@@ -413,24 +485,31 @@
     return {
 
       success:
+
         true,
 
       status:
+
         "approved",
 
       environment:
+
         finalState.environment,
 
       message:
+
         "Controlled integration is approved for safe development testing only.",
 
       productionModification:
+
         false,
 
       liveFirebaseModification:
+
         false,
 
       automaticDeployment:
+
         false
 
     };
@@ -442,31 +521,39 @@
     return {
 
       initialized:
+
         finalState.initialized,
 
       environment:
+
         finalState.environment,
 
       readiness:
+
         finalState.readiness,
 
       lifecycle: {
 
         current:
+
           finalState.lifecycle.current,
 
         completed:
+
           finalState.lifecycle.completed.length,
 
         errors:
+
           finalState.lifecycle.errors.length
 
       },
 
       startedAt:
+
         finalState.startedAt,
 
       completedAt:
+
         finalState.completedAt
 
     };
@@ -475,20 +562,26 @@
 
   function shutdownFinalLayer() {
 
-    finalState.initialized = false;
+    finalState.initialized =
+
+      false;
 
     finalState.lifecycle.current =
+
       "SHUTDOWN";
 
     return {
 
       success:
+
         true,
 
       status:
+
         "shutdown",
 
       environment:
+
         finalState.environment
 
     };
@@ -508,23 +601,25 @@
     shutdownFinalLayer,
 
     state:
+
       finalState
 
   };
 
-  if (typeof window !== "undefined") {
+  global.BloggerSaaSFinal =
 
-    window.BloggerSaaSFinal =
-      finalAPI;
-
-  }
+    finalAPI;
 
   if (
+
     typeof module !== "undefined" &&
+
     module.exports
+
   ) {
 
     module.exports =
+
       finalAPI;
 
   }
