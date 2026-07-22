@@ -1,1474 +1,196 @@
-
 /**
 
-* BloggerSaaS Ultimate V5
-* Package 41–50
-* Testing Layer
-* Integration Test Flow
-* 
-* Coordinates the complete safe-development verification flow.
-* 
-* Lifecycle:
-* 
-* 1. Initialize integration
-* 2. Verify dependencies
-* 3. Register available modules
-* 4. Run health check
-* 5. Run package verification
-* 6. Run test suite
-* 7. Generate test report
-* 8. Calculate readiness
-* 9. Return consolidated result
-* 
-* Safety:
-* - No production modification
-* - No live Firebase modification
-* - No user account modification
-* - No automatic deployment
-* - No external data deletion
-    */
+BloggerSaaS Ultimate V5 Package 41–50 Testing Layer Integration Test Flow Coordinates the complete safe-development verification flow. Lifecycle: Initialize integration Verify dependencies Register available modules Run health check Run package verification Run test suite Calculate readiness Return consolidated result Safety: No production modification No live Firebase modification No user account modification No automatic deployment No external data deletion */ 
 
 (function (global) {
 
 "use strict";
 
-// ─────────────────────────────────────────────
-// Integration Test State
-// ─────────────────────────────────────────────
+// ───────────────────────────────────────────── // Integration Test State // ─────────────────────────────────────────────
 
 const integrationTestState = {
 
-initialized: false,
-
-running: false,
-
-environment: "safe-development",
-
-startedAt: null,
-
-completedAt: null,
-
-runCount: 0,
-
-status: "not-run",
-
-readiness: {
-
-  ready: false,
-
-  score: 0,
-
-  status: "not-calculated"
-
-},
-
-modules: {},
-
-errors: [],
-
-lastResult: null
+initialized: false, running: false, environment: "safe-development", startedAt: null, completedAt: null, runCount: 0, status: "not-run", readiness: { ready: false, score: 0, status: "not-calculated" }, modules: {}, errors: [], lastResult: null 
 
 };
 
-// ─────────────────────────────────────────────
-// Module Discovery
-// ─────────────────────────────────────────────
+// ───────────────────────────────────────────── // Module Discovery // ─────────────────────────────────────────────
 
-function getModule(
+function getModule(moduleName) {
 
-moduleName
-
-) {
-
-return global[moduleName] || null;
+return global[moduleName] || null; 
 
 }
 
 function getIntegration() {
 
-return getModule(
-
-  "BloggerSaaSIntegration"
-
-);
+return getModule( "BloggerSaaSIntegration" ); 
 
 }
 
 function getFirebase() {
 
-return getModule(
-
-  "BloggerSaaSFirebase"
-
-);
+return getModule( "BloggerSaaSFirebase" ); 
 
 }
 
 function getHealth() {
 
-return getModule(
-
-  "BloggerSaaSHealth"
-
-);
+return getModule( "BloggerSaaSHealth" ); 
 
 }
 
 function getDashboard() {
 
-return getModule(
-
-  "BloggerSaaSDashboard"
-
-);
+return getModule( "BloggerSaaSDashboard" ); 
 
 }
 
 function getVerification() {
 
-return getModule(
-
-  "BloggerSaaSVerification"
-
-);
+return getModule( "BloggerSaaSVerification" ); 
 
 }
 
 function getFinal() {
 
-return getModule(
-
-  "BloggerSaaSFinal"
-
-);
+return getModule( "BloggerSaaSFinal" ); 
 
 }
 
 function getTestLauncher() {
 
-return getModule(
-
-  "BloggerSaaSTestLauncher"
-
-);
+return getModule( "BloggerSaaSTestLauncher" ); 
 
 }
 
-// ─────────────────────────────────────────────
-// Dependency Verification
-// ─────────────────────────────────────────────
+// ───────────────────────────────────────────── // Dependency Verification // ─────────────────────────────────────────────
 
 function verifyDependencies() {
 
-const dependencies = {
-
-  integration:
-
-    getIntegration(),
-
-  firebase:
-
-    getFirebase(),
-
-  health:
-
-    getHealth(),
-
-  dashboard:
-
-    getDashboard(),
-
-  verification:
-
-    getVerification(),
-
-  final:
-
-    getFinal(),
-
-  testLauncher:
-
-    getTestLauncher()
-
-};
-
-
-const missing = [];
-
-
-Object.keys(
-
-  dependencies
-
-).forEach(
-
-  function (moduleName) {
-
-    if (
-
-      !dependencies[moduleName]
-
-    ) {
-
-      missing.push(
-
-        moduleName
-
-      );
-
-    }
-
-  }
-
-);
-
-
-integrationTestState.modules =
-
-  dependencies;
-
-
-return {
-
-  valid:
-
-    missing.length === 0,
-
-  missing,
-
-  available:
-
-    Object.keys(
-
-      dependencies
-
-    ).filter(
-
-      function (moduleName) {
-
-        return (
-
-          dependencies[moduleName] !==
-
-          null
-
-        );
-
-      }
-
-    )
-
-};
+const dependencies = { integration: getIntegration(), firebase: getFirebase(), health: getHealth(), dashboard: getDashboard(), verification: getVerification(), final: getFinal(), testLauncher: getTestLauncher() }; const missing = []; Object.keys( dependencies ).forEach( function (moduleName) { if ( !dependencies[moduleName] ) { missing.push( moduleName ); } } ); integrationTestState.modules = dependencies; return { valid: missing.length === 0, missing, available: Object.keys( dependencies ).filter( function (moduleName) { return ( dependencies[moduleName] !== null ); } ) }; 
 
 }
 
-// ─────────────────────────────────────────────
-// Initialize Integration
-// ─────────────────────────────────────────────
+// ───────────────────────────────────────────── // Initialize Integration // ─────────────────────────────────────────────
 
 function initializeIntegration() {
 
-const integration =
-
-  getIntegration();
-
-
-if (
-
-  !integration
-
-) {
-
-  throw new Error(
-
-    "Integration module is unavailable."
-
-  );
+const integration = getIntegration(); if ( !integration ) { throw new Error( "Integration module is unavailable." ); } if ( typeof integration .initializeIntegration === "function" ) { integration .initializeIntegration(); } integrationTestState.initialized = true; return { success: true, status: "completed" }; 
 
 }
 
-
-if (
-
-  typeof integration
-
-    .initializeIntegration ===
-
-  "function"
-
-) {
-
-  integration
-
-    .initializeIntegration();
-
-}
-
-
-integrationTestState.initialized =
-
-  true;
-
-
-return true;
-
-}
-
-// ─────────────────────────────────────────────
-// Register Core Modules
-// ─────────────────────────────────────────────
+// ───────────────────────────────────────────── // Register Core Modules // ─────────────────────────────────────────────
 
 function registerCoreModules() {
 
-const integration =
-
-  getIntegration();
-
-
-if (
-
-  !integration ||
-
-  typeof integration.registerModule !==
-
-  "function"
-
-) {
-
-  return {
-
-    success: false,
-
-    message:
-
-      "Module registration API unavailable."
-
-  };
+const integration = getIntegration(); if ( !integration || typeof integration.registerModule !== "function" ) { return { success: false, status: "unavailable", message: "Module registration API unavailable.", registered: [], alreadyRegistered: [], errors: [] }; } const modules = { firebase: getFirebase(), health: getHealth(), dashboard: getDashboard(), verification: getVerification(), final: getFinal(), testLauncher: getTestLauncher() }; const registered = []; const alreadyRegistered = []; const registrationErrors = []; Object.keys( modules ).forEach( function (moduleName) { const moduleInstance = modules[moduleName]; if ( !moduleInstance ) { registrationErrors.push({ module: moduleName, message: "Module instance is unavailable." }); return; } // ───────────────────────────────────── // Idempotent Registration Check // ───────────────────────────────────── let existingModule = null; if ( typeof integration.getModule === "function" ) { existingModule = integration.getModule( moduleName ); } if ( existingModule ) { alreadyRegistered.push( moduleName ); return; } // ───────────────────────────────────── // Register New Module // ───────────────────────────────────── try { integration.registerModule( moduleName, moduleInstance ); registered.push( moduleName ); } catch (error) { const errorRecord = { stage: "module-registration", module: moduleName, message: error && error.message ? error.message : String(error), timestamp: new Date().toISOString() }; registrationErrors.push( errorRecord ); integrationTestState.errors.push( errorRecord ); } } ); return { success: registrationErrors.length === 0, status: registrationErrors.length === 0 ? "completed" : "partial", registered, alreadyRegistered, errors: registrationErrors }; 
 
 }
 
-
-const modules = {
-
-  firebase:
-
-    getFirebase(),
-
-  health:
-
-    getHealth(),
-
-  dashboard:
-
-    getDashboard(),
-
-  verification:
-
-    getVerification(),
-
-  final:
-
-    getFinal(),
-
-  testLauncher:
-
-    getTestLauncher()
-
-};
-
-
-const registered = [];
-
-
-Object.keys(
-
-  modules
-
-).forEach(
-
-  function (moduleName) {
-
-    const moduleInstance =
-
-      modules[moduleName];
-
-
-    if (
-
-      moduleInstance
-
-    ) {
-
-      try {
-
-        integration
-
-          .registerModule(
-
-            moduleName,
-
-            moduleInstance
-
-          );
-
-
-        registered.push(
-
-          moduleName
-
-        );
-
-      }
-
-      catch (error) {
-
-        integrationTestState.errors.push({
-
-          stage:
-
-            "module-registration",
-
-          module:
-
-            moduleName,
-
-          message:
-
-            error.message,
-
-          timestamp:
-
-            new Date().toISOString()
-
-        });
-
-      }
-
-    }
-
-  }
-
-);
-
-
-return {
-
-  success: true,
-
-  registered
-
-};
-
-}
-
-// ─────────────────────────────────────────────
-// Run Health Check
-// ─────────────────────────────────────────────
+// ───────────────────────────────────────────── // Run Health Check // ─────────────────────────────────────────────
 
 function runHealthCheck() {
 
-const health =
-
-  getHealth();
-
-
-if (
-
-  !health
-
-) {
-
-  return {
-
-    success: false,
-
-    status: "unavailable",
-
-    message:
-
-      "Health module is unavailable."
-
-  };
+const health = getHealth(); if ( !health ) { return { success: false, status: "unavailable", message: "Health module is unavailable." }; } try { if ( typeof health.runHealthCheck === "function" ) { const result = health.runHealthCheck(); return { success: true, status: "completed", result }; } if ( typeof health.getHealthStatus === "function" ) { const result = health.getHealthStatus(); return { success: true, status: "completed", result }; } return { success: false, status: "unsupported", message: "No health check API is available." }; } catch (error) { return { success: false, status: "error", message: error && error.message ? error.message : String(error) }; } 
 
 }
 
-
-try {
-
-  if (
-
-    typeof health.runHealthCheck ===
-
-    "function"
-
-  ) {
-
-    return {
-
-      success: true,
-
-      status: "completed",
-
-      result:
-
-        health.runHealthCheck()
-
-    };
-
-  }
-
-
-  if (
-
-    typeof health.getHealthStatus ===
-
-    "function"
-
-  ) {
-
-    return {
-
-      success: true,
-
-      status: "completed",
-
-      result:
-
-        health.getHealthStatus()
-
-    };
-
-  }
-
-
-  return {
-
-    success: false,
-
-    status: "unsupported",
-
-    message:
-
-      "No health check API is available."
-
-  };
-
-}
-
-catch (error) {
-
-  return {
-
-    success: false,
-
-    status: "error",
-
-    message:
-
-      error.message
-
-  };
-
-}
-
-}
-
-// ─────────────────────────────────────────────
-// Run Package Verification
-// ─────────────────────────────────────────────
+// ───────────────────────────────────────────── // Run Package Verification // ─────────────────────────────────────────────
 
 function runPackageVerification() {
 
-const verification =
-
-  getVerification();
-
-
-if (
-
-  !verification
-
-) {
-
-  return {
-
-    success: false,
-
-    status: "unavailable",
-
-    message:
-
-      "Verification module is unavailable."
-
-  };
+const verification = getVerification(); if ( !verification ) { return { success: false, status: "unavailable", message: "Verification module is unavailable." }; } try { if ( typeof verification.verifyPackage === "function" ) { return { success: true, status: "completed", result: verification.verifyPackage() }; } if ( typeof verification.runVerification === "function" ) { return { success: true, status: "completed", result: verification.runVerification() }; } if ( typeof verification.getVerificationReport === "function" ) { return { success: true, status: "completed", result: verification.getVerificationReport() }; } return { success: false, status: "unsupported", message: "No package verification API is available." }; } catch (error) { return { success: false, status: "error", message: error && error.message ? error.message : String(error) }; } 
 
 }
 
-
-try {
-
-  if (
-
-    typeof verification.verifyPackage ===
-
-    "function"
-
-  ) {
-
-    return {
-
-      success: true,
-
-      status: "completed",
-
-      result:
-
-        verification.verifyPackage()
-
-    };
-
-  }
-
-
-  if (
-
-    typeof verification.runVerification ===
-
-    "function"
-
-  ) {
-
-    return {
-
-      success: true,
-
-      status: "completed",
-
-      result:
-
-        verification.runVerification()
-
-    };
-
-  }
-
-
-  if (
-
-    typeof verification.getVerificationReport ===
-
-    "function"
-
-  ) {
-
-    return {
-
-      success: true,
-
-      status: "completed",
-
-      result:
-
-        verification.getVerificationReport()
-
-    };
-
-  }
-
-
-  return {
-
-    success: false,
-
-    status: "unsupported",
-
-    message:
-
-      "No package verification API is available."
-
-  };
-
-}
-
-catch (error) {
-
-  return {
-
-    success: false,
-
-    status: "error",
-
-    message:
-
-      error.message
-
-  };
-
-}
-
-}
-
-// ─────────────────────────────────────────────
-// Run Test Suite
-// ─────────────────────────────────────────────
+// ───────────────────────────────────────────── // Run Test Suite // ─────────────────────────────────────────────
 
 function runTests() {
 
-const launcher =
-
-  getTestLauncher();
-
-
-if (
-
-  !launcher
-
-) {
-
-  return {
-
-    success: false,
-
-    status: "unavailable",
-
-    message:
-
-      "Test launcher is unavailable."
-
-  };
+const launcher = getTestLauncher(); if ( !launcher ) { return { success: false, status: "unavailable", message: "Test launcher is unavailable." }; } try { if ( typeof launcher .runAndGetSummary === "function" ) { return launcher .runAndGetSummary(); } if ( typeof launcher .runTestSuite === "function" ) { return launcher .runTestSuite(); } return { success: false, status: "unsupported", message: "No test launcher API is available." }; } catch (error) { return { success: false, status: "error", message: error && error.message ? error.message : String(error) }; } 
 
 }
 
+// ───────────────────────────────────────────── // Calculate Readiness // ─────────────────────────────────────────────
 
-try {
+function calculateReadiness( results ) {
 
-  if (
-
-    typeof launcher
-
-      .runAndGetSummary ===
-
-    "function"
-
-  ) {
-
-    return launcher
-
-      .runAndGetSummary();
-
-  }
-
-
-  if (
-
-    typeof launcher
-
-      .runTestSuite ===
-
-    "function"
-
-  ) {
-
-    return launcher
-
-      .runTestSuite();
-
-  }
-
-
-  return {
-
-    success: false,
-
-    status: "unsupported",
-
-    message:
-
-      "No test launcher API is available."
-
-  };
+const checks = [ results.dependencies.valid, results.initialization.success, results.registration.success, results.health.success, results.verification.success, results.tests.success ]; const passedChecks = checks.filter( function (check) { return check === true; } ).length; const totalChecks = checks.length; const score = totalChecks > 0 ? Math.round( ( passedChecks / totalChecks ) * 100 ) : 0; let status = "not-ready"; if ( score === 100 ) { status = "ready"; } else if ( score >= 80 ) { status = "conditionally-ready"; } integrationTestState.readiness = { ready: score === 100, score, passedChecks, totalChecks, status }; return integrationTestState.readiness; 
 
 }
 
-catch (error) {
-
-  return {
-
-    success: false,
-
-    status: "error",
-
-    message:
-
-      error.message
-
-  };
-
-}
-
-}
-
-// ─────────────────────────────────────────────
-// Calculate Readiness
-// ─────────────────────────────────────────────
-
-function calculateReadiness(
-
-results
-
-) {
-
-const checks = [
-
-  results.dependencies.valid,
-
-  results.initialization.success,
-
-  results.registration.success,
-
-  results.health.success,
-
-  results.verification.success,
-
-  results.tests.success
-
-];
-
-
-const passedChecks =
-
-  checks.filter(
-
-    function (check) {
-
-      return check === true;
-
-    }
-
-  ).length;
-
-
-const totalChecks =
-
-  checks.length;
-
-
-const score =
-
-  totalChecks > 0
-
-    ? Math.round(
-
-        (
-
-          passedChecks /
-
-          totalChecks
-
-        ) * 100
-
-      )
-
-    : 0;
-
-
-let status =
-
-  "not-ready";
-
-
-if (
-
-  score === 100
-
-) {
-
-  status =
-
-    "ready";
-
-}
-
-else if (
-
-  score >= 80
-
-) {
-
-  status =
-
-    "conditionally-ready";
-
-}
-
-else {
-
-  status =
-
-    "not-ready";
-
-}
-
-
-integrationTestState.readiness = {
-
-  ready:
-
-    score === 100,
-
-  score,
-
-  passedChecks,
-
-  totalChecks,
-
-  status
-
-};
-
-
-return integrationTestState.readiness;
-
-}
-
-// ─────────────────────────────────────────────
-// Run Complete Integration Test
-// ─────────────────────────────────────────────
+// ───────────────────────────────────────────── // Run Complete Integration Test // ─────────────────────────────────────────────
 
 function runIntegrationTest() {
 
-if (
-
-  integrationTestState.running
-
-) {
-
-  return {
-
-    success: false,
-
-    status: "already-running",
-
-    message:
-
-      "Integration test is already running."
-
-  };
+if ( integrationTestState.running ) { return { success: false, status: "already-running", message: "Integration test is already running." }; } integrationTestState.running = true; integrationTestState.status = "running"; integrationTestState.startedAt = new Date().toISOString(); integrationTestState.runCount++; const results = { dependencies: { valid: false, missing: [], available: [] }, initialization: { success: false }, registration: { success: false }, health: { success: false }, verification: { success: false }, tests: { success: false } }; try { // 1. Verify dependencies. results.dependencies = verifyDependencies(); if ( !results.dependencies.valid ) { throw new Error( "Required package modules are missing." ); } // 2. Initialize integration. try { results.initialization = initializeIntegration(); } catch (error) { results.initialization = { success: false, status: "error", message: error && error.message ? error.message : String(error) }; } // 3. Register modules. results.registration = registerCoreModules(); // 4. Run health check. results.health = runHealthCheck(); // 5. Run package verification. results.verification = runPackageVerification(); // 6. Run complete test suite. results.tests = runTests(); // 7. Calculate final readiness. const readiness = calculateReadiness( results ); const success = readiness.ready; integrationTestState.status = success ? "passed" : "failed"; integrationTestState.completedAt = new Date().toISOString(); integrationTestState.running = false; const finalResult = { success, status: integrationTestState.status, environment: integrationTestState.environment, startedAt: integrationTestState.startedAt, completedAt: integrationTestState.completedAt, runCount: integrationTestState.runCount, readiness, results }; integrationTestState.lastResult = finalResult; return finalResult; } catch (error) { integrationTestState.running = false; integrationTestState.status = "error"; integrationTestState.completedAt = new Date().toISOString(); const integrationError = { stage: "integration-test", message: error && error.message ? error.message : String(error), timestamp: new Date().toISOString() }; integrationTestState.errors.push( integrationError ); const finalResult = { success: false, status: "error", environment: integrationTestState.environment, error: integrationError, readiness: calculateReadiness( results ), results }; integrationTestState.lastResult = finalResult; return finalResult; } 
 
 }
 
-
-integrationTestState.running =
-
-  true;
-
-
-integrationTestState.status =
-
-  "running";
-
-
-integrationTestState.startedAt =
-
-  new Date().toISOString();
-
-
-integrationTestState.runCount++;
-
-
-const results = {
-
-  dependencies: {
-
-    valid: false,
-
-    missing: [],
-
-    available: []
-
-  },
-
-  initialization: {
-
-    success: false
-
-  },
-
-  registration: {
-
-    success: false
-
-  },
-
-  health: {
-
-    success: false
-
-  },
-
-  verification: {
-
-    success: false
-
-  },
-
-  tests: {
-
-    success: false
-
-  }
-
-};
-
-
-try {
-
-  // 1. Verify dependencies.
-
-  results.dependencies =
-
-    verifyDependencies();
-
-
-  if (
-
-    !results.dependencies.valid
-
-  ) {
-
-    throw new Error(
-
-      "Required package modules are missing."
-
-    );
-
-  }
-
-
-  // 2. Initialize integration.
-
-  try {
-
-    initializeIntegration();
-
-    results.initialization = {
-
-      success: true,
-
-      status: "completed"
-
-    };
-
-  }
-
-  catch (error) {
-
-    results.initialization = {
-
-      success: false,
-
-      status: "error",
-
-      message:
-
-        error.message
-
-    };
-
-  }
-
-
-  // 3. Register modules.
-
-  results.registration =
-
-    registerCoreModules();
-
-
-  // 4. Run health check.
-
-  results.health =
-
-    runHealthCheck();
-
-
-  // 5. Run package verification.
-
-  results.verification =
-
-    runPackageVerification();
-
-
-  // 6. Run complete test suite.
-
-  results.tests =
-
-    runTests();
-
-
-  // 7. Calculate final readiness.
-
-  const readiness =
-
-    calculateReadiness(
-
-      results
-
-    );
-
-
-  const success =
-
-    readiness.ready;
-
-
-  integrationTestState.status =
-
-    success
-
-      ? "passed"
-
-      : "failed";
-
-
-  integrationTestState.completedAt =
-
-    new Date().toISOString();
-
-
-  integrationTestState.running =
-
-    false;
-
-
-  const finalResult = {
-
-    success,
-
-    status:
-
-      integrationTestState.status,
-
-    environment:
-
-      integrationTestState.environment,
-
-    startedAt:
-
-      integrationTestState.startedAt,
-
-    completedAt:
-
-      integrationTestState.completedAt,
-
-    runCount:
-
-      integrationTestState.runCount,
-
-    readiness,
-
-    results
-
-  };
-
-
-  integrationTestState.lastResult =
-
-    finalResult;
-
-
-  return finalResult;
-
-}
-
-catch (error) {
-
-  integrationTestState.running =
-
-    false;
-
-
-  integrationTestState.status =
-
-    "error";
-
-
-  integrationTestState.completedAt =
-
-    new Date().toISOString();
-
-
-  const integrationError = {
-
-    stage:
-
-      "integration-test",
-
-    message:
-
-      error.message,
-
-    timestamp:
-
-      new Date().toISOString()
-
-  };
-
-
-  integrationTestState.errors.push(
-
-    integrationError
-
-  );
-
-
-  const finalResult = {
-
-    success: false,
-
-    status: "error",
-
-    environment:
-
-      integrationTestState.environment,
-
-    error:
-
-      integrationError,
-
-    readiness:
-
-      calculateReadiness(
-
-        results
-
-      ),
-
-    results
-
-  };
-
-
-  integrationTestState.lastResult =
-
-    finalResult;
-
-
-  return finalResult;
-
-}
-
-}
-
-// ─────────────────────────────────────────────
-// Get Last Result
-// ─────────────────────────────────────────────
+// ───────────────────────────────────────────── // Get Last Result // ─────────────────────────────────────────────
 
 function getLastResult() {
 
-return integrationTestState.lastResult;
+return integrationTestState.lastResult; 
 
 }
 
-// ─────────────────────────────────────────────
-// Get Integration Test Status
-// ─────────────────────────────────────────────
+// ───────────────────────────────────────────── // Get Integration Test Status // ─────────────────────────────────────────────
 
 function getStatus() {
 
-return {
-
-  initialized:
-
-    integrationTestState.initialized,
-
-  running:
-
-    integrationTestState.running,
-
-  environment:
-
-    integrationTestState.environment,
-
-  startedAt:
-
-    integrationTestState.startedAt,
-
-  completedAt:
-
-    integrationTestState.completedAt,
-
-  runCount:
-
-    integrationTestState.runCount,
-
-  status:
-
-    integrationTestState.status,
-
-  readiness:
-
-    Object.assign(
-
-      {},
-
-      integrationTestState.readiness
-
-    ),
-
-  errorCount:
-
-    integrationTestState.errors.length,
-
-  hasResult:
-
-    integrationTestState.lastResult !== null
-
-};
+return { initialized: integrationTestState.initialized, running: integrationTestState.running, environment: integrationTestState.environment, startedAt: integrationTestState.startedAt, completedAt: integrationTestState.completedAt, runCount: integrationTestState.runCount, status: integrationTestState.status, readiness: Object.assign( {}, integrationTestState.readiness ), errorCount: integrationTestState.errors.length, hasResult: integrationTestState.lastResult !== null }; 
 
 }
 
-// ─────────────────────────────────────────────
-// Get Errors
-// ─────────────────────────────────────────────
+// ───────────────────────────────────────────── // Get Errors // ─────────────────────────────────────────────
 
 function getErrors() {
 
-return integrationTestState.errors.slice();
+return integrationTestState.errors.slice(); 
 
 }
 
-// ─────────────────────────────────────────────
-// Reset
-// ─────────────────────────────────────────────
+// ───────────────────────────────────────────── // Reset // ─────────────────────────────────────────────
 
 function reset() {
 
-integrationTestState.initialized =
-
-  false;
-
-integrationTestState.running =
-
-  false;
-
-integrationTestState.startedAt =
-
-  null;
-
-integrationTestState.completedAt =
-
-  null;
-
-integrationTestState.runCount =
-
-  0;
-
-integrationTestState.status =
-
-  "not-run";
-
-
-integrationTestState.readiness = {
-
-  ready: false,
-
-  score: 0,
-
-  status: "not-calculated"
-
-};
-
-
-integrationTestState.modules = {};
-
-integrationTestState.errors = [];
-
-integrationTestState.lastResult =
-
-  null;
-
-
-return true;
+integrationTestState.initialized = false; integrationTestState.running = false; integrationTestState.startedAt = null; integrationTestState.completedAt = null; integrationTestState.runCount = 0; integrationTestState.status = "not-run"; integrationTestState.readiness = { ready: false, score: 0, status: "not-calculated" }; integrationTestState.modules = {}; integrationTestState.errors = []; integrationTestState.lastResult = null; return true; 
 
 }
 
-// ─────────────────────────────────────────────
-// Public API
-// ─────────────────────────────────────────────
+// ───────────────────────────────────────────── // Public API // ─────────────────────────────────────────────
 
 const integrationTestAPI = {
 
-verifyDependencies,
-
-initializeIntegration,
-
-registerCoreModules,
-
-runHealthCheck,
-
-runPackageVerification,
-
-runTests,
-
-calculateReadiness,
-
-runIntegrationTest,
-
-getLastResult,
-
-getStatus,
-
-getErrors,
-
-reset,
-
-state:
-
-  integrationTestState
+verifyDependencies, initializeIntegration, registerCoreModules, runHealthCheck, runPackageVerification, runTests, calculateReadiness, runIntegrationTest, getLastResult, getStatus, getErrors, reset, state: integrationTestState 
 
 };
 
-// ─────────────────────────────────────────────
-// Browser Global
-// ─────────────────────────────────────────────
+// ───────────────────────────────────────────── // Browser Global // ─────────────────────────────────────────────
 
-if (
+if ( typeof window !== "undefined" ) {
 
-typeof window !== "undefined"
-
-) {
-
-window.BloggerSaaSIntegrationTest =
-
-  integrationTestAPI;
+window.BloggerSaaSIntegrationTest = integrationTestAPI; 
 
 }
 
-// ─────────────────────────────────────────────
-// Node / Test Export
-// ─────────────────────────────────────────────
+// ───────────────────────────────────────────── // Node / Test Export // ─────────────────────────────────────────────
 
 if (
 
-typeof module !== "undefined" &&
-
-module.exports
+typeof module !== "undefined" && module.exports 
 
 ) {
 
-module.exports =
-
-  integrationTestAPI;
+module.exports = integrationTestAPI; 
 
 }
 
-})(
+})( typeof globalThis !== "undefined"
 
-typeof globalThis !== "undefined"
-
-? globalThis
-
-: this
+? globalThis : this 
 
 );
+
