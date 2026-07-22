@@ -2,11 +2,25 @@
  * BloggerSaaS Ultimate V5
  * Package 41–50
  * Core Verification Layer
+ *
+ * Safe development verification system.
+ *
+ * Safety:
+ * - Does not modify production systems.
+ * - Does not modify live Firebase data.
+ * - Does not modify user accounts.
+ * - Does not deploy automatically.
+ * - Does not delete external data.
  */
 
 (function (global) {
 
   "use strict";
+
+
+  // ─────────────────────────────────────────────
+  // Verification State
+  // ─────────────────────────────────────────────
 
   const verificationState = {
 
@@ -25,6 +39,11 @@
     errors: []
 
   };
+
+
+  // ─────────────────────────────────────────────
+  // Create Verification Result
+  // ─────────────────────────────────────────────
 
   function createVerificationResult(
 
@@ -56,15 +75,117 @@
 
   }
 
+
+  // ─────────────────────────────────────────────
+  // Verify Package Manifest
+  // ─────────────────────────────────────────────
+
   function verifyManifest() {
 
     const manifest =
 
       global.PACKAGE_MANIFEST;
 
+
     const available =
 
       !!manifest;
+
+
+    if (!available) {
+
+      return (
+
+        verificationState.checks.manifest =
+
+          createVerificationResult(
+
+            "manifest",
+
+            "FAILED",
+
+            "Package manifest is not available.",
+
+            {
+
+              available: false
+
+            }
+
+          )
+
+      );
+
+    }
+
+
+    const hasIdentity =
+
+      typeof manifest.id ===
+
+        "string" &&
+
+      typeof manifest.version ===
+
+        "string" &&
+
+      typeof manifest.name ===
+
+        "string";
+
+
+    const hasPackageRange =
+
+      !!manifest.packageRange &&
+
+      typeof manifest.packageRange.start ===
+
+        "number" &&
+
+      typeof manifest.packageRange.end ===
+
+        "number";
+
+
+    const hasModules =
+
+      !!manifest.modules &&
+
+      typeof manifest.modules ===
+
+        "object";
+
+
+    const hasTesting =
+
+      !!manifest.testing &&
+
+      typeof manifest.testing ===
+
+        "object";
+
+
+    const hasSafety =
+
+      !!manifest.safety &&
+
+      typeof manifest.safety ===
+
+        "object";
+
+
+    const valid =
+
+      hasIdentity &&
+
+      hasPackageRange &&
+
+      hasModules &&
+
+      hasTesting &&
+
+      hasSafety;
+
 
     return (
 
@@ -74,21 +195,31 @@
 
           "manifest",
 
-          available
+          valid
 
             ? "VERIFIED"
 
             : "FAILED",
 
-          available
+          valid
 
-            ? "Package manifest is available."
+            ? "Package manifest is valid."
 
-            : "Package manifest is not available.",
+            : "Package manifest is incomplete.",
 
           {
 
-            available
+            available,
+
+            hasIdentity,
+
+            hasPackageRange,
+
+            hasModules,
+
+            hasTesting,
+
+            hasSafety
 
           }
 
@@ -98,21 +229,32 @@
 
   }
 
+
+  // ─────────────────────────────────────────────
+  // Verify Integration Layer
+  // ─────────────────────────────────────────────
+
   function verifyIntegration() {
 
     const integration =
 
       global.BloggerSaaSIntegration;
 
+
     const available =
 
       !!integration;
+
 
     const apiValid =
 
       available &&
 
       typeof integration.initializeIntegration ===
+
+        "function" &&
+
+      typeof integration.shutdownIntegration ===
 
         "function" &&
 
@@ -126,7 +268,10 @@
 
       typeof integration.getIntegrationStatus ===
 
-        "function";
+        "function" &&
+
+      !!integration.eventBus;
+
 
     return (
 
@@ -162,27 +307,51 @@
 
   }
 
+
+  // ─────────────────────────────────────────────
+  // Verify Firebase Bridge
+  // ─────────────────────────────────────────────
+
   function verifyFirebase() {
 
     const firebase =
 
       global.BloggerSaaSFirebase;
 
+
     const available =
 
       !!firebase;
+
 
     const apiValid =
 
       available &&
 
-      typeof firebase.getFirebaseStatus ===
+      typeof firebase.initializeFirebase ===
 
         "function" &&
 
       typeof firebase.validateFirebaseConfig ===
 
+        "function" &&
+
+      typeof firebase.isFirebaseSDKAvailable ===
+
+        "function" &&
+
+      typeof firebase.getFirebaseStatus ===
+
+        "function" &&
+
+      typeof firebase.setConnectionStatus ===
+
+        "function" &&
+
+      typeof firebase.shutdownFirebase ===
+
         "function";
+
 
     return (
 
@@ -218,15 +387,22 @@
 
   }
 
+
+  // ─────────────────────────────────────────────
+  // Verify Health Layer
+  // ─────────────────────────────────────────────
+
   function verifyHealth() {
 
     const health =
 
       global.BloggerSaaSHealth;
 
+
     const available =
 
       !!health;
+
 
     const apiValid =
 
@@ -242,7 +418,16 @@
 
       typeof health.getHealthStatus ===
 
+        "function" &&
+
+      typeof health.calculateOverallHealth ===
+
+        "function" &&
+
+      typeof health.resetHealth ===
+
         "function";
+
 
     return (
 
@@ -278,15 +463,22 @@
 
   }
 
+
+  // ─────────────────────────────────────────────
+  // Verify Dashboard Layer
+  // ─────────────────────────────────────────────
+
   function verifyDashboard() {
 
     const dashboard =
 
       global.BloggerSaaSDashboard;
 
+
     const available =
 
       !!dashboard;
+
 
     const apiValid =
 
@@ -296,9 +488,22 @@
 
         "function" &&
 
+      typeof dashboard.updateDashboardStatus ===
+
+        "function" &&
+
+      typeof dashboard.refreshFromModules ===
+
+        "function" &&
+
       typeof dashboard.getDashboardStatus ===
 
+        "function" &&
+
+      typeof dashboard.createDashboardSnapshot ===
+
         "function";
+
 
     return (
 
@@ -334,15 +539,22 @@
 
   }
 
+
+  // ─────────────────────────────────────────────
+  // Verify Final Layer
+  // ─────────────────────────────────────────────
+
   function verifyFinal() {
 
     const finalLayer =
 
       global.BloggerSaaSFinal;
 
+
     const available =
 
       !!finalLayer;
+
 
     const apiValid =
 
@@ -359,6 +571,7 @@
       typeof finalLayer.getFinalStatus ===
 
         "function";
+
 
     return (
 
@@ -394,9 +607,83 @@
 
   }
 
+
+  // ─────────────────────────────────────────────
+  // Verify Test Suite
+  // ─────────────────────────────────────────────
+
+  function verifyTestSuite() {
+
+    const testSuite =
+
+      global.BloggerSaaSTestSuite;
+
+
+    const available =
+
+      !!testSuite;
+
+
+    const apiValid =
+
+      available &&
+
+      typeof testSuite.runTests ===
+
+        "function" &&
+
+      typeof testSuite.getTestReport ===
+
+        "function";
+
+
+    return (
+
+      verificationState.checks.testSuite =
+
+        createVerificationResult(
+
+          "testSuite",
+
+          apiValid
+
+            ? "VERIFIED"
+
+            : "REVIEW_REQUIRED",
+
+          apiValid
+
+            ? "Test suite API is valid."
+
+            : "Test suite requires review.",
+
+          {
+
+            available,
+
+            apiValid
+
+          }
+
+        )
+
+    );
+
+  }
+
+
+  // ─────────────────────────────────────────────
+  // Verify Safety Rules
+  // ─────────────────────────────────────────────
+
   function verifySafety() {
 
-    const safetyRules = {
+    const manifest =
+
+      global.PACKAGE_MANIFEST;
+
+
+    const fallbackSafetyRules = {
 
       productionModification: false,
 
@@ -410,6 +697,24 @@
 
     };
 
+
+    const safetyRules =
+
+      manifest &&
+
+      manifest.safety
+
+        ? {
+
+            ...fallbackSafetyRules,
+
+            ...manifest.safety
+
+          }
+
+        : fallbackSafetyRules;
+
+
     const safe =
 
       Object.values(
@@ -421,6 +726,7 @@
         value => value === false
 
       );
+
 
     return (
 
@@ -450,6 +756,11 @@
 
   }
 
+
+  // ─────────────────────────────────────────────
+  // Verify Environment
+  // ─────────────────────────────────────────────
+
   function verifyEnvironment() {
 
     const safe =
@@ -457,6 +768,7 @@
       verificationState.environment ===
 
       "safe-development";
+
 
     return (
 
@@ -492,6 +804,11 @@
 
   }
 
+
+  // ─────────────────────────────────────────────
+  // Calculate Verification Status
+  // ─────────────────────────────────────────────
+
   function calculateVerificationStatus() {
 
     const results =
@@ -501,6 +818,7 @@
         verificationState.checks
 
       );
+
 
     if (
 
@@ -517,6 +835,7 @@
       return "FAILED";
 
     }
+
 
     if (
 
@@ -536,6 +855,7 @@
 
     }
 
+
     if (
 
       results.length === 0
@@ -546,9 +866,15 @@
 
     }
 
+
     return "VERIFIED";
 
   }
+
+
+  // ─────────────────────────────────────────────
+  // Run Verification
+  // ─────────────────────────────────────────────
 
   function runVerification() {
 
@@ -556,73 +882,145 @@
 
     verificationState.errors = [];
 
-    verifyManifest();
 
-    verifyIntegration();
+    try {
 
-    verifyFirebase();
+      verifyManifest();
 
-    verifyHealth();
+      verifyIntegration();
 
-    verifyDashboard();
+      verifyFirebase();
 
-    verifyFinal();
+      verifyHealth();
 
-    verifySafety();
+      verifyDashboard();
 
-    verifyEnvironment();
+      verifyFinal();
 
-    Object.values(
+      verifyTestSuite();
 
-      verificationState.checks
+      verifySafety();
 
-    ).forEach(check => {
+      verifyEnvironment();
 
-      if (
 
-        check.status ===
+      Object.values(
 
-        "REVIEW_REQUIRED"
+        verificationState.checks
 
-      ) {
+      ).forEach(
 
-        verificationState.warnings.push(
+        function (check) {
 
-          check
 
-        );
+          if (
 
-      }
+            check.status ===
 
-      if (
+            "REVIEW_REQUIRED"
 
-        check.status ===
+          ) {
 
-        "FAILED"
+            verificationState.warnings.push(
 
-      ) {
+              check
 
-        verificationState.errors.push(
+            );
 
-          check
+          }
 
-        );
 
-      }
+          if (
 
-    });
+            check.status ===
 
-    verificationState.status =
+            "FAILED"
 
-      calculateVerificationStatus();
+          ) {
 
-    verificationState.lastVerified =
+            verificationState.errors.push(
 
-      new Date().toISOString();
+              check
 
-    return getVerificationStatus();
+            );
+
+          }
+
+        }
+
+      );
+
+
+      verificationState.status =
+
+        calculateVerificationStatus();
+
+
+      verificationState.lastVerified =
+
+        new Date().toISOString();
+
+
+      verificationState.initialized = true;
+
+
+      return getVerificationStatus();
+
+    }
+
+
+    catch (error) {
+
+
+      const verificationError = {
+
+        name: "verification",
+
+        status: "FAILED",
+
+        message: error.message,
+
+        details: {},
+
+        timestamp:
+
+          new Date().toISOString()
+
+      };
+
+
+      verificationState.errors.push(
+
+        verificationError
+
+      );
+
+
+      verificationState.status =
+
+        "FAILED";
+
+
+      verificationState.lastVerified =
+
+        new Date().toISOString();
+
+
+      verificationState.initialized =
+
+        false;
+
+
+      return getVerificationStatus();
+
+    }
 
   }
+
+
+  // ─────────────────────────────────────────────
+  // Get Verification Status
+  // ─────────────────────────────────────────────
 
   function getVerificationStatus() {
 
@@ -670,6 +1068,11 @@
 
   }
 
+
+  // ─────────────────────────────────────────────
+  // Initialize Verification
+  // ─────────────────────────────────────────────
+
   function initializeVerification() {
 
     if (
@@ -682,11 +1085,15 @@
 
     }
 
-    verificationState.initialized = true;
 
     return runVerification();
 
   }
+
+
+  // ─────────────────────────────────────────────
+  // Reset Verification
+  // ─────────────────────────────────────────────
 
   function resetVerification() {
 
@@ -694,23 +1101,34 @@
 
       "UNKNOWN";
 
+
     verificationState.initialized =
 
       false;
+
 
     verificationState.lastVerified =
 
       null;
 
+
     verificationState.checks = {};
+
 
     verificationState.warnings = [];
 
+
     verificationState.errors = [];
+
 
     return getVerificationStatus();
 
   }
+
+
+  // ─────────────────────────────────────────────
+  // Public API
+  // ─────────────────────────────────────────────
 
   const verificationAPI = {
 
@@ -730,9 +1148,19 @@
 
   };
 
+
+  // ─────────────────────────────────────────────
+  // Browser Global
+  // ─────────────────────────────────────────────
+
   global.BloggerSaaSVerification =
 
     verificationAPI;
+
+
+  // ─────────────────────────────────────────────
+  // Node / Test Export
+  // ─────────────────────────────────────────────
 
   if (
 
@@ -747,6 +1175,7 @@
       verificationAPI;
 
   }
+
 
 })(
 
