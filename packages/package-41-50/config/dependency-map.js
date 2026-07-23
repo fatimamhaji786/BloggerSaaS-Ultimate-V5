@@ -7,8 +7,16 @@
 * Defines and validates the dependencies required by the package.
 * 
 * This module performs validation only.
-* It does not install, modify, or delete dependencies.
-  */
+* 
+* Safety:
+* - Does not install dependencies.
+* - Does not modify dependencies.
+* - Does not delete dependencies.
+* - Does not modify production systems.
+* - Does not modify live Firebase data.
+* - Does not modify user accounts.
+* - Does not deploy automatically.
+    */
 
 "use strict";
 
@@ -18,7 +26,7 @@
 
 const DEPENDENCY_MAP = Object.freeze({
 
-firebase: {
+firebase: Object.freeze({
 
 id: "firebase",
 
@@ -28,42 +36,31 @@ required: true,
 
 type: "external",
 
+moduleName: "BloggerSaaSFirebase",
+
 purpose:
   "Firebase initialization and service bridge."
 
-},
+}),
 
-eventBus: {
+integration: Object.freeze({
 
-id: "event-bus",
+id: "integration",
 
-name: "Event Bus",
-
-required: true,
-
-type: "internal",
-
-purpose:
-  "Internal module event communication."
-
-},
-
-moduleRegistry: {
-
-id: "module-registry",
-
-name: "Module Registry",
+name: "Integration Layer",
 
 required: true,
 
 type: "internal",
 
+moduleName: "BloggerSaaSIntegration",
+
 purpose:
-  "Core module registration and retrieval."
+  "Core module integration and event communication."
 
-},
+}),
 
-healthMonitor: {
+healthMonitor: Object.freeze({
 
 id: "health-monitor",
 
@@ -73,12 +70,14 @@ required: true,
 
 type: "internal",
 
+moduleName: "BloggerSaaSHealth",
+
 purpose:
   "Package health monitoring."
 
-},
+}),
 
-verificationLayer: {
+verificationLayer: Object.freeze({
 
 id: "verification-layer",
 
@@ -88,25 +87,63 @@ required: true,
 
 type: "internal",
 
+moduleName: "BloggerSaaSVerification",
+
 purpose:
   "Package verification and safety checks."
 
-},
+}),
 
-testCenter: {
+dashboard: Object.freeze({
 
-id: "test-center",
+id: "dashboard",
 
-name: "Test Center",
+name: "Dashboard Bridge",
 
 required: true,
 
 type: "internal",
 
-purpose:
-  "Diagnostic and test orchestration."
+moduleName: "BloggerSaaSDashboard",
 
-}
+purpose:
+  "Dashboard status aggregation and coordination."
+
+}),
+
+finalLayer: Object.freeze({
+
+id: "final-layer",
+
+name: "Final Orchestration Layer",
+
+required: true,
+
+type: "internal",
+
+moduleName: "BloggerSaaSFinal",
+
+purpose:
+  "Final package orchestration and readiness calculation."
+
+}),
+
+testSuite: Object.freeze({
+
+id: "test-suite",
+
+name: "Test Suite",
+
+required: true,
+
+type: "internal",
+
+moduleName: "BloggerSaaSTestSuite",
+
+purpose:
+  "Automated package diagnostics and testing."
+
+})
 
 });
 
@@ -121,22 +158,124 @@ return DEPENDENCY_MAP;
 }
 
 // ─────────────────────────────────────────────
+// Get Dependency By ID
+// ─────────────────────────────────────────────
+
+function getDependency(
+
+dependencyId
+
+) {
+
+if (
+
+typeof dependencyId !== "string" ||
+
+!dependencyId.trim()
+
+) {
+
+return null;
+
+}
+
+const dependency =
+
+Object.values(
+
+  DEPENDENCY_MAP
+
+).find(
+
+  function (item) {
+
+    return (
+
+      item.id ===
+
+      dependencyId.trim()
+
+    );
+
+  }
+
+);
+
+return dependency || null;
+
+}
+
+// ─────────────────────────────────────────────
 // Get Required Dependency IDs
 // ─────────────────────────────────────────────
 
 function getRequiredDependencyIds() {
 
-return Object.values(DEPENDENCY_MAP)
+return Object.values(
 
-.filter(dependency =>
-
-  dependency.required === true
+DEPENDENCY_MAP
 
 )
 
-.map(dependency =>
+.filter(
 
-  dependency.id
+function (dependency) {
+
+  return (
+
+    dependency.required === true
+
+  );
+
+}
+
+)
+
+.map(
+
+function (dependency) {
+
+  return dependency.id;
+
+}
+
+);
+
+}
+
+// ─────────────────────────────────────────────
+// Get Required Module Names
+// ─────────────────────────────────────────────
+
+function getRequiredModuleNames() {
+
+return Object.values(
+
+DEPENDENCY_MAP
+
+)
+
+.filter(
+
+function (dependency) {
+
+  return (
+
+    dependency.required === true
+
+  );
+
+}
+
+)
+
+.map(
+
+function (dependency) {
+
+  return dependency.moduleName;
+
+}
 
 );
 
@@ -152,43 +291,177 @@ const errors = [];
 
 const dependencies =
 
-Object.values(DEPENDENCY_MAP);
+Object.values(
 
-dependencies.forEach(dependency => {
+  DEPENDENCY_MAP
 
-if (!dependency.id) {
+);
+
+dependencies.forEach(
+
+function (dependency) {
+
+
+  if (
+
+    typeof dependency.id !==
+
+    "string" ||
+
+    !dependency.id.trim()
+
+  ) {
+
+    errors.push(
+
+      "Dependency ID is missing."
+
+    );
+
+  }
+
+
+  if (
+
+    typeof dependency.name !==
+
+    "string" ||
+
+    !dependency.name.trim()
+
+  ) {
+
+    errors.push(
+
+      `Dependency name is missing for ${dependency.id || "unknown"}.`
+
+    );
+
+  }
+
+
+  if (
+
+    dependency.required !== true &&
+
+    dependency.required !== false
+
+  ) {
+
+    errors.push(
+
+      `Dependency required flag is invalid for ${dependency.id || "unknown"}.`
+
+    );
+
+  }
+
+
+  if (
+
+    dependency.type !==
+
+    "internal" &&
+
+    dependency.type !==
+
+    "external"
+
+  ) {
+
+    errors.push(
+
+      `Dependency type is invalid for ${dependency.id || "unknown"}.`
+
+    );
+
+  }
+
+
+  if (
+
+    typeof dependency.moduleName !==
+
+    "string" ||
+
+    !dependency.moduleName.trim()
+
+  ) {
+
+    errors.push(
+
+      `Dependency module name is missing for ${dependency.id || "unknown"}.`
+
+    );
+
+  }
+
+
+  if (
+
+    typeof dependency.purpose !==
+
+    "string" ||
+
+    !dependency.purpose.trim()
+
+  ) {
+
+    errors.push(
+
+      `Dependency purpose is missing for ${dependency.id || "unknown"}.`
+
+    );
+
+  }
+
+}
+
+);
+
+const ids =
+
+dependencies.map(
+
+  function (dependency) {
+
+    return dependency.id;
+
+  }
+
+);
+
+const duplicateIds =
+
+ids.filter(
+
+  function (id, index) {
+
+    return (
+
+      ids.indexOf(id) !==
+
+      index
+
+    );
+
+  }
+
+);
+
+duplicateIds.forEach(
+
+function (id) {
 
   errors.push(
 
-    "Dependency ID is missing."
+    `Duplicate dependency ID detected: ${id}.`
 
   );
 
 }
 
-
-if (!dependency.name) {
-
-  errors.push(
-
-    `Dependency name is missing for ${dependency.id}.`
-
-  );
-
-}
-
-
-if (!dependency.type) {
-
-  errors.push(
-
-    `Dependency type is missing for ${dependency.id}.`
-
-  );
-
-}
-
-});
+);
 
 return {
 
@@ -216,25 +489,73 @@ registeredModules = {}
 
 ) {
 
+if (
+
+registeredModules === null ||
+
+typeof registeredModules !==
+
+"object" ||
+
+Array.isArray(
+
+  registeredModules
+
+)
+
+) {
+
+return {
+
+  valid: false,
+
+  missing:
+
+    getRequiredDependencyIds(),
+
+  registered: [],
+
+  required:
+
+    getRequiredDependencyIds(),
+
+  message:
+
+    "Registered modules must be a plain object."
+
+};
+
+}
+
 const requiredDependencies =
 
 getRequiredDependencyIds();
 
 const registeredIds =
 
-Object.keys(registeredModules);
+Object.keys(
+
+  registeredModules
+
+);
 
 const missing =
 
 requiredDependencies.filter(
 
-  dependencyId =>
+  function (dependencyId) {
 
-    !registeredIds.includes(
+    return (
 
-      dependencyId
+      !registeredIds.includes(
 
-    )
+        dependencyId
+
+      )
+
+    );
+
+  }
 
 );
 
@@ -259,6 +580,102 @@ required:
 }
 
 // ─────────────────────────────────────────────
+// Check Actual Global Modules
+// ─────────────────────────────────────────────
+
+function checkGlobalModules(
+
+globalObject
+
+) {
+
+const target =
+
+globalObject ||
+
+(
+
+  typeof globalThis !==
+
+  "undefined"
+
+    ? globalThis
+
+    : {}
+
+);
+
+const dependencies =
+
+Object.values(
+
+  DEPENDENCY_MAP
+
+);
+
+const missing = [];
+
+const available = [];
+
+dependencies.forEach(
+
+function (dependency) {
+
+  if (
+
+    target[
+
+      dependency.moduleName
+
+    ]
+
+  ) {
+
+    available.push(
+
+      dependency.moduleName
+
+    );
+
+  }
+
+  else if (
+
+    dependency.required === true
+
+  ) {
+
+    missing.push(
+
+      dependency.moduleName
+
+    );
+
+  }
+
+}
+
+);
+
+return {
+
+valid:
+
+  missing.length === 0,
+
+missing,
+
+available,
+
+required:
+
+  getRequiredModuleNames()
+
+};
+
+}
+
+// ─────────────────────────────────────────────
 // Dependency Summary
 // ─────────────────────────────────────────────
 
@@ -276,11 +693,19 @@ packageId:
 
 dependencyCount:
 
-  Object.keys(DEPENDENCY_MAP).length,
+  Object.keys(
+
+    DEPENDENCY_MAP
+
+  ).length,
 
 requiredDependencies:
 
   getRequiredDependencyIds(),
+
+requiredModules:
+
+  getRequiredModuleNames(),
 
 valid:
 
@@ -304,11 +729,17 @@ DEPENDENCY_MAP,
 
 getDependencies,
 
+getDependency,
+
 getRequiredDependencyIds,
+
+getRequiredModuleNames,
 
 validateDependencyRegistry,
 
 checkRegisteredModules,
+
+checkGlobalModules,
 
 getDependencySummary
 
@@ -320,7 +751,9 @@ getDependencySummary
 
 if (
 
-typeof module !== "undefined" &&
+typeof module !==
+
+"undefined" &&
 
 module.exports
 
@@ -338,11 +771,13 @@ dependencyMapAPI;
 
 if (
 
-typeof window !== "undefined"
+typeof globalThis !==
+
+"undefined"
 
 ) {
 
-window.BloggerSaaSDependencyMap =
+globalThis.BloggerSaaSDependencyMap =
 
 dependencyMapAPI;
 
