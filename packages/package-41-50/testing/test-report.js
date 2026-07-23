@@ -1,199 +1,336 @@
 /**
- * BloggerSaaS Ultimate V5
- * Package 41–50
- * Testing Layer
- * Test Report
- *
- * Formats and summarizes results produced by test-suite.js.
- *
- * Safe development only.
- *
- * This module:
- * - Does not modify production systems.
- * - Does not modify live Firebase data.
- * - Does not modify user accounts.
- * - Does not deploy automatically.
- * - Does not delete external data.
- */
+
+* BloggerSaaS Ultimate V5
+* Package 41–50
+* Testing Layer
+* Test Report
+* 
+* Formats and summarizes results produced by test-suite.js.
+* 
+* Safe development only.
+* 
+* This module:
+* - Does not modify production systems.
+* - Does not modify live Firebase data.
+* - Does not modify user accounts.
+* - Does not deploy automatically.
+* - Does not delete external data.
+    */
 
 (function (global) {
 
-  "use strict";
+"use strict";
+
+// ─────────────────────────────────────────────
+// Report State
+// ─────────────────────────────────────────────
+
+const reportState = {
+
+initialized: false,
+
+environment: "safe-development",
+
+generatedAt: null,
+
+sourceReport: null,
+
+summary: {
+
+  total: 0,
+
+  passed: 0,
+
+  failed: 0,
+
+  skipped: 0,
+
+  percentage: 0,
+
+  status: "not-run"
+
+},
+
+categories: {},
+
+failures: [],
+
+warnings: [],
+
+status: "not-generated"
+
+};
+
+// ─────────────────────────────────────────────
+// Utility Helpers
+// ─────────────────────────────────────────────
+
+function getTestSuite() {
+
+return (
+
+  global.BloggerSaaSTestSuite ||
+
+  null
+
+);
+
+}
+
+function safeNumber(value) {
+
+const number = Number(value);
 
 
-  // ─────────────────────────────────────────────
-  // Report State
-  // ─────────────────────────────────────────────
+return Number.isFinite(number)
 
-  const reportState = {
+  ? number
 
-    initialized: false,
+  : 0;
 
-    environment: "safe-development",
+}
 
-    generatedAt: null,
+function normalizeStatus(status) {
 
-    sourceReport: null,
+if (
 
-    summary: {
+  typeof status !== "string"
 
-      total: 0,
+) {
 
-      passed: 0,
+  return "unknown";
 
-      failed: 0,
-
-      skipped: 0,
-
-      percentage: 0,
-
-      status: "not-run"
-
-    },
-
-    categories: {},
-
-    failures: [],
-
-    warnings: [],
-
-    status: "not-generated"
-
-  };
+}
 
 
-  // ─────────────────────────────────────────────
-  // Utility Helpers
-  // ─────────────────────────────────────────────
+const normalized =
 
-  function getTestSuite() {
+  status
 
-    return (
+    .trim()
 
-      global.BloggerSaaSTestSuite ||
+    .toLowerCase();
 
-      null
 
-    );
+if (
+
+  normalized === "passed" ||
+
+  normalized === "pass"
+
+) {
+
+  return "passed";
+
+}
+
+
+if (
+
+  normalized === "failed" ||
+
+  normalized === "fail" ||
+
+  normalized === "error"
+
+) {
+
+  return "failed";
+
+}
+
+
+if (
+
+  normalized === "skipped" ||
+
+  normalized === "skip"
+
+) {
+
+  return "skipped";
+
+}
+
+
+if (
+
+  normalized === "pending"
+
+) {
+
+  return "pending";
+
+}
+
+
+return "unknown";
+
+}
+
+function cloneObject(value) {
+
+if (
+
+  value === null ||
+
+  value === undefined
+
+) {
+
+  return value;
+
+}
+
+
+if (
+
+  typeof structuredClone ===
+
+  "function"
+
+) {
+
+  try {
+
+    return structuredClone(value);
 
   }
 
+  catch (error) {
 
-  function safeNumber(value) {
-
-    return (
-
-      typeof value === "number" &&
-
-      Number.isFinite(value)
-
-    )
-
-      ? value
-
-      : 0;
+    // Continue to fallback.
 
   }
 
+}
 
-  function normalizeStatus(status) {
+
+try {
+
+  return JSON.parse(
+
+    JSON.stringify(value)
+
+  );
+
+}
+
+catch (error) {
+
+  return value;
+
+}
+
+}
+
+// ─────────────────────────────────────────────
+// Empty Report
+// ─────────────────────────────────────────────
+
+function createEmptyReport() {
+
+return {
+
+  initialized: false,
+
+  environment:
+
+    reportState.environment,
+
+  generatedAt: null,
+
+  sourceReport: null,
+
+  summary: {
+
+    total: 0,
+
+    passed: 0,
+
+    failed: 0,
+
+    skipped: 0,
+
+    percentage: 0,
+
+    status: "not-run"
+
+  },
+
+  categories: {},
+
+  failures: [],
+
+  warnings: [],
+
+  status: "not-generated"
+
+};
+
+}
+
+// ─────────────────────────────────────────────
+// Category Summary
+// ─────────────────────────────────────────────
+
+function buildCategorySummary(
+
+tests
+
+) {
+
+const categories = {};
+
+
+if (
+
+  !Array.isArray(tests)
+
+) {
+
+  return categories;
+
+}
+
+
+tests.forEach(
+
+  function (test) {
 
     if (
 
-      status === "passed" ||
+      !test ||
 
-      status === "failed" ||
-
-      status === "skipped" ||
-
-      status === "pending"
+      typeof test !== "object"
 
     ) {
 
-      return status;
+      return;
 
     }
 
 
-    return "unknown";
+    const category =
 
-  }
+      typeof test.category ===
 
+      "string" &&
 
-  function cloneObject(value) {
+      test.category.trim()
 
-    if (
+        ? test.category.trim()
 
-      value === null ||
-
-      value === undefined
-
-    ) {
-
-      return value;
-
-    }
+        : "general";
 
 
     if (
 
-      typeof structuredClone ===
-
-      "function"
+      !categories[category]
 
     ) {
 
-      try {
-
-        return structuredClone(value);
-
-      }
-
-      catch (error) {
-
-        // Continue with JSON fallback.
-
-      }
-
-    }
-
-
-    try {
-
-      return JSON.parse(
-
-        JSON.stringify(value)
-
-      );
-
-    }
-
-    catch (error) {
-
-      return value;
-
-    }
-
-  }
-
-
-  // ─────────────────────────────────────────────
-  // Empty Report
-  // ─────────────────────────────────────────────
-
-  function createEmptyReport() {
-
-    return {
-
-      initialized: false,
-
-      environment:
-
-        reportState.environment,
-
-      generatedAt: null,
-
-      summary: {
+      categories[category] = {
 
         total: 0,
 
@@ -203,459 +340,556 @@
 
         skipped: 0,
 
+        pending: 0,
+
+        unknown: 0,
+
         percentage: 0,
 
         status: "not-run"
 
-      },
-
-      categories: {},
-
-      failures: [],
-
-      warnings: [],
-
-      status: "not-generated"
-
-    };
-
-  }
-
-
-  // ─────────────────────────────────────────────
-  // Category Summary
-  // ─────────────────────────────────────────────
-
-  function buildCategorySummary(tests) {
-
-    const categories = {};
-
-
-    if (
-
-      !Array.isArray(tests)
-
-    ) {
-
-      return categories;
+      };
 
     }
 
 
-    tests.forEach(
+    const categoryReport =
 
-      function (test) {
-
-        if (
-
-          !test ||
-
-          typeof test !==
-
-          "object"
-
-        ) {
-
-          return;
-
-        }
+      categories[category];
 
 
-        const category =
-
-          typeof test.category ===
-
-          "string" &&
-
-          test.category.trim()
-
-            ? test.category.trim()
-
-            : "general";
+    categoryReport.total++;
 
 
-        if (
+    const status =
 
-          !categories[category]
+      normalizeStatus(
 
-        ) {
+        test.status
 
-          categories[category] = {
-
-            total: 0,
-
-            passed: 0,
-
-            failed: 0,
-
-            skipped: 0,
-
-            pending: 0,
-
-            unknown: 0,
-
-            percentage: 0,
-
-            status: "not-run"
-
-          };
-
-        }
+      );
 
 
-        const categoryReport =
+    if (
 
-          categories[category];
+      status === "passed"
+
+    ) {
+
+      categoryReport.passed++;
+
+    }
+
+    else if (
+
+      status === "failed"
+
+    ) {
+
+      categoryReport.failed++;
+
+    }
+
+    else if (
+
+      status === "skipped"
+
+    ) {
+
+      categoryReport.skipped++;
+
+    }
+
+    else if (
+
+      status === "pending"
+
+    ) {
+
+      categoryReport.pending++;
+
+    }
+
+    else {
+
+      categoryReport.unknown++;
+
+    }
+
+  }
+
+);
 
 
-        categoryReport.total++;
+Object.keys(
+
+  categories
+
+).forEach(
+
+  function (category) {
+
+    const report =
+
+      categories[category];
 
 
-        const status =
+    report.percentage =
+
+      report.total > 0
+
+        ? Math.round(
+
+            (
+
+              report.passed /
+
+              report.total
+
+            ) * 100
+
+          )
+
+        : 0;
+
+
+    if (
+
+      report.failed > 0 ||
+
+      report.unknown > 0
+
+    ) {
+
+      report.status =
+
+        "failed";
+
+    }
+
+    else if (
+
+      report.pending > 0 ||
+
+      report.skipped > 0
+
+    ) {
+
+      report.status =
+
+        "warning";
+
+    }
+
+    else if (
+
+      report.total > 0 &&
+
+      report.passed ===
+
+        report.total
+
+    ) {
+
+      report.status =
+
+        "passed";
+
+    }
+
+    else {
+
+      report.status =
+
+        "partial";
+
+    }
+
+  }
+
+);
+
+
+return categories;
+
+}
+
+// ─────────────────────────────────────────────
+// Failure Collection
+// ─────────────────────────────────────────────
+
+function collectFailures(
+
+tests
+
+) {
+
+if (
+
+  !Array.isArray(tests)
+
+) {
+
+  return [];
+
+}
+
+
+return tests
+
+  .filter(
+
+    function (test) {
+
+      return (
+
+        test &&
+
+        normalizeStatus(
+
+          test.status
+
+        ) === "failed"
+
+      );
+
+    }
+
+  )
+
+  .map(
+
+    function (test) {
+
+      return {
+
+        name:
+
+          test.name ||
+
+          "Unnamed test",
+
+        category:
+
+          test.category ||
+
+          "general",
+
+        status: "failed",
+
+        message:
+
+          test.message ||
+
+          "Test failed without an error message.",
+
+        startedAt:
+
+          test.startedAt ||
+
+          null,
+
+        completedAt:
+
+          test.completedAt ||
+
+          null
+
+      };
+
+    }
+
+  );
+
+}
+
+// ─────────────────────────────────────────────
+// Warning Collection
+// ─────────────────────────────────────────────
+
+function collectWarnings(
+
+tests
+
+) {
+
+if (
+
+  !Array.isArray(tests)
+
+) {
+
+  return [];
+
+}
+
+
+return tests
+
+  .filter(
+
+    function (test) {
+
+      if (!test) {
+
+        return false;
+
+      }
+
+
+      const status =
+
+        normalizeStatus(
+
+          test.status
+
+        );
+
+
+      return (
+
+        status === "pending" ||
+
+        status === "skipped" ||
+
+        status === "unknown"
+
+      );
+
+    }
+
+  )
+
+  .map(
+
+    function (test) {
+
+      return {
+
+        name:
+
+          test.name ||
+
+          "Unnamed test",
+
+        category:
+
+          test.category ||
+
+          "general",
+
+        status:
 
           normalizeStatus(
 
             test.status
 
-          );
+          ),
 
+        message:
 
-        if (
+          test.message ||
 
-          status === "passed"
+          "Test requires attention."
 
-        ) {
-
-          categoryReport.passed++;
-
-        }
-
-        else if (
-
-          status === "failed"
-
-        ) {
-
-          categoryReport.failed++;
-
-        }
-
-        else if (
-
-          status === "skipped"
-
-        ) {
-
-          categoryReport.skipped++;
-
-        }
-
-        else if (
-
-          status === "pending"
-
-        ) {
-
-          categoryReport.pending++;
-
-        }
-
-        else {
-
-          categoryReport.unknown++;
-
-        }
-
-      }
-
-    );
-
-
-    Object.keys(
-
-      categories
-
-    ).forEach(
-
-      function (category) {
-
-        const report =
-
-          categories[category];
-
-
-        report.percentage =
-
-          report.total > 0
-
-            ? Math.round(
-
-                (
-
-                  report.passed /
-
-                  report.total
-
-                ) * 100
-
-              )
-
-            : 0;
-
-
-        if (
-
-          report.failed > 0 ||
-
-          report.unknown > 0
-
-        ) {
-
-          report.status =
-
-            "failed";
-
-        }
-
-        else if (
-
-          report.pending > 0 ||
-
-          report.skipped > 0
-
-        ) {
-
-          report.status =
-
-            "warning";
-
-        }
-
-        else if (
-
-          report.total > 0 &&
-
-          report.passed ===
-
-            report.total
-
-        ) {
-
-          report.status =
-
-            "passed";
-
-        }
-
-        else {
-
-          report.status =
-
-            "partial";
-
-        }
-
-      }
-
-    );
-
-
-    return categories;
-
-  }
-
-
-  // ─────────────────────────────────────────────
-  // Failure Collection
-  // ─────────────────────────────────────────────
-
-  function collectFailures(tests) {
-
-    if (
-
-      !Array.isArray(tests)
-
-    ) {
-
-      return [];
+      };
 
     }
 
+  );
 
-    return tests
+}
 
-      .filter(
+// ─────────────────────────────────────────────
+// Determine Overall Status
+// ─────────────────────────────────────────────
 
-        function (test) {
+function determineReportStatus(
 
-          return (
+total,
 
-            test &&
+passed,
 
-            normalizeStatus(
+failed,
 
-              test.status
+skipped
 
-            ) === "failed"
+) {
 
-          );
+if (
 
-        }
+  total === 0
+
+) {
+
+  return "not-run";
+
+}
+
+
+if (
+
+  failed > 0
+
+) {
+
+  return "failed";
+
+}
+
+
+if (
+
+  passed === total
+
+) {
+
+  return "passed";
+
+}
+
+
+if (
+
+  passed > 0 &&
+
+  (
+
+    skipped > 0 ||
+
+    passed < total
+
+  )
+
+) {
+
+  return "partial";
+
+}
+
+
+return "warning";
+
+}
+
+// ─────────────────────────────────────────────
+// Generate Report
+// ─────────────────────────────────────────────
+
+function generateReport(
+
+sourceReport
+
+) {
+
+const testSuite =
+
+  getTestSuite();
+
+
+const report =
+
+  sourceReport ||
+
+  (
+
+    testSuite &&
+
+    typeof testSuite.getTestReport ===
+
+    "function"
+
+      ? testSuite.getTestReport()
+
+      : null
+
+  );
+
+
+if (
+
+  !report ||
+
+  typeof report !== "object"
+
+) {
+
+  return createEmptyReport();
+
+}
+
+
+const tests =
+
+  Array.isArray(
+
+    report.tests
+
+  )
+
+    ? report.tests
+
+    : [];
+
+
+const total =
+
+  safeNumber(
+
+    report.total
+
+  ) || tests.length;
+
+
+const passed =
+
+  safeNumber(
+
+    report.passed
+
+  );
+
+
+const failed =
+
+  safeNumber(
+
+    report.failed
+
+  );
+
+
+const skipped =
+
+  safeNumber(
+
+    report.skipped
+
+  );
+
+
+const percentage =
+
+  total > 0
+
+    ? Math.round(
+
+        (
+
+          passed /
+
+          total
+
+        ) * 100
 
       )
 
-      .map(
+    : 0;
 
-        function (test) {
 
-          return {
+const status =
 
-            name:
-
-              test.name ||
-
-              "Unnamed test",
-
-            category:
-
-              test.category ||
-
-              "general",
-
-            status:
-
-              "failed",
-
-            message:
-
-              test.message ||
-
-              "Test failed without an error message.",
-
-            startedAt:
-
-              test.startedAt ||
-
-              null,
-
-            completedAt:
-
-              test.completedAt ||
-
-              null
-
-          };
-
-        }
-
-      );
-
-  }
-
-
-  // ─────────────────────────────────────────────
-  // Warning Collection
-  // ─────────────────────────────────────────────
-
-  function collectWarnings(tests) {
-
-    if (
-
-      !Array.isArray(tests)
-
-    ) {
-
-      return [];
-
-    }
-
-
-    return tests
-
-      .filter(
-
-        function (test) {
-
-          if (
-
-            !test
-
-          ) {
-
-            return false;
-
-          }
-
-
-          const status =
-
-            normalizeStatus(
-
-              test.status
-
-            );
-
-
-          return (
-
-            status === "pending" ||
-
-            status === "skipped" ||
-
-            status === "unknown"
-
-          );
-
-        }
-
-      )
-
-      .map(
-
-        function (test) {
-
-          return {
-
-            name:
-
-              test.name ||
-
-              "Unnamed test",
-
-            category:
-
-              test.category ||
-
-              "general",
-
-            status:
-
-              normalizeStatus(
-
-                test.status
-
-              ),
-
-            message:
-
-              test.message ||
-
-              "Test requires attention."
-
-          };
-
-        }
-
-      );
-
-  }
-
-
-  // ─────────────────────────────────────────────
-  // Determine Overall Status
-  // ─────────────────────────────────────────────
-
-  function determineReportStatus(
+  determineReportStatus(
 
     total,
 
@@ -665,578 +899,434 @@
 
     skipped
 
-  ) {
+  );
 
-    if (
 
-      total === 0
+const categorySummary =
 
-    ) {
+  buildCategorySummary(
 
-      return "not-run";
+    tests
 
-    }
+  );
 
 
-    if (
+const failures =
 
-      failed > 0
+  collectFailures(
 
-    ) {
+    tests
 
-      return "failed";
+  );
 
-    }
 
+const warnings =
 
-    if (
+  collectWarnings(
 
-      passed === total
+    tests
 
-    ) {
+  );
 
-      return "passed";
 
-    }
+reportState.initialized = true;
 
 
-    if (
+reportState.generatedAt =
 
-      passed > 0 &&
+  new Date().toISOString();
 
-      (
 
-        skipped > 0 ||
+reportState.sourceReport =
 
-        passed < total
+  cloneObject(report);
 
-      )
 
-    ) {
+reportState.summary = {
 
-      return "partial";
+  total,
 
-    }
+  passed,
 
+  failed,
 
-    return "warning";
+  skipped,
 
-  }
+  percentage,
 
+  status
 
-  // ─────────────────────────────────────────────
-  // Generate Report
-  // ─────────────────────────────────────────────
+};
 
-  function generateReport(sourceReport) {
 
-    const report =
+reportState.categories =
 
-      sourceReport ||
+  categorySummary;
 
-      (
 
-        getTestSuite() &&
+reportState.failures =
 
-        typeof getTestSuite()
+  failures;
 
-          .getTestReport ===
 
-          "function"
+reportState.warnings =
 
-          ? getTestSuite()
+  warnings;
 
-              .getTestReport()
 
-          : null
+reportState.status =
 
-      );
+  status;
 
 
-    if (
+return getReport();
 
-      !report ||
+}
 
-      typeof report !==
+// ─────────────────────────────────────────────
+// Get Complete Report
+// ─────────────────────────────────────────────
 
-      "object"
+function getReport() {
 
-    ) {
+return {
 
-      return createEmptyReport();
+  initialized:
 
-    }
+    reportState.initialized,
 
+  environment:
 
-    const tests =
+    reportState.environment,
 
-      Array.isArray(
+  generatedAt:
 
-        report.tests
+    reportState.generatedAt,
 
-      )
+  sourceReport:
 
-        ? report.tests
+    cloneObject(
 
-        : [];
+      reportState.sourceReport
 
+    ),
 
-    const total =
+  summary:
 
-      safeNumber(
+    Object.assign(
 
-        report.total
+      {},
 
-      ) ||
+      reportState.summary
 
-      tests.length;
+    ),
 
+  categories:
 
-    const passed =
+    cloneObject(
 
-      safeNumber(
+      reportState.categories
 
-        report.passed
+    ),
 
-      );
+  failures:
 
+    cloneObject(
 
-    const failed =
+      reportState.failures
 
-      safeNumber(
+    ),
 
-        report.failed
+  warnings:
 
-      );
+    cloneObject(
 
+      reportState.warnings
 
-    const skipped =
+    ),
 
-      safeNumber(
+  status:
 
-        report.skipped
+    reportState.status
 
-      );
+};
 
+}
 
-    const percentage =
+// ─────────────────────────────────────────────
+// Get Human-Readable Summary
+// ─────────────────────────────────────────────
 
-      total > 0
+function getSummaryText() {
 
-        ? Math.round(
+const summary =
 
-            (
+  reportState.summary;
 
-              passed /
 
-              total
+if (
 
-            ) * 100
+  reportState.status ===
 
-          )
+  "not-generated"
 
-        : 0;
+) {
 
+  return (
 
-    const status =
+    "Test report has not been generated."
 
-      determineReportStatus(
+  );
 
-        total,
+}
 
-        passed,
 
-        failed,
+return (
 
-        skipped
+  "Test Suite Status: " +
 
-      );
+  summary.status.toUpperCase() +
 
+  " | " +
 
-    const categorySummary =
+  "Passed: " +
 
-      buildCategorySummary(
+  summary.passed +
 
-        tests
+  "/" +
 
-      );
+  summary.total +
 
+  " | " +
 
-    const failures =
+  "Failed: " +
 
-      collectFailures(
+  summary.failed +
 
-        tests
+  " | " +
 
-      );
+  "Skipped: " +
 
+  summary.skipped +
 
-    const warnings =
+  " | " +
 
-      collectWarnings(
+  "Success Rate: " +
 
-        tests
+  summary.percentage +
 
-      );
+  "%"
 
+);
 
-    reportState.initialized =
+}
 
-      true;
+// ─────────────────────────────────────────────
+// Get Failed Tests
+// ─────────────────────────────────────────────
 
+function getFailures() {
 
-    reportState.generatedAt =
+return cloneObject(
 
-      new Date().toISOString();
+  reportState.failures
 
+);
 
-    reportState.sourceReport =
+}
 
-      cloneObject(report);
+// ─────────────────────────────────────────────
+// Get Warnings
+// ─────────────────────────────────────────────
 
+function getWarnings() {
 
-    reportState.summary = {
+return cloneObject(
 
-      total,
+  reportState.warnings
 
-      passed,
+);
 
-      failed,
+}
 
-      skipped,
+// ─────────────────────────────────────────────
+// Is Test Suite Healthy?
+// ─────────────────────────────────────────────
 
-      percentage,
+function isHealthy() {
 
-      status
+return (
 
-    };
+  reportState.status === "passed" &&
 
+  reportState.summary.total > 0 &&
 
-    reportState.categories =
+  reportState.summary.failed === 0 &&
 
-      categorySummary;
+  reportState.summary.skipped === 0 &&
 
+  reportState.summary.passed ===
 
-    reportState.failures =
+    reportState.summary.total
 
-      failures;
+);
 
+}
 
-    reportState.warnings =
+// ─────────────────────────────────────────────
+// Get Report Status
+// ─────────────────────────────────────────────
 
-      warnings;
+function getStatus() {
 
+return {
 
-    reportState.status =
+  initialized:
 
-      status;
+    reportState.initialized,
 
+  environment:
 
-    return getReport();
+    reportState.environment,
 
-  }
+  generatedAt:
 
+    reportState.generatedAt,
 
-  // ─────────────────────────────────────────────
-  // Get Complete Report
-  // ─────────────────────────────────────────────
+  status:
 
-  function getReport() {
+    reportState.status,
 
-    return {
+  summary:
 
-      initialized:
+    Object.assign(
 
-        reportState.initialized,
+      {},
 
-      environment:
+      reportState.summary
 
-        reportState.environment,
+    ),
 
-      generatedAt:
+  failureCount:
 
-        reportState.generatedAt,
+    reportState.failures.length,
 
-      summary:
+  warningCount:
 
-        Object.assign(
+    reportState.warnings.length
 
-          {},
+};
 
-          reportState.summary
+}
 
-        ),
+// ─────────────────────────────────────────────
+// Reset Report
+// ─────────────────────────────────────────────
 
-      categories:
+function resetReport() {
 
-        cloneObject(
+reportState.initialized = false;
 
-          reportState.categories
+reportState.generatedAt = null;
 
-        ),
+reportState.sourceReport = null;
 
-      failures:
+reportState.summary = {
 
-        reportState.failures.slice(),
+  total: 0,
 
-      warnings:
+  passed: 0,
 
-        reportState.warnings.slice(),
+  failed: 0,
 
-      status:
+  skipped: 0,
 
-        reportState.status
+  percentage: 0,
 
-    };
+  status: "not-run"
 
-  }
+};
 
+reportState.categories = {};
 
-  // ─────────────────────────────────────────────
-  // Get Human-Readable Summary
-  // ─────────────────────────────────────────────
+reportState.failures = [];
 
-  function getSummaryText() {
+reportState.warnings = [];
 
-    const summary =
+reportState.status =
 
-      reportState.summary;
+  "not-generated";
 
 
-    if (
+return true;
 
-      reportState.status ===
+}
 
-      "not-generated"
+// ─────────────────────────────────────────────
+// Public API
+// ─────────────────────────────────────────────
 
-    ) {
+const testReportAPI = {
 
-      return (
+generateReport,
 
-        "Test report has not been generated."
+getReport,
 
-      );
+getSummaryText,
 
-    }
+getFailures,
 
+getWarnings,
 
-    return (
+isHealthy,
 
-      "Test Suite Status: " +
+getStatus,
 
-      summary.status.toUpperCase() +
+resetReport,
 
-      " | " +
+state: reportState
 
-      "Passed: " +
+};
 
-      summary.passed +
+// ─────────────────────────────────────────────
+// Browser Global
+// ─────────────────────────────────────────────
 
-      "/" +
+if (
 
-      summary.total +
+typeof window !== "undefined"
 
-      " | " +
+) {
 
-      "Failed: " +
+window.BloggerSaaSTestReport =
 
-      summary.failed +
+  testReportAPI;
 
-      " | " +
+}
 
-      "Skipped: " +
+// ─────────────────────────────────────────────
+// Node / Test Export
+// ─────────────────────────────────────────────
 
-      summary.skipped +
+if (
 
-      " | " +
+typeof module !== "undefined" &&
 
-      "Success Rate: " +
+module.exports
 
-      summary.percentage +
+) {
 
-      "%"
+module.exports =
 
-    );
+  testReportAPI;
 
-  }
-
-
-  // ─────────────────────────────────────────────
-  // Get Failed Tests
-  // ─────────────────────────────────────────────
-
-  function getFailures() {
-
-    return reportState.failures.slice();
-
-  }
-
-
-  // ─────────────────────────────────────────────
-  // Get Warnings
-  // ─────────────────────────────────────────────
-
-  function getWarnings() {
-
-    return reportState.warnings.slice();
-
-  }
-
-
-  // ─────────────────────────────────────────────
-  // Is Test Suite Healthy?
-  // ─────────────────────────────────────────────
-
-  function isHealthy() {
-
-    return (
-
-      reportState.status ===
-
-      "passed"
-
-    );
-
-  }
-
-
-  // ─────────────────────────────────────────────
-  // Reset Report
-  // ─────────────────────────────────────────────
-
-  function resetReport() {
-
-    reportState.initialized =
-
-      false;
-
-
-    reportState.generatedAt =
-
-      null;
-
-
-    reportState.sourceReport =
-
-      null;
-
-
-    reportState.summary = {
-
-      total: 0,
-
-      passed: 0,
-
-      failed: 0,
-
-      skipped: 0,
-
-      percentage: 0,
-
-      status: "not-run"
-
-    };
-
-
-    reportState.categories =
-
-      {};
-
-
-    reportState.failures =
-
-      [];
-
-
-    reportState.warnings =
-
-      [];
-
-
-    reportState.status =
-
-      "not-generated";
-
-
-    return true;
-
-  }
-
-
-  // ─────────────────────────────────────────────
-  // Public API
-  // ─────────────────────────────────────────────
-
-  const testReportAPI = {
-
-    generateReport,
-
-    getReport,
-
-    getSummaryText,
-
-    getFailures,
-
-    getWarnings,
-
-    isHealthy,
-
-    resetReport,
-
-    state:
-
-      reportState
-
-  };
-
-
-  // ─────────────────────────────────────────────
-  // Browser Global
-  // ─────────────────────────────────────────────
-
-  if (
-
-    typeof window !==
-
-    "undefined"
-
-  ) {
-
-    window.BloggerSaaSTestReport =
-
-      testReportAPI;
-
-  }
-
-
-  // ─────────────────────────────────────────────
-  // Node / Test Export
-  // ─────────────────────────────────────────────
-
-  if (
-
-    typeof module !==
-
-    "undefined" &&
-
-    module.exports
-
-  ) {
-
-    module.exports =
-
-      testReportAPI;
-
-  }
-
+}
 
 })(
-  typeof globalThis !==
+typeof globalThis !== "undefined"
 
-  "undefined"
+? globalThis
 
-    ? globalThis
-
-    : this
+: this
 
 );
