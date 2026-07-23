@@ -37,11 +37,13 @@
 
     running: false,
 
-    environment: "safe-development",
+    environment:
+      "safe-development",
 
     runCount: 0,
 
-    status: "not-run",
+    status:
+      "not-run",
 
     startedAt: null,
 
@@ -53,7 +55,8 @@
 
       score: 0,
 
-      status: "not-calculated",
+      status:
+        "not-calculated",
 
       passedChecks: 0,
 
@@ -80,7 +83,9 @@
 
       error &&
 
-      typeof error.message === "string"
+      typeof error.message ===
+
+        "string"
 
     ) {
 
@@ -171,7 +176,9 @@
 
     return (
 
-      typeof status === "string"
+      typeof status ===
+
+        "string"
 
         ? status.trim().toLowerCase()
 
@@ -223,7 +230,9 @@
 
       status === "ready" ||
 
-      status === "approved"
+      status === "approved" ||
+
+      status === "completed"
 
     );
 
@@ -238,9 +247,12 @@
 
     testCenterState.initialized = true;
 
+
     if (
 
-      testCenterState.status === "not-run"
+      testCenterState.status ===
+
+        "not-run"
 
     ) {
 
@@ -273,10 +285,10 @@
 
         success: false,
 
-        status: "unavailable",
+        status:
+          "unavailable",
 
         message:
-
           "Health module is unavailable."
 
       };
@@ -290,7 +302,7 @@
 
         typeof health.runHealthCheck !==
 
-        "function"
+          "function"
 
       ) {
 
@@ -298,10 +310,10 @@
 
           success: false,
 
-          status: "unsupported",
+          status:
+            "unsupported",
 
           message:
-
             "No supported health API found."
 
         };
@@ -347,7 +359,8 @@
 
         success: false,
 
-        status: "error",
+        status:
+          "error",
 
         message:
 
@@ -381,10 +394,10 @@
 
         success: false,
 
-        status: "unavailable",
+        status:
+          "unavailable",
 
         message:
-
           "Verification module is unavailable."
 
       };
@@ -394,14 +407,16 @@
 
     try {
 
-      let result = null;
+      let result =
+
+        null;
 
 
       if (
 
         typeof verification.runVerification ===
 
-        "function"
+          "function"
 
       ) {
 
@@ -415,7 +430,7 @@
 
         typeof verification.verifyPackage ===
 
-        "function"
+          "function"
 
       ) {
 
@@ -431,10 +446,10 @@
 
           success: false,
 
-          status: "unsupported",
+          status:
+            "unsupported",
 
           message:
-
             "No supported verification API found."
 
         };
@@ -475,7 +490,8 @@
 
         success: false,
 
-        status: "error",
+        status:
+          "error",
 
         message:
 
@@ -509,10 +525,10 @@
 
         success: false,
 
-        status: "unavailable",
+        status:
+          "unavailable",
 
         message:
-
           "Test Suite module is unavailable."
 
       };
@@ -526,7 +542,7 @@
 
         typeof suite.runTests !==
 
-        "function"
+          "function"
 
       ) {
 
@@ -534,10 +550,10 @@
 
           success: false,
 
-          status: "unsupported",
+          status:
+            "unsupported",
 
           message:
-
             "No supported Test Suite API found."
 
         };
@@ -554,7 +570,9 @@
 
         Number(
 
-          result && result.total
+          result &&
+
+          result.total
 
         ) || 0;
 
@@ -563,7 +581,9 @@
 
         Number(
 
-          result && result.passed
+          result &&
+
+          result.passed
 
         ) || 0;
 
@@ -572,7 +592,9 @@
 
         Number(
 
-          result && result.failed
+          result &&
+
+          result.failed
 
         ) || 0;
 
@@ -581,22 +603,18 @@
 
         Number(
 
-          result && result.skipped
+          result &&
+
+          result.skipped
 
         ) || 0;
 
 
       const success =
 
-        result &&
+        isSuccessfulResult(
 
-        (
-
-          result.status === "passed" ||
-
-          result.status === "PASS" ||
-
-          result.status === "PASSED"
+          result
 
         ) &&
 
@@ -635,7 +653,8 @@
 
         success: false,
 
-        status: "error",
+        status:
+          "error",
 
         message:
 
@@ -673,10 +692,10 @@
 
         success: false,
 
-        status: "unavailable",
+        status:
+          "unavailable",
 
         message:
-
           "Test Report module is unavailable."
 
       };
@@ -690,7 +709,7 @@
 
         typeof reportModule.generateReport !==
 
-        "function"
+          "function"
 
       ) {
 
@@ -698,10 +717,10 @@
 
           success: false,
 
-          status: "unsupported",
+          status:
+            "unsupported",
 
           message:
-
             "No supported Test Report API found."
 
         };
@@ -722,7 +741,8 @@
 
         success: true,
 
-        status: "completed",
+        status:
+          "completed",
 
         report
 
@@ -736,7 +756,8 @@
 
         success: false,
 
-        status: "error",
+        status:
+          "error",
 
         message:
 
@@ -770,10 +791,10 @@
 
         success: false,
 
-        status: "unavailable",
+        status:
+          "unavailable",
 
         message:
-
           "Final orchestration layer is unavailable."
 
       };
@@ -787,7 +808,7 @@
 
         typeof finalLayer.startFinalLayer !==
 
-        "function"
+          "function"
 
       ) {
 
@@ -795,10 +816,10 @@
 
           success: false,
 
-          status: "unsupported",
+          status:
+            "unsupported",
 
           message:
-
             "No supported Final Layer API found."
 
         };
@@ -844,7 +865,8 @@
 
         success: false,
 
-        status: "error",
+        status:
+          "error",
 
         message:
 
@@ -875,10 +897,10 @@
 
       {
 
-        name: "Health",
+        name:
+          "Health",
 
         passed:
-
           !!(
 
             results &&
@@ -893,10 +915,10 @@
 
       {
 
-        name: "Verification",
+        name:
+          "Verification",
 
         passed:
-
           !!(
 
             results &&
@@ -911,10 +933,10 @@
 
       {
 
-        name: "Test Suite",
+        name:
+          "Test Suite",
 
         passed:
-
           !!(
 
             results &&
@@ -929,10 +951,10 @@
 
       {
 
-        name: "Test Report",
+        name:
+          "Test Report",
 
         passed:
-
           !!(
 
             results &&
@@ -947,10 +969,10 @@
 
       {
 
-        name: "Final Layer",
+        name:
+          "Final Layer",
 
         passed:
-
           !!(
 
             results &&
@@ -1083,10 +1105,10 @@
 
         success: false,
 
-        status: "already-running",
+        status:
+          "already-running",
 
         message:
-
           "Test Center is already running."
 
       };
@@ -1098,7 +1120,9 @@
 
     testCenterState.running = true;
 
-    testCenterState.status = "running";
+    testCenterState.status =
+
+      "running";
 
     testCenterState.runCount++;
 
@@ -1114,7 +1138,8 @@
 
         success: false,
 
-        status: "not-run"
+        status:
+          "not-run"
 
       },
 
@@ -1122,7 +1147,8 @@
 
         success: false,
 
-        status: "not-run"
+        status:
+          "not-run"
 
       },
 
@@ -1130,7 +1156,8 @@
 
         success: false,
 
-        status: "not-run"
+        status:
+          "not-run"
 
       },
 
@@ -1138,7 +1165,8 @@
 
         success: false,
 
-        status: "not-run"
+        status:
+          "not-run"
 
       },
 
@@ -1146,7 +1174,8 @@
 
         success: false,
 
-        status: "not-run"
+        status:
+          "not-run"
 
       }
 
@@ -1224,7 +1253,9 @@
         new Date().toISOString();
 
 
-      testCenterState.running = false;
+      testCenterState.running =
+
+        false;
 
 
       const finalResult = {
@@ -1269,9 +1300,14 @@
 
     catch (error) {
 
-      testCenterState.running = false;
+      testCenterState.running =
 
-      testCenterState.status = "error";
+        false;
+
+
+      testCenterState.status =
+
+        "error";
 
 
       testCenterState.completedAt =
@@ -1316,13 +1352,15 @@
 
         success: false,
 
-        status: "error",
+        status:
+          "error",
 
         environment:
 
           testCenterState.environment,
 
-        error: errorRecord,
+        error:
+          errorRecord,
 
         readiness,
 
@@ -1469,7 +1507,9 @@
 
     testCenterState.runCount = 0;
 
-    testCenterState.status = "not-run";
+    testCenterState.status =
+
+      "not-run";
 
     testCenterState.startedAt = null;
 
@@ -1486,7 +1526,8 @@
 
       score: 0,
 
-      status: "not-calculated",
+      status:
+        "not-calculated",
 
       passedChecks: 0,
 
