@@ -544,7 +544,33 @@
 
   }
 
+function calculateOverallHealth() {
 
+  if (healthState.errors.length > 0) {
+    return "UNHEALTHY";
+  }
+
+  if (healthState.warnings.length > 0) {
+    return "WARNING";
+  }
+
+  const checks = Object.values(
+    healthState.checks
+  );
+
+  if (checks.length === 0) {
+    return "UNKNOWN";
+  }
+
+  const allHealthy = checks.every(
+    check =>
+      check.status === "HEALTHY"
+  );
+
+  return allHealthy
+    ? "HEALTHY"
+    : "WARNING";
+}
   // ─────────────────────────────────────────────
   // Reset Health State
   // ─────────────────────────────────────────────
@@ -593,7 +619,27 @@
       healthState
 
   };
+const healthAPI = {
 
+  initializeHealth,
+
+  runHealthCheck,
+
+  getHealthStatus,
+
+  resetHealth,
+
+  calculateOverallHealth,
+
+  checkManifest,
+
+  checkIntegration,
+
+  checkFirebase,
+
+  state: healthState
+
+};
 
   // ─────────────────────────────────────────────
   // Browser Global
