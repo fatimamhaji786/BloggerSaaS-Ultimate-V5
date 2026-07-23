@@ -1,19 +1,19 @@
 /**
-
-* BloggerSaaS Ultimate V5
-* Package 41–50
-* Firebase Configuration Example
-* 
-* IMPORTANT:
-* This file contains example configuration only.
-* 
-* Never place real private credentials, service-account keys,
-* private keys, or sensitive secrets in this file.
-* 
-* Safe for development and documentation purposes.
-  */
+ * BloggerSaaS Ultimate V5
+ * Package 41–50
+ * Firebase Configuration Example
+ *
+ * IMPORTANT:
+ * This file contains example configuration only.
+ *
+ * Never place real private credentials, service-account keys,
+ * private keys, or sensitive secrets in this file.
+ *
+ * Safe for development and documentation purposes.
+ */
 
 "use strict";
+
 
 // ─────────────────────────────────────────────
 // Firebase Configuration Example
@@ -21,189 +21,500 @@
 
 const FIREBASE_CONFIG_EXAMPLE = Object.freeze({
 
-apiKey:
+  apiKey:
 
-"YOUR_FIREBASE_API_KEY",
+    "YOUR_FIREBASE_API_KEY",
 
-authDomain:
+  authDomain:
 
-"YOUR_PROJECT_ID.firebaseapp.com",
+    "YOUR_PROJECT_ID.firebaseapp.com",
 
-databaseURL:
+  databaseURL:
 
-"https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+    "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
 
-projectId:
+  projectId:
 
-"YOUR_PROJECT_ID",
+    "YOUR_PROJECT_ID",
 
-storageBucket:
+  storageBucket:
 
-"YOUR_PROJECT_ID.firebasestorage.app",
+    "YOUR_PROJECT_ID.firebasestorage.app",
 
-messagingSenderId:
+  messagingSenderId:
 
-"YOUR_MESSAGING_SENDER_ID",
+    "YOUR_MESSAGING_SENDER_ID",
 
-appId:
+  appId:
 
-"YOUR_FIREBASE_APP_ID"
+    "YOUR_FIREBASE_APP_ID"
 
 });
 
+
 // ─────────────────────────────────────────────
-// Configuration Validation
+// Required Configuration Fields
 // ─────────────────────────────────────────────
 
-function validateFirebaseConfig(config) {
+const REQUIRED_FIELDS = Object.freeze([
 
-if (!config || typeof config !== "object") {
+  "apiKey",
 
-return {
+  "authDomain",
 
-  valid: false,
+  "databaseURL",
 
-  errors: [
+  "projectId",
 
-    "Firebase configuration must be an object."
+  "storageBucket",
 
-  ]
+  "messagingSenderId",
 
-};
+  "appId"
 
-}
+]);
 
-const requiredFields = [
 
-"apiKey",
+// ─────────────────────────────────────────────
+// Example Placeholder Markers
+// ─────────────────────────────────────────────
 
-"authDomain",
+const EXAMPLE_MARKERS = Object.freeze([
 
-"databaseURL",
+  "YOUR_FIREBASE_API_KEY",
 
-"projectId",
+  "YOUR_PROJECT_ID",
 
-"storageBucket",
+  "YOUR_MESSAGING_SENDER_ID",
 
-"messagingSenderId",
+  "YOUR_FIREBASE_APP_ID",
 
-"appId"
+  "YOUR_FIREBASE_CONFIG",
 
-];
+  "REPLACE_WITH_REAL_VALUE",
 
-const errors = [];
+  "YOUR_VALUE_HERE"
 
-requiredFields.forEach(field => {
+]);
 
-if (
 
-  !config[field] ||
+// ─────────────────────────────────────────────
+// Validate Firebase Configuration
+// ─────────────────────────────────────────────
 
-  typeof config[field] !== "string" ||
+function validateFirebaseConfig(
 
-  config[field].trim() === ""
+  config
 
 ) {
 
-  errors.push(
+  if (
 
-    `Missing Firebase configuration field: ${field}`
+    !config ||
+
+    typeof config !==
+
+      "object" ||
+
+    Array.isArray(config)
+
+  ) {
+
+    return {
+
+      valid: false,
+
+      errors: [
+
+        "Firebase configuration must be a plain object."
+
+      ]
+
+    };
+
+  }
+
+
+  const errors = [];
+
+
+  REQUIRED_FIELDS.forEach(
+
+    function (field) {
+
+      if (
+
+        !Object.prototype.hasOwnProperty.call(
+
+          config,
+
+          field
+
+        )
+
+      ) {
+
+        errors.push(
+
+          `Missing Firebase configuration field: ${field}`
+
+        );
+
+        return;
+
+      }
+
+
+      if (
+
+        typeof config[field] !==
+
+          "string" ||
+
+        config[field].trim() === ""
+
+      ) {
+
+        errors.push(
+
+          `Firebase configuration field "${field}" must be a non-empty string.`
+
+        );
+
+      }
+
+    }
+
+  );
+
+
+  if (
+
+    typeof config.authDomain ===
+
+      "string" &&
+
+    config.authDomain.trim() !== "" &&
+
+    !config.authDomain.includes(
+
+      ".firebaseapp.com"
+
+    )
+
+  ) {
+
+    errors.push(
+
+      "Firebase authDomain format appears invalid."
+
+    );
+
+  }
+
+
+  if (
+
+    typeof config.databaseURL ===
+
+      "string" &&
+
+    config.databaseURL.trim() !== "" &&
+
+    !/^https?:\/\//i.test(
+
+      config.databaseURL
+
+    )
+
+  ) {
+
+    errors.push(
+
+      "Firebase databaseURL must begin with http:// or https://."
+
+    );
+
+  }
+
+
+  return {
+
+    valid:
+
+      errors.length === 0,
+
+    errors
+
+  };
+
+}
+
+
+// ─────────────────────────────────────────────
+// Detect Example Configuration
+// ─────────────────────────────────────────────
+
+function isExampleConfiguration(
+
+  config
+
+) {
+
+  if (
+
+    !config ||
+
+    typeof config !==
+
+      "object"
+
+  ) {
+
+    return true;
+
+  }
+
+
+  const serializedConfig =
+
+    JSON.stringify(config);
+
+
+  return EXAMPLE_MARKERS.some(
+
+    function (marker) {
+
+      return serializedConfig.includes(
+
+        marker
+
+      );
+
+    }
 
   );
 
 }
 
-});
-
-return {
-
-valid: errors.length === 0,
-
-errors
-
-};
-
-}
 
 // ─────────────────────────────────────────────
-// Example Configuration Detection
+// Detect Placeholder Values
 // ─────────────────────────────────────────────
 
-function isExampleConfiguration(config) {
+function getPlaceholderFields(
 
-if (!config || typeof config !== "object") {
+  config
 
-return true;
+) {
+
+  const targetConfig =
+
+    config ||
+
+    FIREBASE_CONFIG_EXAMPLE;
+
+
+  const placeholders = [];
+
+
+  Object.keys(
+
+    targetConfig
+
+  )
+
+  .forEach(
+
+    function (field) {
+
+      const value =
+
+        targetConfig[field];
+
+
+      if (
+
+        typeof value !==
+
+          "string"
+
+      ) {
+
+        return;
+
+      }
+
+
+      const isPlaceholder =
+
+        EXAMPLE_MARKERS.some(
+
+          function (marker) {
+
+            return value.includes(
+
+              marker
+
+            );
+
+          }
+
+        );
+
+
+      if (
+
+        isPlaceholder
+
+      ) {
+
+        placeholders.push(
+
+          field
+
+        );
+
+      }
+
+    }
+
+  );
+
+
+  return placeholders;
 
 }
 
-const exampleMarkers = [
 
-"YOUR_FIREBASE_API_KEY",
+// ─────────────────────────────────────────────
+// Production Safety Check
+// ─────────────────────────────────────────────
 
-"YOUR_PROJECT_ID",
+function isProductionSafe(
 
-"YOUR_MESSAGING_SENDER_ID",
+  config
 
-"YOUR_FIREBASE_APP_ID"
+) {
 
-];
+  const targetConfig =
 
-const serializedConfig =
+    config ||
 
-JSON.stringify(config);
+    FIREBASE_CONFIG_EXAMPLE;
 
-return exampleMarkers.some(marker =>
 
-serializedConfig.includes(marker)
+  return (
 
-);
+    isExampleConfiguration(
+
+      targetConfig
+
+    ) === true
+
+  );
 
 }
+
 
 // ─────────────────────────────────────────────
 // Safe Configuration Summary
 // ─────────────────────────────────────────────
 
-function getConfigurationSummary(config) {
+function getConfigurationSummary(
 
-const targetConfig =
+  config
 
-config || FIREBASE_CONFIG_EXAMPLE;
+) {
 
-const validation =
+  const targetConfig =
 
-validateFirebaseConfig(targetConfig);
+    config ||
 
-return {
+    FIREBASE_CONFIG_EXAMPLE;
 
-valid:
 
-  validation.valid,
+  const validation =
 
-example:
+    validateFirebaseConfig(
 
-  isExampleConfiguration(targetConfig),
+      targetConfig
 
-projectId:
+    );
 
-  targetConfig.projectId || null,
 
-authDomain:
+  const example =
 
-  targetConfig.authDomain || null,
+    isExampleConfiguration(
 
-databaseURL:
+      targetConfig
 
-  targetConfig.databaseURL || null,
+    );
 
-errors:
 
-  validation.errors
+  const placeholders =
 
-};
+    getPlaceholderFields(
+
+      targetConfig
+
+    );
+
+
+  return {
+
+    valid:
+
+      validation.valid,
+
+    example,
+
+    productionSafe:
+
+      example,
+
+    status:
+
+      example
+
+        ? "EXAMPLE_CONFIGURATION"
+
+        : validation.valid
+
+          ? "CONFIGURATION_AVAILABLE"
+
+          : "INVALID_CONFIGURATION",
+
+    projectId:
+
+      targetConfig.projectId ||
+
+      null,
+
+    authDomain:
+
+      targetConfig.authDomain ||
+
+      null,
+
+    databaseURL:
+
+      targetConfig.databaseURL ||
+
+      null,
+
+    placeholderFields:
+
+      placeholders,
+
+    errors:
+
+      validation.errors
+
+  };
 
 }
+
 
 // ─────────────────────────────────────────────
 // Public API
@@ -211,15 +522,24 @@ errors:
 
 const firebaseConfigExampleAPI = {
 
-FIREBASE_CONFIG_EXAMPLE,
+  FIREBASE_CONFIG_EXAMPLE,
 
-validateFirebaseConfig,
+  REQUIRED_FIELDS,
 
-isExampleConfiguration,
+  EXAMPLE_MARKERS,
 
-getConfigurationSummary
+  validateFirebaseConfig,
+
+  isExampleConfiguration,
+
+  getPlaceholderFields,
+
+  isProductionSafe,
+
+  getConfigurationSummary
 
 };
+
 
 // ─────────────────────────────────────────────
 // Node / Test Export
@@ -227,17 +547,20 @@ getConfigurationSummary
 
 if (
 
-typeof module !== "undefined" &&
+  typeof module !==
 
-module.exports
+    "undefined" &&
+
+  module.exports
 
 ) {
 
-module.exports =
+  module.exports =
 
-firebaseConfigExampleAPI;
+    firebaseConfigExampleAPI;
 
 }
+
 
 // ─────────────────────────────────────────────
 // Browser Global
@@ -245,12 +568,14 @@ firebaseConfigExampleAPI;
 
 if (
 
-typeof window !== "undefined"
+  typeof window !==
+
+    "undefined"
 
 ) {
 
-window.BloggerSaaSFirebaseConfigExample =
+  window.BloggerSaaSFirebaseConfigExample =
 
-firebaseConfigExampleAPI;
+    firebaseConfigExampleAPI;
 
 }
