@@ -1,967 +1,1208 @@
 /**
-
-* BloggerSaaS Ultimate V5
-* Package 41–50
-* Testing Layer
-* Test Launcher
-* 
-* Coordinates execution of the test suite
-* and generation of the final test report.
-* 
-* Safe development only.
-* 
-* Safety:
-* - Does not modify production systems.
-* - Does not modify live Firebase data.
-* - Does not modify user accounts.
-* - Does not deploy automatically.
-* - Does not delete external data.
-    */
+ * BloggerSaaS Ultimate V5
+ * Package 41–50
+ * Testing Layer
+ * Test Launcher
+ *
+ * Coordinates execution of the test suite
+ * and generation of the final test report.
+ *
+ * Safe development only.
+ *
+ * Safety:
+ * - Does not modify production systems.
+ * - Does not modify live Firebase data.
+ * - Does not modify user accounts.
+ * - Does not deploy automatically.
+ * - Does not delete external data.
+ */
 
 (function (global) {
 
-"use strict";
-
-// ────────────────────────────────────────────
-// Launcher State
-// ─────────────────────────────────────────────
-
-const launcherState = {
-
-initialized: false,
-
-environment: "safe-development",
-
-running: false,
-
-runCount: 0,
-
-startedAt: null,
-
-completedAt: null,
-
-status: "not-run",
-
-lastReport: null,
-
-errors: []
-
-};
-
-// ─────────────────────────────────────────────
-// Module Discovery
-// ─────────────────────────────────────────────
-
-function getTestSuite() {
-
-return (
-
-  global.BloggerSaaSTestSuite ||
-
-  null
-
-);
-
-}
-
-function getTestReport() {
-
-return (
-
-  global.BloggerSaaSTestReport ||
-
-  null
-
-);
-
-}
-
-// ─────────────────────────────────────────────
-// Initialize Launcher
-// ─────────────────────────────────────────────
-
-function initialize() {
-
-launcherState.initialized = true;
-
-launcherState.status = "initialized";
-
-return getStatus();
-
-}
-
-// ─────────────────────────────────────────────
-// Run Test Suite
-// ─────────────────────────────────────────────
-
-function runTestSuite() {
-
-const suite = getTestSuite();
+  "use strict";
 
 
-if (!suite) {
+  // ─────────────────────────────────────────────
+  // Launcher State
+  // ─────────────────────────────────────────────
 
-  return {
+  const launcherState = {
 
-    success: false,
+    initialized: false,
 
-    status: "unavailable",
+    environment: "safe-development",
 
-    message:
+    running: false,
 
-      "Test Suite module is unavailable.",
+    runCount: 0,
 
-    total: 0,
+    startedAt: null,
 
-    passed: 0,
+    completedAt: null,
 
-    failed: 1,
+    status: "not-run",
 
-    skipped: 0,
+    lastReport: null,
 
-    percentage: 0
+    errors: []
 
   };
 
-}
 
+  // ─────────────────────────────────────────────
+  // Module Discovery
+  // ─────────────────────────────────────────────
 
-if (
+  function getTestSuite() {
 
-  typeof suite.runTests !==
+    return (
 
-  "function"
+      global.BloggerSaaSTestSuite ||
 
-) {
+      null
 
-  return {
+    );
 
-    success: false,
+  }
 
-    status: "unsupported",
 
-    message:
+  function getTestReport() {
 
-      "No supported Test Suite API found.",
+    return (
 
-    total: 0,
+      global.BloggerSaaSTestReport ||
 
-    passed: 0,
+      null
 
-    failed: 1,
+    );
 
-    skipped: 0,
+  }
 
-    percentage: 0
 
-  };
+  // ─────────────────────────────────────────────
+  // Initialize Launcher
+  // ─────────────────────────────────────────────
 
-}
+  function initialize() {
 
+    launcherState.initialized = true;
 
-try {
+    launcherState.status = "initialized";
 
-  return suite.runTests();
 
-}
+    const reportModule =
 
-catch (error) {
+      getTestReport();
 
-  return {
 
-    success: false,
+    if (
 
-    status: "error",
+      reportModule &&
 
-    message:
+      typeof reportModule.getReport ===
 
-      error && error.message
+        "function"
 
-        ? error.message
+    ) {
 
-        : String(error),
+      return {
 
-    total: 0,
+        success: true,
 
-    passed: 0,
+        status: "initialized",
 
-    failed: 1,
+        launcher: getStatus(),
 
-    skipped: 0,
+        report:
 
-    percentage: 0
+          reportModule.getReport()
 
-  };
-
-}
-
-}
-
-// ─────────────────────────────────────────────
-// Generate Test Report
-// ─────────────────────────────────────────────
-
-function generateReport(
-
-sourceReport
-
-) {
-
-const reportModule =
-
-  getTestReport();
-
-
-if (!reportModule) {
-
-  return {
-
-    success: true,
-
-    status: "fallback",
-
-    report: {
-
-      summary: {
-
-        total:
-
-          sourceReport &&
-
-          typeof sourceReport.total ===
-
-            "number"
-
-            ? sourceReport.total
-
-            : 0,
-
-        passed:
-
-          sourceReport &&
-
-          typeof sourceReport.passed ===
-
-            "number"
-
-            ? sourceReport.passed
-
-            : 0,
-
-        failed:
-
-          sourceReport &&
-
-          typeof sourceReport.failed ===
-
-            "number"
-
-            ? sourceReport.failed
-
-            : 0,
-
-        skipped:
-
-          sourceReport &&
-
-          typeof sourceReport.skipped ===
-
-            "number"
-
-            ? sourceReport.skipped
-
-            : 0,
-
-        percentage:
-
-          sourceReport &&
-
-          typeof sourceReport.percentage ===
-
-            "number"
-
-            ? sourceReport.percentage
-
-            : 0,
-
-        status:
-
-          sourceReport &&
-
-          sourceReport.status
-
-            ? sourceReport.status
-
-            : "not-run"
-
-      },
-
-      source:
-
-        sourceReport || null
+      };
 
     }
 
-  };
 
-}
+    return getStatus();
 
+  }
 
-if (
 
-  typeof reportModule.generateReport !==
+  // ─────────────────────────────────────────────
+  // Normalize Numeric Value
+  // ─────────────────────────────────────────────
 
-  "function"
+  function safeNumber(value) {
 
-) {
+    return (
 
-  return {
+      typeof value === "number" &&
 
-    success: false,
+      Number.isFinite(value)
 
-    status: "unsupported",
+    )
 
-    message:
+      ? value
 
-      "No supported Test Report API found."
+      : 0;
 
-  };
+  }
 
-}
 
+  // ─────────────────────────────────────────────
+  // Determine Test Success
+  // ─────────────────────────────────────────────
 
-try {
+  function didTestsPass(
 
-  return {
+    testResult
 
-    success: true,
+  ) {
 
-    status: "completed",
+    if (!testResult) {
 
-    report:
+      return false;
 
-      reportModule.generateReport(
+    }
 
-        sourceReport
 
-      )
+    if (
 
-  };
+      testResult.success === true
 
-}
+    ) {
 
-catch (error) {
+      return true;
 
-  return {
+    }
 
-    success: false,
 
-    status: "error",
+    const status =
 
-    message:
+      String(
 
-      error && error.message
+        testResult.status ||
 
-        ? error.message
+        ""
 
-        : String(error)
+      ).toLowerCase();
 
-  };
 
-}
+    if (
 
-}
+      status === "passed" ||
 
-// ─────────────────────────────────────────────
-// Determine Test Success
-// ─────────────────────────────────────────────
+      status === "pass"
 
-function didTestsPass(
+    ) {
 
-testResult
+      return true;
 
-) {
+    }
 
-if (!testResult) {
 
-  return false;
+    const total =
 
-}
+      safeNumber(
 
+        testResult.total
 
-if (
+      );
 
-  testResult.success === true
 
-) {
+    const passed =
 
-  return true;
+      safeNumber(
 
-}
+        testResult.passed
 
+      );
 
-const status =
 
-  String(
+    const failed =
 
-    testResult.status ||
+      safeNumber(
 
-    ""
+        testResult.failed
 
-  ).toLowerCase();
+      );
 
 
-return (
+    return (
 
-  status === "passed" ||
+      total > 0 &&
 
-  status === "pass"
+      failed === 0 &&
 
-);
-
-}
-
-// ─────────────────────────────────────────────
-// Determine Report Success
-// ─────────────────────────────────────────────
-
-function didReportGenerate(
-
-reportResult
-
-) {
-
-return (
-
-  reportResult &&
-
-  reportResult.success === true
-
-);
-
-}
-
-// ─────────────────────────────────────────────
-// Run Tests and Generate Report
-// ─────────────────────────────────────────────
-
-function runAndGetSummary() {
-
-if (
-
-  launcherState.running
-
-) {
-
-  return {
-
-    success: false,
-
-    status: "already-running",
-
-    message:
-
-      "Test Launcher is already running.",
-
-    environment:
-
-      launcherState.environment
-
-  };
-
-}
-
-
-launcherState.running = true;
-
-launcherState.initialized = true;
-
-launcherState.status = "running";
-
-launcherState.runCount++;
-
-launcherState.startedAt =
-
-  new Date().toISOString();
-
-
-try {
-
-  // 1. Execute complete test suite.
-
-  const testResult =
-
-    runTestSuite();
-
-
-  // 2. Generate structured report.
-
-  const reportResult =
-
-    generateReport(
-
-      testResult
+      passed === total
 
     );
 
+  }
 
-  // 3. Determine execution status.
 
-  const testsPassed =
+  // ─────────────────────────────────────────────
+  // Run Test Suite
+  // ─────────────────────────────────────────────
 
-    didTestsPass(
+  function runTestSuite() {
 
-      testResult
+    const suite =
+
+      getTestSuite();
+
+
+    if (!suite) {
+
+      return {
+
+        success: false,
+
+        status: "unavailable",
+
+        message:
+
+          "Test Suite module is unavailable.",
+
+        total: 0,
+
+        passed: 0,
+
+        failed: 1,
+
+        skipped: 0,
+
+        percentage: 0
+
+      };
+
+    }
+
+
+    if (
+
+      typeof suite.runTests !==
+
+        "function"
+
+    ) {
+
+      return {
+
+        success: false,
+
+        status: "unsupported",
+
+        message:
+
+          "No supported Test Suite API found.",
+
+        total: 0,
+
+        passed: 0,
+
+        failed: 1,
+
+        skipped: 0,
+
+        percentage: 0
+
+      };
+
+    }
+
+
+    try {
+
+      const result =
+
+        suite.runTests();
+
+
+      return (
+
+        result &&
+
+        typeof result === "object"
+
+          ? result
+
+          : {
+
+              success: false,
+
+              status: "invalid-result",
+
+              message:
+
+                "Test Suite returned an invalid result.",
+
+              total: 0,
+
+              passed: 0,
+
+              failed: 1,
+
+              skipped: 0,
+
+              percentage: 0
+
+            }
+
+      );
+
+    }
+
+
+    catch (error) {
+
+      return {
+
+        success: false,
+
+        status: "error",
+
+        message:
+
+          error &&
+
+          error.message
+
+            ? error.message
+
+            : String(error),
+
+        total: 0,
+
+        passed: 0,
+
+        failed: 1,
+
+        skipped: 0,
+
+        percentage: 0
+
+      };
+
+    }
+
+  }
+
+
+  // ─────────────────────────────────────────────
+  // Generate Test Report
+  // ─────────────────────────────────────────────
+
+  function generateReport(
+
+    sourceReport
+
+  ) {
+
+    const reportModule =
+
+      getTestReport();
+
+
+    if (!reportModule) {
+
+      return {
+
+        success: true,
+
+        status: "fallback",
+
+        report: {
+
+          summary: {
+
+            total:
+
+              sourceReport &&
+
+              typeof sourceReport.total ===
+
+                "number"
+
+                ? sourceReport.total
+
+                : 0,
+
+            passed:
+
+              sourceReport &&
+
+              typeof sourceReport.passed ===
+
+                "number"
+
+                ? sourceReport.passed
+
+                : 0,
+
+            failed:
+
+              sourceReport &&
+
+              typeof sourceReport.failed ===
+
+                "number"
+
+                ? sourceReport.failed
+
+                : 0,
+
+            skipped:
+
+              sourceReport &&
+
+              typeof sourceReport.skipped ===
+
+                "number"
+
+                ? sourceReport.skipped
+
+                : 0,
+
+            percentage:
+
+              sourceReport &&
+
+              typeof sourceReport.percentage ===
+
+                "number"
+
+                ? sourceReport.percentage
+
+                : 0,
+
+            status:
+
+              sourceReport &&
+
+              sourceReport.status
+
+                ? sourceReport.status
+
+                : "not-run"
+
+          },
+
+          source:
+
+            sourceReport || null
+
+        }
+
+      };
+
+    }
+
+
+    if (
+
+      typeof reportModule.generateReport !==
+
+        "function"
+
+    ) {
+
+      return {
+
+        success: false,
+
+        status: "unsupported",
+
+        message:
+
+          "No supported Test Report API found."
+
+      };
+
+    }
+
+
+    try {
+
+      const generatedReport =
+
+        reportModule.generateReport(
+
+          sourceReport
+
+        );
+
+
+      return {
+
+        success: true,
+
+        status: "completed",
+
+        report:
+
+          generatedReport
+
+      };
+
+    }
+
+
+    catch (error) {
+
+      return {
+
+        success: false,
+
+        status: "error",
+
+        message:
+
+          error &&
+
+          error.message
+
+            ? error.message
+
+            : String(error)
+
+      };
+
+    }
+
+  }
+
+
+  // ─────────────────────────────────────────────
+  // Normalize Summary
+  // ─────────────────────────────────────────────
+
+  function normalizeSummary(
+
+    testResult,
+
+    reportResult
+
+  ) {
+
+    const reportData =
+
+      reportResult &&
+
+      reportResult.report
+
+        ? reportResult.report
+
+        : null;
+
+
+    if (
+
+      reportData &&
+
+      reportData.summary
+
+    ) {
+
+      return {
+
+        total:
+
+          safeNumber(
+
+            reportData.summary.total
+
+          ),
+
+        passed:
+
+          safeNumber(
+
+            reportData.summary.passed
+
+          ),
+
+        failed:
+
+          safeNumber(
+
+            reportData.summary.failed
+
+          ),
+
+        skipped:
+
+          safeNumber(
+
+            reportData.summary.skipped
+
+          ),
+
+        percentage:
+
+          safeNumber(
+
+            reportData.summary.percentage
+
+          ),
+
+        status:
+
+          reportData.summary.status ||
+
+          "not-run"
+
+      };
+
+    }
+
+
+    const total =
+
+      safeNumber(
+
+        testResult &&
+
+        testResult.total
+
+      );
+
+
+    const passed =
+
+      safeNumber(
+
+        testResult &&
+
+        testResult.passed
+
+      );
+
+
+    const failed =
+
+      safeNumber(
+
+        testResult &&
+
+        testResult.failed
+
+      );
+
+
+    const skipped =
+
+      safeNumber(
+
+        testResult &&
+
+        testResult.skipped
+
+      );
+
+
+    const percentage =
+
+      total > 0
+
+        ? Math.round(
+
+            (
+
+              passed /
+
+              total
+
+            ) * 100
+
+          )
+
+        : 0;
+
+
+    return {
+
+      total,
+
+      passed,
+
+      failed,
+
+      skipped,
+
+      percentage,
+
+      status:
+
+        testResult &&
+
+        testResult.status
+
+          ? testResult.status
+
+          : "not-run"
+
+    };
+
+  }
+
+
+  // ─────────────────────────────────────────────
+  // Run Tests and Generate Report
+  // ─────────────────────────────────────────────
+
+  function runAndGetSummary() {
+
+    if (
+
+      launcherState.running
+
+    ) {
+
+      return {
+
+        success: false,
+
+        status: "already-running",
+
+        message:
+
+          "Test Launcher is already running.",
+
+        environment:
+
+          launcherState.environment
+
+      };
+
+    }
+
+
+    launcherState.running = true;
+
+    launcherState.initialized = true;
+
+    launcherState.status = "running";
+
+    launcherState.runCount++;
+
+    launcherState.startedAt =
+
+      new Date().toISOString();
+
+
+    try {
+
+
+      // 1. Execute complete test suite.
+
+      const testResult =
+
+        runTestSuite();
+
+
+      // 2. Generate structured report.
+
+      const reportResult =
+
+        generateReport(
+
+          testResult
+
+        );
+
+
+      // 3. Determine test status.
+
+      const testsPassed =
+
+        didTestsPass(
+
+          testResult
+
+        );
+
+
+      // 4. Determine report status.
+
+      const reportGenerated =
+
+        reportResult &&
+
+        reportResult.success === true;
+
+
+      // 5. Normalize summary.
+
+      const summary =
+
+        normalizeSummary(
+
+          testResult,
+
+          reportResult
+
+        );
+
+
+      // 6. Final success.
+
+      const success =
+
+        testsPassed &&
+
+        reportGenerated;
+
+
+      launcherState.status =
+
+        success
+
+          ? "passed"
+
+          : "failed";
+
+
+      launcherState.completedAt =
+
+        new Date().toISOString();
+
+
+      launcherState.running = false;
+
+
+      // 7. Consolidated final result.
+
+      const finalResult = {
+
+        success,
+
+        status:
+
+          launcherState.status,
+
+        environment:
+
+          launcherState.environment,
+
+        runCount:
+
+          launcherState.runCount,
+
+        startedAt:
+
+          launcherState.startedAt,
+
+        completedAt:
+
+          launcherState.completedAt,
+
+        tests:
+
+          testResult,
+
+        report:
+
+          reportResult,
+
+        summary
+
+      };
+
+
+      launcherState.lastReport =
+
+        finalResult;
+
+
+      return finalResult;
+
+    }
+
+
+    catch (error) {
+
+      launcherState.running = false;
+
+      launcherState.status =
+
+        "error";
+
+      launcherState.completedAt =
+
+        new Date().toISOString();
+
+
+      const errorRecord = {
+
+        message:
+
+          error &&
+
+          error.message
+
+            ? error.message
+
+            : String(error),
+
+        timestamp:
+
+          new Date().toISOString()
+
+      };
+
+
+      launcherState.errors.push(
+
+        errorRecord
+
+      );
+
+
+      const finalResult = {
+
+        success: false,
+
+        status: "error",
+
+        environment:
+
+          launcherState.environment,
+
+        runCount:
+
+          launcherState.runCount,
+
+        startedAt:
+
+          launcherState.startedAt,
+
+        completedAt:
+
+          launcherState.completedAt,
+
+        error:
+
+          errorRecord
+
+      };
+
+
+      launcherState.lastReport =
+
+        finalResult;
+
+
+      return finalResult;
+
+    }
+
+  }
+
+
+  // ─────────────────────────────────────────────
+  // Compatibility Aliases
+  // ─────────────────────────────────────────────
+
+  function run() {
+
+    return runAndGetSummary();
+
+  }
+
+
+  function runAllTests() {
+
+    return runAndGetSummary();
+
+  }
+
+
+  function runTestSuiteAndReport() {
+
+    return runAndGetSummary();
+
+  }
+
+
+  // ─────────────────────────────────────────────
+  // Get Status
+  // ─────────────────────────────────────────────
+
+  function getStatus() {
+
+    return {
+
+      initialized:
+
+        launcherState.initialized,
+
+      running:
+
+        launcherState.running,
+
+      environment:
+
+        launcherState.environment,
+
+      runCount:
+
+        launcherState.runCount,
+
+      startedAt:
+
+        launcherState.startedAt,
+
+      completedAt:
+
+        launcherState.completedAt,
+
+      status:
+
+        launcherState.status,
+
+      errorCount:
+
+        launcherState.errors.length,
+
+      hasResult:
+
+        launcherState.lastReport !== null
+
+    };
+
+  }
+
+
+  // ─────────────────────────────────────────────
+  // Get Last Result
+  // ─────────────────────────────────────────────
+
+  function getLastResult() {
+
+    return (
+
+      launcherState.lastReport
 
     );
 
+  }
 
-  // 4. Determine report status.
 
-  const reportGenerated =
+  // ─────────────────────────────────────────────
+  // Get Errors
+  // ─────────────────────────────────────────────
 
-    didReportGenerate(
+  function getErrors() {
 
-      reportResult
+    return [
 
-    );
+      ...launcherState.errors
 
+    ];
 
-  // 5. Extract generated report.
+  }
 
-  const reportData =
 
-    reportResult &&
+  // ─────────────────────────────────────────────
+  // Reset
+  // ─────────────────────────────────────────────
 
-    reportResult.report
+  function reset() {
 
-      ? reportResult.report
+    launcherState.initialized = false;
 
-      : null;
+    launcherState.running = false;
 
+    launcherState.runCount = 0;
 
-  // 6. Normalize summary.
+    launcherState.startedAt = null;
 
-  const summary =
+    launcherState.completedAt = null;
 
-    reportData &&
+    launcherState.status = "not-run";
 
-    reportData.summary
+    launcherState.lastReport = null;
 
-      ? reportData.summary
+    launcherState.errors = [];
 
-      : {
 
-          total:
+    return true;
 
-            testResult &&
+  }
 
-            typeof testResult.total ===
 
-              "number"
+  // ─────────────────────────────────────────────
+  // Public API
+  // ─────────────────────────────────────────────
 
-              ? testResult.total
+  const testLauncherAPI = {
 
-              : 0,
+    initialize,
 
-          passed:
+    run,
 
-            testResult &&
+    runAllTests,
 
-            typeof testResult.passed ===
+    runTestSuite,
 
-              "number"
+    generateReport,
 
-              ? testResult.passed
+    runAndGetSummary,
 
-              : 0,
+    runTestSuiteAndReport,
 
-          failed:
+    getStatus,
 
-            testResult &&
+    getLastResult,
 
-            typeof testResult.failed ===
+    getErrors,
 
-              "number"
+    reset,
 
-              ? testResult.failed
+    state:
 
-              : 0,
-
-          skipped:
-
-            testResult &&
-
-            typeof testResult.skipped ===
-
-              "number"
-
-              ? testResult.skipped
-
-              : 0,
-
-          percentage:
-
-            testResult &&
-
-            typeof testResult.percentage ===
-
-              "number"
-
-              ? testResult.percentage
-
-              : 0,
-
-          status:
-
-            testResult &&
-
-            testResult.status
-
-              ? testResult.status
-
-              : "not-run"
-
-        };
-
-
-  // 7. Final success.
-
-  const success =
-
-    testsPassed &&
-
-    reportGenerated;
-
-
-  launcherState.status =
-
-    success
-
-      ? "passed"
-
-      : "failed";
-
-
-  launcherState.completedAt =
-
-    new Date().toISOString();
-
-
-  launcherState.running = false;
-
-
-  // 8. Consolidated final result.
-
-  const finalResult = {
-
-    success,
-
-    status:
-
-      launcherState.status,
-
-    environment:
-
-      launcherState.environment,
-
-    runCount:
-
-      launcherState.runCount,
-
-    startedAt:
-
-      launcherState.startedAt,
-
-    completedAt:
-
-      launcherState.completedAt,
-
-    tests:
-
-      testResult,
-
-    report:
-
-      reportResult,
-
-    summary
+      launcherState
 
   };
 
 
-  launcherState.lastReport =
+  // ─────────────────────────────────────────────
+  // Browser Global
+  // ─────────────────────────────────────────────
 
-    finalResult;
+  global.BloggerSaaSTestLauncher =
 
+    testLauncherAPI;
 
-  return finalResult;
 
-}
+  // ─────────────────────────────────────────────
+  // Node / Test Export
+  // ─────────────────────────────────────────────
 
+  if (
 
-catch (error) {
+    typeof module !==
 
-  launcherState.running = false;
+      "undefined" &&
 
-  launcherState.status = "error";
+    module.exports
 
-  launcherState.completedAt =
+  ) {
 
-    new Date().toISOString();
+    module.exports =
 
+      testLauncherAPI;
 
-  const errorRecord = {
+  }
 
-    message:
-
-      error &&
-
-      error.message
-
-        ? error.message
-
-        : String(error),
-
-    timestamp:
-
-      new Date().toISOString()
-
-  };
-
-
-  launcherState.errors.push(
-
-    errorRecord
-
-  );
-
-
-  const finalResult = {
-
-    success: false,
-
-    status: "error",
-
-    environment:
-
-      launcherState.environment,
-
-    runCount:
-
-      launcherState.runCount,
-
-    startedAt:
-
-      launcherState.startedAt,
-
-    completedAt:
-
-      launcherState.completedAt,
-
-    error:
-
-      errorRecord
-
-  };
-
-
-  launcherState.lastReport =
-
-    finalResult;
-
-
-  return finalResult;
-
-}
-
-}
-
-// ─────────────────────────────────────────────
-// Compatibility Aliases
-// ─────────────────────────────────────────────
-
-function run() {
-
-return runAndGetSummary();
-
-}
-
-function runAllTests() {
-
-return runAndGetSummary();
-
-}
-
-function runTestSuiteAndReport() {
-
-return runAndGetSummary();
-
-}
-
-// ─────────────────────────────────────────────
-// Get Status
-// ─────────────────────────────────────────────
-
-function getStatus() {
-
-return {
-
-  initialized:
-
-    launcherState.initialized,
-
-  running:
-
-    launcherState.running,
-
-  environment:
-
-    launcherState.environment,
-
-  runCount:
-
-    launcherState.runCount,
-
-  startedAt:
-
-    launcherState.startedAt,
-
-  completedAt:
-
-    launcherState.completedAt,
-
-  status:
-
-    launcherState.status,
-
-  errorCount:
-
-    launcherState.errors.length,
-
-  hasResult:
-
-    launcherState.lastReport !== null
-
-};
-
-}
-
-// ─────────────────────────────────────────────
-// Get Last Result
-// ─────────────────────────────────────────────
-
-function getLastResult() {
-
-return launcherState.lastReport;
-
-}
-
-// ─────────────────────────────────────────────
-// Get Errors
-// ─────────────────────────────────────────────
-
-function getErrors() {
-
-return [
-
-  ...launcherState.errors
-
-];
-
-}
-
-// ─────────────────────────────────────────────
-// Reset
-// ─────────────────────────────────────────────
-
-function reset() {
-
-launcherState.initialized = false;
-
-launcherState.running = false;
-
-launcherState.runCount = 0;
-
-launcherState.startedAt = null;
-
-launcherState.completedAt = null;
-
-launcherState.status = "not-run";
-
-launcherState.lastReport = null;
-
-launcherState.errors = [];
-
-return true;
-
-}
-
-// ─────────────────────────────────────────────
-// Public API
-// ─────────────────────────────────────────────
-
-const testLauncherAPI = {
-
-initialize,
-
-run,
-
-runAllTests,
-
-runTestSuite,
-
-generateReport,
-
-runAndGetSummary,
-
-runTestSuiteAndReport,
-
-getStatus,
-
-getLastResult,
-
-getErrors,
-
-reset,
-
-state:
-
-  launcherState
-
-};
-
-// ─────────────────────────────────────────────
-// Browser Global
-// ─────────────────────────────────────────────
-
-global.BloggerSaaSTestLauncher =
-
-testLauncherAPI;
-
-// ─────────────────────────────────────────────
-// Node / Test Export
-// ─────────────────────────────────────────────
-
-if (
-
-typeof module !== "undefined" &&
-
-module.exports
-
-) {
-
-module.exports =
-
-  testLauncherAPI;
-
-}
 
 })(
-typeof globalThis !== "undefined"
+  typeof globalThis !==
 
-? globalThis
+    "undefined"
 
-: this
+    ? globalThis
+
+    : this
 
 );
