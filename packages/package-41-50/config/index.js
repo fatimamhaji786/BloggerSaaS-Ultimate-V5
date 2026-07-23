@@ -12,6 +12,7 @@
 * - Validate configuration registration.
 * - Expose configuration status.
 * - Support safe development and testing.
+* - Validate configuration dependencies.
 * 
 * Safety:
 * - Does not modify production systems.
@@ -33,7 +34,9 @@ const configurationState = {
 
 initialized: false,
 
-environment: "safe-development",
+environment:
+
+  "safe-development",
 
 sources: {},
 
@@ -45,11 +48,17 @@ errors: []
 // Validate Configuration Name
 // ─────────────────────────────────────────────
 
-function validateConfigName(configName) {
+function validateConfigName(
+
+configName
+
+) {
 
 return (
 
-  typeof configName === "string" &&
+  typeof configName ===
+
+    "string" &&
 
   configName.trim().length > 0
 
@@ -61,15 +70,25 @@ return (
 // Validate Configuration Object
 // ─────────────────────────────────────────────
 
-function isValidConfigObject(configObject) {
+function isValidConfigObject(
+
+configObject
+
+) {
 
 return (
 
   configObject !== null &&
 
-  typeof configObject === "object" &&
+  typeof configObject ===
 
-  !Array.isArray(configObject)
+    "object" &&
+
+  !Array.isArray(
+
+    configObject
+
+  )
 
 );
 
@@ -91,32 +110,61 @@ options = {}
 
 if (
 
-  !validateConfigName(configName)
+  !validateConfigName(
+
+    configName
+
+  )
 
 ) {
 
-  throw new Error(
+  const error =
 
-    "Configuration name must be a non-empty string."
+    new Error(
 
-  );
+      "Configuration name must be a non-empty string."
+
+    );
+
+
+  recordError(error);
+
+
+  throw error;
 
 }
 
 
 if (
 
-  !isValidConfigObject(configObject)
+  !isValidConfigObject(
+
+    configObject
+
+  )
 
 ) {
 
-  throw new TypeError(
+  const error =
 
-    "Configuration object must be a non-null plain object."
+    new TypeError(
 
-  );
+      "Configuration object must be a non-null plain object."
+
+    );
+
+
+  recordError(error);
+
+
+  throw error;
 
 }
+
+
+const normalizedName =
+
+  configName.trim();
 
 
 const overwrite =
@@ -126,26 +174,42 @@ const overwrite =
 
 if (
 
-  hasConfig(configName) &&
+  hasConfig(
+
+    normalizedName
+
+  ) &&
 
   !overwrite
 
 ) {
 
-  throw new Error(
+  const error =
 
-    `Configuration "${configName}" is already registered.`
+    new Error(
 
-  );
+      `Configuration "${normalizedName}" is already registered.`
+
+    );
+
+
+  recordError(error);
+
+
+  throw error;
 
 }
 
 
 configurationState.sources[
 
-  configName.trim()
+  normalizedName
 
-] = configObject;
+] = {
+
+  ...configObject
+
+};
 
 
 return true;
@@ -156,11 +220,19 @@ return true;
 // Configuration Retrieval
 // ─────────────────────────────────────────────
 
-function getConfig(configName) {
+function getConfig(
+
+configName
+
+) {
 
 if (
 
-  !validateConfigName(configName)
+  !validateConfigName(
+
+    configName
+
+  )
 
 ) {
 
@@ -169,17 +241,98 @@ if (
 }
 
 
-return (
+const config =
 
   configurationState.sources[
 
     configName.trim()
 
-  ] ||
+  ];
 
-  null
 
-);
+return config
+
+  ? {
+
+      ...config
+
+    }
+
+  : null;
+
+}
+
+// ─────────────────────────────────────────────
+// Get Configuration By Module Name
+// ─────────────────────────────────────────────
+
+function getConfigByModuleName(
+
+moduleName
+
+) {
+
+if (
+
+  typeof moduleName !==
+
+    "string" ||
+
+  !moduleName.trim()
+
+) {
+
+  return null;
+
+}
+
+
+const targetModuleName =
+
+  moduleName.trim();
+
+
+const configName =
+
+  Object.keys(
+
+    configurationState.sources
+
+  )
+
+  .find(
+
+    function (name) {
+
+      const config =
+
+        configurationState.sources[
+
+          name
+
+        ];
+
+
+      return (
+
+        config &&
+
+        config.moduleName ===
+
+          targetModuleName
+
+      );
+
+    }
+
+  );
+
+
+return configName
+
+  ? getConfig(configName)
+
+  : null;
 
 }
 
@@ -187,11 +340,19 @@ return (
 // Configuration Existence Check
 // ─────────────────────────────────────────────
 
-function hasConfig(configName) {
+function hasConfig(
+
+configName
+
+) {
 
 if (
 
-  !validateConfigName(configName)
+  !validateConfigName(
+
+    configName
+
+  )
 
 ) {
 
@@ -230,13 +391,39 @@ return Object.keys(
 
 function getAllConfigs() {
 
-return Object.assign(
+const result = {};
 
-  {},
+
+Object.keys(
 
   configurationState.sources
 
+)
+
+.forEach(
+
+  function (configName) {
+
+    result[configName] =
+
+      {
+
+        ...
+
+          configurationState.sources[
+
+            configName
+
+          ]
+
+      };
+
+  }
+
 );
+
+
+return result;
 
 }
 
@@ -244,11 +431,19 @@ return Object.assign(
 // Configuration Validation
 // ─────────────────────────────────────────────
 
-function validateConfig(configName) {
+function validateConfig(
+
+configName
+
+) {
 
 const config =
 
-  getConfig(configName);
+  getConfig(
+
+    configName
+
+  );
 
 
 if (!config) {
@@ -292,9 +487,13 @@ return {
 
 function validateAllConfigs() {
 
-const configs = listConfigs();
+const configs =
+
+  listConfigs();
+
 
 const results = {};
+
 
 configs.forEach(
 
@@ -302,13 +501,147 @@ configs.forEach(
 
     results[configName] =
 
-      validateConfig(configName);
+      validateConfig(
+
+        configName
+
+      );
 
   }
 
 );
 
+
 return results;
+
+}
+
+// ─────────────────────────────────────────────
+// Validate Against Dependency Map
+// ─────────────────────────────────────────────
+
+function validateAgainstDependencyMap(
+
+dependencyMap
+
+) {
+
+if (
+
+  !dependencyMap ||
+
+  typeof dependencyMap !==
+
+    "object"
+
+) {
+
+  return {
+
+    valid: false,
+
+    missing: [],
+
+    available: [],
+
+    errors: [
+
+      "Dependency map is unavailable."
+
+    ]
+
+  };
+
+}
+
+
+const dependencies =
+
+  Object.values(
+
+    dependencyMap
+
+  );
+
+
+const missing = [];
+
+const available = [];
+
+
+dependencies.forEach(
+
+  function (dependency) {
+
+    if (
+
+      !dependency ||
+
+      !dependency.moduleName
+
+    ) {
+
+      return;
+
+    }
+
+
+    const moduleName =
+
+      dependency.moduleName;
+
+
+    const config =
+
+      getConfigByModuleName(
+
+        moduleName
+
+      );
+
+
+    if (config) {
+
+      available.push(
+
+        moduleName
+
+      );
+
+    }
+
+    else if (
+
+      dependency.required === true
+
+    ) {
+
+      missing.push(
+
+        moduleName
+
+      );
+
+    }
+
+  }
+
+);
+
+
+return {
+
+  valid:
+
+    missing.length === 0,
+
+  missing,
+
+  available,
+
+  errors: []
+
+};
 
 }
 
@@ -329,7 +662,9 @@ if (
 }
 
 
-configurationState.initialized = true;
+configurationState.initialized =
+
+  true;
 
 
 return getConfigStatus();
@@ -375,7 +710,11 @@ return {
 // Record Configuration Error
 // ─────────────────────────────────────────────
 
-function recordError(error) {
+function recordError(
+
+error
+
+) {
 
 const message =
 
@@ -413,7 +752,9 @@ configurationState.sources = {};
 
 configurationState.errors = [];
 
-configurationState.initialized = false;
+configurationState.initialized =
+
+  false;
 
 
 return true;
@@ -432,6 +773,8 @@ registerConfig,
 
 getConfig,
 
+getConfigByModuleName,
+
 hasConfig,
 
 listConfigs,
@@ -441,6 +784,8 @@ getAllConfigs,
 validateConfig,
 
 validateAllConfigs,
+
+validateAgainstDependencyMap,
 
 getConfigStatus,
 
@@ -468,7 +813,9 @@ configurationAPI;
 
 if (
 
-typeof module !== "undefined" &&
+typeof module !==
+
+  "undefined" &&
 
 module.exports
 
@@ -481,7 +828,9 @@ module.exports =
 }
 
 })(
-typeof globalThis !== "undefined"
+typeof globalThis !==
+
+"undefined"
 
 ? globalThis
 
