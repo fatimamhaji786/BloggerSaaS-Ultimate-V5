@@ -1,16 +1,16 @@
 /**
-
-* BloggerSaaS Ultimate V5
-* Package 41–50
-* Package Test Configuration
-* 
-* Safe configuration for development and automated testing.
-* 
-* IMPORTANT:
-* This configuration must never modify production systems.
-  */
+ * BloggerSaaS Ultimate V5
+ * Package 41–50
+ * Package Test Configuration
+ *
+ * Safe configuration for development and automated testing.
+ *
+ * IMPORTANT:
+ * This configuration must never modify production systems.
+ */
 
 "use strict";
+
 
 // ─────────────────────────────────────────────
 // Package Test Configuration
@@ -18,211 +18,373 @@
 
 const PACKAGE_TEST_CONFIG = Object.freeze({
 
-packageId:
+  packageId:
 
-"package-41-50",
+    "package-41-50",
 
-environment:
+  environment:
 
-"safe-development",
+    "safe-development",
 
-mode:
+  mode:
 
-"test",
+    "test",
 
-production:
+  production:
 
-false,
+    false,
 
-liveFirebase:
+  liveFirebase:
 
-false,
+    false,
 
-modifyUserAccounts:
+  modifyUserAccounts:
 
-false,
+    false,
 
-automaticDeployment:
+  automaticDeployment:
 
-false,
+    false,
 
-externalDataDeletion:
+  externalDataDeletion:
 
-false,
+    false,
 
-testTimeout:
+  testTimeout:
 
-10000,
+    10000,
 
-healthCheckTimeout:
+  healthCheckTimeout:
 
-5000,
+    5000,
 
-verificationTimeout:
+  verificationTimeout:
 
-10000,
+    10000,
 
-testReportFormat:
+  testReportFormat:
 
-"object",
+    "object",
 
-logging:
+  logging:
 
-true
+    true
 
 });
+
 
 // ─────────────────────────────────────────────
 // Safety Validation
 // ─────────────────────────────────────────────
 
-function validateTestConfiguration(config) {
+function validateTestConfiguration(
 
-const targetConfig =
+  config
 
-config || PACKAGE_TEST_CONFIG;
+) {
 
-const errors = [];
+  const targetConfig =
 
-if (targetConfig.production === true) {
+    config ||
 
-errors.push(
+    PACKAGE_TEST_CONFIG;
 
-  "Production mode is not permitted."
 
-);
+  const errors = [];
+
+
+  if (
+
+    targetConfig.production === true
+
+  ) {
+
+    errors.push(
+
+      "Production mode is not permitted."
+
+    );
+
+  }
+
+
+  if (
+
+    targetConfig.liveFirebase === true
+
+  ) {
+
+    errors.push(
+
+      "Live Firebase modification is not permitted."
+
+    );
+
+  }
+
+
+  if (
+
+    targetConfig.modifyUserAccounts === true
+
+  ) {
+
+    errors.push(
+
+      "User account modification is not permitted."
+
+    );
+
+  }
+
+
+  if (
+
+    targetConfig.automaticDeployment === true
+
+  ) {
+
+    errors.push(
+
+      "Automatic deployment is not permitted."
+
+    );
+
+  }
+
+
+  if (
+
+    targetConfig.externalDataDeletion === true
+
+  ) {
+
+    errors.push(
+
+      "External data deletion is not permitted."
+
+    );
+
+  }
+
+
+  if (
+
+    typeof targetConfig.testTimeout !==
+
+    "number" ||
+
+    targetConfig.testTimeout <= 0
+
+  ) {
+
+    errors.push(
+
+      "Test timeout must be a positive number."
+
+    );
+
+  }
+
+
+  if (
+
+    typeof targetConfig.healthCheckTimeout !==
+
+    "number" ||
+
+    targetConfig.healthCheckTimeout <= 0
+
+  ) {
+
+    errors.push(
+
+      "Health check timeout must be a positive number."
+
+    );
+
+  }
+
+
+  if (
+
+    typeof targetConfig.verificationTimeout !==
+
+    "number" ||
+
+    targetConfig.verificationTimeout <= 0
+
+  ) {
+
+    errors.push(
+
+      "Verification timeout must be a positive number."
+
+    );
+
+  }
+
+
+  return {
+
+    valid:
+
+      errors.length === 0,
+
+    errors
+
+  };
 
 }
 
-if (targetConfig.liveFirebase === true) {
-
-errors.push(
-
-  "Live Firebase modification is not permitted."
-
-);
-
-}
-
-if (targetConfig.modifyUserAccounts === true) {
-
-errors.push(
-
-  "User account modification is not permitted."
-
-);
-
-}
-
-if (targetConfig.automaticDeployment === true) {
-
-errors.push(
-
-  "Automatic deployment is not permitted."
-
-);
-
-}
-
-if (targetConfig.externalDataDeletion === true) {
-
-errors.push(
-
-  "External data deletion is not permitted."
-
-);
-
-}
-
-return {
-
-valid:
-
-  errors.length === 0,
-
-errors
-
-};
-
-}
 
 // ─────────────────────────────────────────────
 // Test Environment Check
 // ─────────────────────────────────────────────
 
-function isSafeTestEnvironment(config) {
+function isSafeTestEnvironment(
 
-const validation =
+  config
 
-validateTestConfiguration(
+) {
 
-  config || PACKAGE_TEST_CONFIG
+  const validation =
 
-);
+    validateTestConfiguration(
 
-return validation.valid === true;
+      config ||
+
+      PACKAGE_TEST_CONFIG
+
+    );
+
+
+  return (
+
+    validation.valid === true
+
+  );
 
 }
+
+
+// ─────────────────────────────────────────────
+// Get Test Configuration
+// ─────────────────────────────────────────────
+
+function getTestConfiguration(
+
+  config
+
+) {
+
+  return {
+
+    ...(
+
+      config ||
+
+      PACKAGE_TEST_CONFIG
+
+    )
+
+  };
+
+}
+
 
 // ─────────────────────────────────────────────
 // Configuration Summary
 // ─────────────────────────────────────────────
 
-function getTestConfigurationSummary(config) {
+function getTestConfigurationSummary(
 
-const targetConfig =
+  config
 
-config || PACKAGE_TEST_CONFIG;
+) {
 
-const validation =
+  const targetConfig =
 
-validateTestConfiguration(targetConfig);
+    config ||
 
-return {
+    PACKAGE_TEST_CONFIG;
 
-packageId:
 
-  targetConfig.packageId,
+  const validation =
 
-environment:
+    validateTestConfiguration(
 
-  targetConfig.environment,
+      targetConfig
 
-mode:
+    );
 
-  targetConfig.mode,
 
-safe:
+  return {
 
-  validation.valid,
+    packageId:
 
-production:
+      targetConfig.packageId,
 
-  targetConfig.production,
+    environment:
 
-liveFirebase:
+      targetConfig.environment,
 
-  targetConfig.liveFirebase,
+    mode:
 
-modifyUserAccounts:
+      targetConfig.mode,
 
-  targetConfig.modifyUserAccounts,
+    safe:
 
-automaticDeployment:
+      validation.valid,
 
-  targetConfig.automaticDeployment,
+    production:
 
-externalDataDeletion:
+      targetConfig.production,
 
-  targetConfig.externalDataDeletion,
+    liveFirebase:
 
-errors:
+      targetConfig.liveFirebase,
 
-  validation.errors
+    modifyUserAccounts:
 
-};
+      targetConfig.modifyUserAccounts,
+
+    automaticDeployment:
+
+      targetConfig.automaticDeployment,
+
+    externalDataDeletion:
+
+      targetConfig.externalDataDeletion,
+
+    testTimeout:
+
+      targetConfig.testTimeout,
+
+    healthCheckTimeout:
+
+      targetConfig.healthCheckTimeout,
+
+    verificationTimeout:
+
+      targetConfig.verificationTimeout,
+
+    testReportFormat:
+
+      targetConfig.testReportFormat,
+
+    logging:
+
+      targetConfig.logging,
+
+    errors:
+
+      validation.errors
+
+  };
 
 }
+
 
 // ─────────────────────────────────────────────
 // Public API
@@ -230,15 +392,18 @@ errors:
 
 const packageTestConfigAPI = {
 
-PACKAGE_TEST_CONFIG,
+  PACKAGE_TEST_CONFIG,
 
-validateTestConfiguration,
+  validateTestConfiguration,
 
-isSafeTestEnvironment,
+  isSafeTestEnvironment,
 
-getTestConfigurationSummary
+  getTestConfiguration,
+
+  getTestConfigurationSummary
 
 };
+
 
 // ─────────────────────────────────────────────
 // Node / Test Export
@@ -246,17 +411,20 @@ getTestConfigurationSummary
 
 if (
 
-typeof module !== "undefined" &&
+  typeof module !==
 
-module.exports
+  "undefined" &&
+
+  module.exports
 
 ) {
 
-module.exports =
+  module.exports =
 
-packageTestConfigAPI;
+    packageTestConfigAPI;
 
 }
+
 
 // ─────────────────────────────────────────────
 // Browser Global
@@ -264,12 +432,14 @@ packageTestConfigAPI;
 
 if (
 
-typeof window !== "undefined"
+  typeof window !==
+
+  "undefined"
 
 ) {
 
-window.BloggerSaaSPackageTestConfig =
+  window.BloggerSaaSPackageTestConfig =
 
-packageTestConfigAPI;
+    packageTestConfigAPI;
 
 }
