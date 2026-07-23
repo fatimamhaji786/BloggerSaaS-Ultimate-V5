@@ -80,6 +80,21 @@
 
   function getModule(moduleName) {
 
+    if (
+
+      typeof moduleName !==
+
+        "string" ||
+
+      !moduleName.trim()
+
+    ) {
+
+      return null;
+
+    }
+
+
     return (
 
       global[moduleName] ||
@@ -176,7 +191,9 @@
 
     return (
 
-      typeof status === "string"
+      typeof status ===
+
+        "string"
 
         ? status.toLowerCase()
 
@@ -189,7 +206,11 @@
 
   function isSuccessfulResult(result) {
 
-    if (!result) {
+    if (
+
+      !result
+
+    ) {
 
       return false;
 
@@ -416,23 +437,27 @@
             .initializeIntegration();
 
 
+        const success =
+
+          isSuccessfulResult(
+
+            result
+
+          );
+
+
+        integrationTestState.initialized =
+
+          success;
+
+
         return {
 
-          success:
-
-            isSuccessfulResult(
-
-              result
-
-            ),
+          success,
 
           status:
 
-            isSuccessfulResult(
-
-              result
-
-            )
+            success
 
               ? "passed"
 
@@ -463,6 +488,7 @@
       };
 
     }
+
 
     catch (error) {
 
@@ -586,7 +612,11 @@
 
         ) {
 
-          registrationErrors.push({
+          const errorRecord = {
+
+            stage:
+
+              "module-registration",
 
             module:
 
@@ -594,9 +624,28 @@
 
             message:
 
-              "Module instance is unavailable."
+              "Module instance is unavailable.",
 
-          });
+            timestamp:
+
+              new Date().toISOString()
+
+          };
+
+
+          registrationErrors.push(
+
+            errorRecord
+
+          );
+
+
+          integrationTestState.errors.push(
+
+            errorRecord
+
+          );
+
 
           return;
 
@@ -664,6 +713,7 @@
           );
 
         }
+
 
         catch (error) {
 
@@ -852,6 +902,7 @@
 
     }
 
+
     catch (error) {
 
       return {
@@ -1004,6 +1055,7 @@
 
     }
 
+
     catch (error) {
 
       return {
@@ -1061,6 +1113,9 @@
 
     try {
 
+      let result;
+
+
       if (
 
         typeof launcher
@@ -1071,41 +1126,29 @@
 
       ) {
 
-        const result =
+        result =
 
           launcher.runAndGetSummary();
 
+      }
 
-        return {
+      else if (
 
-          success:
+        typeof launcher
 
-            isSuccessfulResult(
+          .runTestSuiteAndReport ===
 
-              result
+        "function"
 
-            ),
+      ) {
 
-          status:
+        result =
 
-            isSuccessfulResult(
-
-              result
-
-            )
-
-              ? "passed"
-
-              : "failed",
-
-          result
-
-        };
+          launcher.runTestSuiteAndReport();
 
       }
 
-
-      if (
+      else if (
 
         typeof launcher
 
@@ -1115,53 +1158,56 @@
 
       ) {
 
-        const result =
+        result =
 
           launcher.runTestSuite();
 
+      }
+
+      else {
 
         return {
 
-          success:
+          success: false,
 
-            isSuccessfulResult(
+          status: "unsupported",
 
-              result
+          message:
 
-            ),
-
-          status:
-
-            isSuccessfulResult(
-
-              result
-
-            )
-
-              ? "passed"
-
-              : "failed",
-
-          result
+            "No test launcher API is available."
 
         };
 
       }
 
 
+      const success =
+
+        isSuccessfulResult(
+
+          result
+
+        );
+
+
       return {
 
-        success: false,
+        success,
 
-        status: "unsupported",
+        status:
 
-        message:
+          success
 
-          "No test launcher API is available."
+            ? "passed"
+
+            : "failed",
+
+        result
 
       };
 
     }
+
 
     catch (error) {
 
@@ -1440,7 +1486,11 @@
 
         message:
 
-          "Integration test is already running."
+          "Integration test is already running.",
+
+        environment:
+
+          integrationTestState.environment
 
       };
 
@@ -1460,6 +1510,11 @@
     integrationTestState.startedAt =
 
       new Date().toISOString();
+
+
+    integrationTestState.completedAt =
+
+      null;
 
 
     integrationTestState.runCount++;
@@ -1512,6 +1567,8 @@
 
     try {
 
+      // 1. Verify dependencies.
+
       results.dependencies =
 
         verifyDependencies();
@@ -1532,30 +1589,42 @@
       }
 
 
+      // 2. Initialize integration.
+
       results.initialization =
 
         initializeIntegration();
 
+
+      // 3. Register modules.
 
       results.registration =
 
         registerCoreModules();
 
 
+      // 4. Run health check.
+
       results.health =
 
         runHealthCheck();
 
+
+      // 5. Run package verification.
 
       results.verification =
 
         runPackageVerification();
 
 
+      // 6. Run complete test suite.
+
       results.tests =
 
         runTests();
 
+
+      // 7. Calculate final readiness.
 
       const readiness =
 
@@ -1630,6 +1699,7 @@
 
     }
 
+
     catch (error) {
 
       integrationTestState.running =
@@ -1685,6 +1755,18 @@
 
           integrationTestState.environment,
 
+        startedAt:
+
+          integrationTestState.startedAt,
+
+        completedAt:
+
+          integrationTestState.completedAt,
+
+        runCount:
+
+          integrationTestState.runCount,
+
         error:
 
           integrationError,
@@ -1715,8 +1797,15 @@
 
 
   // ─────────────────────────────────────────────
-  // Compatibility Alias
+  // Compatibility Aliases
   // ─────────────────────────────────────────────
+
+  function run() {
+
+    return runIntegrationTest();
+
+  }
+
 
   function runAllTests() {
 
@@ -1795,6 +1884,40 @@
         integrationTestState.lastResult !== null
 
     };
+
+  }
+
+
+  // ─────────────────────────────────────────────
+  // Get Modules
+  // ─────────────────────────────────────────────
+
+  function getModules() {
+
+    return Object.assign(
+
+      {},
+
+      integrationTestState.modules
+
+    );
+
+  }
+
+
+  // ─────────────────────────────────────────────
+  // Get Readiness
+  // ─────────────────────────────────────────────
+
+  function getReadiness() {
+
+    return Object.assign(
+
+      {},
+
+      integrationTestState.readiness
+
+    );
 
   }
 
@@ -1909,11 +2032,17 @@
 
     runIntegrationTest,
 
+    run,
+
     runAllTests,
 
     getLastResult,
 
     getStatus,
+
+    getModules,
+
+    getReadiness,
 
     getErrors,
 
@@ -1972,4 +2101,5 @@
     ? globalThis
 
     : this
+
 );
