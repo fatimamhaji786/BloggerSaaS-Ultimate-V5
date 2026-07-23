@@ -3,17 +3,33 @@
  * Package 41–50
  * Testing Layer
  * Test Suite
+ *
+ * Safe development test orchestration.
+ *
+ * Safety:
+ * - Does not modify production systems.
+ * - Does not modify live Firebase data.
+ * - Does not modify user accounts.
+ * - Does not deploy automatically.
+ * - Does not delete external data.
  */
 
 (function (global) {
 
   "use strict";
 
+
+  // ─────────────────────────────────────────────
+  // Test State
+  // ─────────────────────────────────────────────
+
   const testState = {
 
     initialized: false,
 
-    environment: "safe-development",
+    environment:
+
+      "safe-development",
 
     startedAt: null,
 
@@ -27,9 +43,16 @@
 
     skipped: 0,
 
-    status: "not-run"
+    status:
+
+      "not-run"
 
   };
+
+
+  // ─────────────────────────────────────────────
+  // Add Test
+  // ─────────────────────────────────────────────
 
   function addTest(
 
@@ -43,7 +66,9 @@
 
     if (
 
-      typeof name !== "string" ||
+      typeof name !==
+
+        "string" ||
 
       !name.trim()
 
@@ -57,11 +82,12 @@
 
     }
 
+
     if (
 
       typeof testFunction !==
 
-      "function"
+        "function"
 
     ) {
 
@@ -73,9 +99,12 @@
 
     }
 
+
     testState.tests.push({
 
-      name,
+      name:
+
+        name.trim(),
 
       category:
 
@@ -103,7 +132,15 @@
 
     });
 
+
+    return true;
+
   }
+
+
+  // ─────────────────────────────────────────────
+  // Assertions
+  // ─────────────────────────────────────────────
 
   function assertTrue(
 
@@ -125,9 +162,11 @@
 
     }
 
+
     return true;
 
   }
+
 
   function assertFalse(
 
@@ -149,9 +188,11 @@
 
     }
 
+
     return true;
 
   }
+
 
   function assertEqual(
 
@@ -165,7 +206,9 @@
 
     if (
 
-      actual !== expected
+      actual !==
+
+        expected
 
     ) {
 
@@ -179,9 +222,11 @@
 
     }
 
+
     return true;
 
   }
+
 
   function assertExists(
 
@@ -209,15 +254,68 @@
 
     }
 
+
     return true;
 
   }
+
+
+  function assertCallable(
+
+    value,
+
+    message
+
+  ) {
+
+    if (
+
+      typeof value !==
+
+        "function"
+
+    ) {
+
+      throw new TypeError(
+
+        message ||
+
+        "Expected value to be callable."
+
+      );
+
+    }
+
+
+    return true;
+
+  }
+
+
+  // ─────────────────────────────────────────────
+  // Module Discovery
+  // ─────────────────────────────────────────────
 
   function getModule(
 
     moduleName
 
   ) {
+
+    if (
+
+      typeof moduleName !==
+
+        "string" ||
+
+      !moduleName.trim()
+
+    ) {
+
+      return null;
+
+    }
+
 
     return (
 
@@ -229,9 +327,78 @@
 
   }
 
+
+  // ─────────────────────────────────────────────
+  // Test Package Manifest
+  // ─────────────────────────────────────────────
+
+  function testPackageManifest(
+
+    manifest
+
+  ) {
+
+    assertExists(
+
+      manifest,
+
+      "Package manifest is unavailable."
+
+    );
+
+
+    if (
+
+      typeof manifest.getPackageManifest ===
+
+        "function"
+
+    ) {
+
+      const packageManifest =
+
+        manifest.getPackageManifest();
+
+
+      assertExists(
+
+        packageManifest,
+
+        "Package manifest could not be loaded."
+
+      );
+
+      return true;
+
+    }
+
+
+    assertExists(
+
+      manifest,
+
+      "Package manifest is unavailable."
+
+    );
+
+
+    return true;
+
+  }
+
+
+  // ─────────────────────────────────────────────
+  // Register Default Tests
+  // ─────────────────────────────────────────────
+
   function registerDefaultTests() {
 
     testState.tests = [];
+
+
+    // ─────────────────────────────────────────
+    // Core Module Availability
+    // ─────────────────────────────────────────
 
     addTest(
 
@@ -241,19 +408,16 @@
 
       function () {
 
-        assertExists(
+        return testPackageManifest(
 
-          global.PACKAGE_MANIFEST,
-
-          "Package manifest is unavailable."
+          global.PACKAGE_MANIFEST
 
         );
-
-        return true;
 
       }
 
     );
+
 
     addTest(
 
@@ -263,27 +427,25 @@
 
       function () {
 
-        const module =
+        assertExists(
 
           getModule(
 
             "BloggerSaaSIntegration"
 
-          );
-
-        assertExists(
-
-          module,
+          ),
 
           "Integration module is unavailable."
 
         );
+
 
         return true;
 
       }
 
     );
+
 
     addTest(
 
@@ -293,27 +455,25 @@
 
       function () {
 
-        const module =
+        assertExists(
 
           getModule(
 
             "BloggerSaaSHealth"
 
-          );
-
-        assertExists(
-
-          module,
+          ),
 
           "Health module is unavailable."
 
         );
+
 
         return true;
 
       }
 
     );
+
 
     addTest(
 
@@ -323,27 +483,25 @@
 
       function () {
 
-        const module =
+        assertExists(
 
           getModule(
 
             "BloggerSaaSFirebase"
 
-          );
-
-        assertExists(
-
-          module,
+          ),
 
           "Firebase module is unavailable."
 
         );
+
 
         return true;
 
       }
 
     );
+
 
     addTest(
 
@@ -353,27 +511,25 @@
 
       function () {
 
-        const module =
+        assertExists(
 
           getModule(
 
             "BloggerSaaSDashboard"
 
-          );
-
-        assertExists(
-
-          module,
+          ),
 
           "Dashboard module is unavailable."
 
         );
+
 
         return true;
 
       }
 
     );
+
 
     addTest(
 
@@ -383,27 +539,25 @@
 
       function () {
 
-        const module =
+        assertExists(
 
           getModule(
 
             "BloggerSaaSVerification"
 
-          );
-
-        assertExists(
-
-          module,
+          ),
 
           "Verification module is unavailable."
 
         );
+
 
         return true;
 
       }
 
     );
+
 
     addTest(
 
@@ -413,27 +567,165 @@
 
       function () {
 
-        const module =
+        assertExists(
 
           getModule(
 
             "BloggerSaaSFinal"
 
-          );
-
-        assertExists(
-
-          module,
+          ),
 
           "Final module is unavailable."
 
         );
+
 
         return true;
 
       }
 
     );
+
+
+    // ─────────────────────────────────────────
+    // Configuration Modules
+    // ─────────────────────────────────────────
+
+    addTest(
+
+      "Configuration module is available",
+
+      "configuration",
+
+      function () {
+
+        const module =
+
+          getModule(
+
+            "BloggerSaaSConfig"
+
+          );
+
+
+        assertExists(
+
+          module,
+
+          "Configuration module is unavailable."
+
+        );
+
+
+        return true;
+
+      }
+
+    );
+
+
+    addTest(
+
+      "Dependency map is available",
+
+      "configuration",
+
+      function () {
+
+        const module =
+
+          getModule(
+
+            "BloggerSaaSDependencyMap"
+
+          );
+
+
+        assertExists(
+
+          module,
+
+          "Dependency map is unavailable."
+
+        );
+
+
+        return true;
+
+      }
+
+    );
+
+
+    addTest(
+
+      "Package test configuration is available",
+
+      "configuration",
+
+      function () {
+
+        const module =
+
+          getModule(
+
+            "BloggerSaaSPackageTestConfig"
+
+          );
+
+
+        assertExists(
+
+          module,
+
+          "Package test configuration is unavailable."
+
+        );
+
+
+        return true;
+
+      }
+
+    );
+
+
+    addTest(
+
+      "Firebase configuration example is available",
+
+      "configuration",
+
+      function () {
+
+        const module =
+
+          getModule(
+
+            "BloggerSaaSFirebaseConfigExample"
+
+          );
+
+
+        assertExists(
+
+          module,
+
+          "Firebase configuration example module is unavailable."
+
+        );
+
+
+        return true;
+
+      }
+
+    );
+
+
+    // ─────────────────────────────────────────
+    // Integration API
+    // ─────────────────────────────────────────
 
     addTest(
 
@@ -451,51 +743,53 @@
 
           );
 
-        assertTrue(
 
-          typeof module.initializeIntegration ===
+        assertCallable(
 
-            "function",
+          module.initializeIntegration,
 
           "initializeIntegration API is missing."
 
         );
 
-        assertTrue(
 
-          typeof module.registerModule ===
+        assertCallable(
 
-            "function",
+          module.registerModule,
 
           "registerModule API is missing."
 
         );
 
-        assertTrue(
 
-          typeof module.getModule ===
+        assertCallable(
 
-            "function",
+          module.getModule,
 
           "getModule API is missing."
 
         );
 
-        assertTrue(
 
-          typeof module.getIntegrationStatus ===
+        assertCallable(
 
-            "function",
+          module.getIntegrationStatus,
 
           "getIntegrationStatus API is missing."
 
         );
+
 
         return true;
 
       }
 
     );
+
+
+    // ─────────────────────────────────────────
+    // Health API
+    // ─────────────────────────────────────────
 
     addTest(
 
@@ -513,41 +807,44 @@
 
           );
 
-        assertTrue(
 
-          typeof module.initializeHealth ===
+        assertCallable(
 
-            "function",
+          module.initializeHealth,
 
           "initializeHealth API is missing."
 
         );
 
-        assertTrue(
 
-          typeof module.runHealthCheck ===
+        assertCallable(
 
-            "function",
+          module.runHealthCheck,
 
           "runHealthCheck API is missing."
 
         );
 
-        assertTrue(
 
-          typeof module.getHealthStatus ===
+        assertCallable(
 
-            "function",
+          module.getHealthStatus,
 
           "getHealthStatus API is missing."
 
         );
+
 
         return true;
 
       }
 
     );
+
+
+    // ─────────────────────────────────────────
+    // Firebase API
+    // ─────────────────────────────────────────
 
     addTest(
 
@@ -565,31 +862,35 @@
 
           );
 
-        assertTrue(
 
-          typeof module.getFirebaseStatus ===
+        assertCallable(
 
-            "function",
+          module.getFirebaseStatus,
 
           "getFirebaseStatus API is missing."
 
         );
 
-        assertTrue(
 
-          typeof module.validateFirebaseConfig ===
+        assertCallable(
 
-            "function",
+          module.validateFirebaseConfig,
 
           "validateFirebaseConfig API is missing."
 
         );
+
 
         return true;
 
       }
 
     );
+
+
+    // ─────────────────────────────────────────
+    // Dashboard API
+    // ─────────────────────────────────────────
 
     addTest(
 
@@ -607,31 +908,35 @@
 
           );
 
-        assertTrue(
 
-          typeof module.initializeDashboard ===
+        assertCallable(
 
-            "function",
+          module.initializeDashboard,
 
           "initializeDashboard API is missing."
 
         );
 
-        assertTrue(
 
-          typeof module.getDashboardStatus ===
+        assertCallable(
 
-            "function",
+          module.getDashboardStatus,
 
           "getDashboardStatus API is missing."
 
         );
+
 
         return true;
 
       }
 
     );
+
+
+    // ─────────────────────────────────────────
+    // Verification API
+    // ─────────────────────────────────────────
 
     addTest(
 
@@ -649,31 +954,35 @@
 
           );
 
-        assertTrue(
 
-          typeof module.runVerification ===
+        assertCallable(
 
-            "function",
+          module.runVerification,
 
           "runVerification API is missing."
 
         );
 
-        assertTrue(
 
-          typeof module.getVerificationStatus ===
+        assertCallable(
 
-            "function",
+          module.getVerificationStatus,
 
           "getVerificationStatus API is missing."
 
         );
+
 
         return true;
 
       }
 
     );
+
+
+    // ─────────────────────────────────────────
+    // Final API
+    // ─────────────────────────────────────────
 
     addTest(
 
@@ -691,41 +1000,284 @@
 
           );
 
-        assertTrue(
 
-          typeof module.startFinalLayer ===
+        assertCallable(
 
-            "function",
+          module.startFinalLayer,
 
           "startFinalLayer API is missing."
 
         );
 
-        assertTrue(
 
-          typeof module.calculateReadiness ===
+        assertCallable(
 
-            "function",
+          module.calculateReadiness,
 
           "calculateReadiness API is missing."
 
         );
 
-        assertTrue(
 
-          typeof module.getFinalStatus ===
+        assertCallable(
 
-            "function",
+          module.getFinalStatus,
 
           "getFinalStatus API is missing."
 
         );
+
 
         return true;
 
       }
 
     );
+
+
+    // ─────────────────────────────────────────
+    // Configuration API
+    // ─────────────────────────────────────────
+
+    addTest(
+
+      "Configuration API is valid",
+
+      "api",
+
+      function () {
+
+        const module =
+
+          getModule(
+
+            "BloggerSaaSConfig"
+
+          );
+
+
+        assertCallable(
+
+          module.initializeConfig,
+
+          "initializeConfig API is missing."
+
+        );
+
+
+        assertCallable(
+
+          module.registerConfig,
+
+          "registerConfig API is missing."
+
+        );
+
+
+        assertCallable(
+
+          module.getConfig,
+
+          "getConfig API is missing."
+
+        );
+
+
+        assertCallable(
+
+          module.validateConfig,
+
+          "validateConfig API is missing."
+
+        );
+
+
+        assertCallable(
+
+          module.getConfigStatus,
+
+          "getConfigStatus API is missing."
+
+        );
+
+
+        return true;
+
+      }
+
+    );
+
+
+    // ─────────────────────────────────────────
+    // Dependency Map API
+    // ─────────────────────────────────────────
+
+    addTest(
+
+      "Dependency map API is valid",
+
+      "api",
+
+      function () {
+
+        const module =
+
+          getModule(
+
+            "BloggerSaaSDependencyMap"
+
+          );
+
+
+        assertCallable(
+
+          module.getDependencies,
+
+          "getDependencies API is missing."
+
+        );
+
+
+        assertCallable(
+
+          module.validateDependencyRegistry,
+
+          "validateDependencyRegistry API is missing."
+
+        );
+
+
+        assertCallable(
+
+          module.getDependencySummary,
+
+          "getDependencySummary API is missing."
+
+        );
+
+
+        return true;
+
+      }
+
+    );
+
+
+    // ─────────────────────────────────────────
+    // Package Test Configuration API
+    // ─────────────────────────────────────────
+
+    addTest(
+
+      "Package test configuration is safe",
+
+      "safety",
+
+      function () {
+
+        const module =
+
+          getModule(
+
+            "BloggerSaaSPackageTestConfig"
+
+          );
+
+
+        assertExists(
+
+          module,
+
+          "Package test configuration is unavailable."
+
+        );
+
+
+        if (
+
+          typeof module.isSafeTestEnvironment ===
+
+            "function"
+
+        ) {
+
+          assertTrue(
+
+            module.isSafeTestEnvironment(),
+
+            "Package test environment is not safe."
+
+          );
+
+        }
+
+
+        return true;
+
+      }
+
+    );
+
+
+    // ─────────────────────────────────────────
+    // Firebase Example Configuration Safety
+    // ─────────────────────────────────────────
+
+    addTest(
+
+      "Firebase example configuration remains safe",
+
+      "safety",
+
+      function () {
+
+        const module =
+
+          getModule(
+
+            "BloggerSaaSFirebaseConfigExample"
+
+          );
+
+
+        assertExists(
+
+          module,
+
+          "Firebase configuration example module is unavailable."
+
+        );
+
+
+        if (
+
+          typeof module.isProductionSafe ===
+
+            "function"
+
+        ) {
+
+          assertTrue(
+
+            module.isProductionSafe(),
+
+            "Firebase example configuration must remain safe."
+
+          );
+
+        }
+
+
+        return true;
+
+      }
+
+    );
+
+
+    // ─────────────────────────────────────────
+    // Production Safety
+    // ─────────────────────────────────────────
 
     addTest(
 
@@ -739,6 +1291,7 @@
 
           global.PACKAGE_MANIFEST;
 
+
         assertExists(
 
           manifest,
@@ -747,55 +1300,69 @@
 
         );
 
-        assertEqual(
 
-          manifest.safety.productionModification,
+        if (
 
-          false,
+          manifest.safety
 
-          "Production modification must remain disabled."
+        ) {
 
-        );
+          assertEqual(
 
-        assertEqual(
+            manifest.safety.productionModification,
 
-          manifest.safety.liveFirebaseModification,
+            false,
 
-          false,
+            "Production modification must remain disabled."
 
-          "Live Firebase modification must remain disabled."
+          );
 
-        );
 
-        assertEqual(
+          assertEqual(
 
-          manifest.safety.userAccountModification,
+            manifest.safety.liveFirebaseModification,
 
-          false,
+            false,
 
-          "User account modification must remain disabled."
+            "Live Firebase modification must remain disabled."
 
-        );
+          );
 
-        assertEqual(
 
-          manifest.safety.automaticDeployment,
+          assertEqual(
 
-          false,
+            manifest.safety.userAccountModification,
 
-          "Automatic deployment must remain disabled."
+            false,
 
-        );
+            "User account modification must remain disabled."
 
-        assertEqual(
+          );
 
-          manifest.safety.externalDataDeletion,
 
-          false,
+          assertEqual(
 
-          "External data deletion must remain disabled."
+            manifest.safety.automaticDeployment,
 
-        );
+            false,
+
+            "Automatic deployment must remain disabled."
+
+          );
+
+
+          assertEqual(
+
+            manifest.safety.externalDataDeletion,
+
+            false,
+
+            "External data deletion must remain disabled."
+
+          );
+
+        }
+
 
         return true;
 
@@ -805,17 +1372,53 @@
 
   }
 
-  function executeTest(test) {
+
+  // ─────────────────────────────────────────────
+  // Execute Test
+  // ─────────────────────────────────────────────
+
+  function executeTest(
+
+    test
+
+  ) {
+
+    if (
+
+      !test ||
+
+      typeof test.testFunction !==
+
+        "function"
+
+    ) {
+
+      return {
+
+        status:
+
+          "failed",
+
+        message:
+
+          "Invalid test definition."
+
+      };
+
+    }
+
 
     test.startedAt =
 
       new Date().toISOString();
+
 
     try {
 
       const result =
 
         test.testFunction();
+
 
       test.status =
 
@@ -825,9 +1428,12 @@
 
           : "passed";
 
+
       test.message =
 
-        test.status === "passed"
+        test.status ===
+
+          "passed"
 
           ? "Test passed."
 
@@ -835,15 +1441,19 @@
 
     }
 
+
     catch (error) {
 
       test.status =
 
         "failed";
 
+
       test.message =
 
-        error && error.message
+        error &&
+
+        error.message
 
           ? error.message
 
@@ -851,29 +1461,50 @@
 
     }
 
+
     test.completedAt =
 
       new Date().toISOString();
+
 
     return test;
 
   }
 
+
+  // ─────────────────────────────────────────────
+  // Run Tests
+  // ─────────────────────────────────────────────
+
   function runTests() {
 
-    testState.initialized = true;
+    testState.initialized =
+
+      true;
+
 
     testState.startedAt =
 
       new Date().toISOString();
 
-    testState.passed = 0;
 
-    testState.failed = 0;
+    testState.passed =
 
-    testState.skipped = 0;
+      0;
+
+
+    testState.failed =
+
+      0;
+
+
+    testState.skipped =
+
+      0;
+
 
     registerDefaultTests();
+
 
     testState.tests.forEach(
 
@@ -881,13 +1512,16 @@
 
     );
 
+
     testState.tests.forEach(
 
       function (test) {
 
         if (
 
-          test.status === "passed"
+          test.status ===
+
+            "passed"
 
         ) {
 
@@ -897,7 +1531,9 @@
 
         else if (
 
-          test.status === "failed"
+          test.status ===
+
+            "failed"
 
         ) {
 
@@ -907,7 +1543,9 @@
 
         else if (
 
-          test.status === "skipped"
+          test.status ===
+
+            "skipped"
 
         ) {
 
@@ -919,9 +1557,11 @@
 
     );
 
+
     testState.completedAt =
 
       new Date().toISOString();
+
 
     testState.status =
 
@@ -931,15 +1571,22 @@
 
         : "failed";
 
+
     return getTestReport();
 
   }
+
+
+  // ─────────────────────────────────────────────
+  // Get Test Report
+  // ─────────────────────────────────────────────
 
   function getTestReport() {
 
     const total =
 
       testState.tests.length;
+
 
     const percentage =
 
@@ -953,11 +1600,14 @@
 
               total
 
-            ) * 100
+            ) *
+
+            100
 
           )
 
         : 0;
+
 
     return {
 
@@ -1039,35 +1689,58 @@
 
   }
 
+
+  // ─────────────────────────────────────────────
+  // Reset Tests
+  // ─────────────────────────────────────────────
+
   function resetTests() {
 
     testState.tests = [];
 
-    testState.passed = 0;
+    testState.passed =
 
-    testState.failed = 0;
+      0;
 
-    testState.skipped = 0;
+
+    testState.failed =
+
+      0;
+
+
+    testState.skipped =
+
+      0;
+
 
     testState.status =
 
       "not-run";
 
+
     testState.startedAt =
 
       null;
+
 
     testState.completedAt =
 
       null;
 
+
     testState.initialized =
 
       false;
 
+
     return true;
 
   }
+
+
+  // ─────────────────────────────────────────────
+  // Public API
+  // ─────────────────────────────────────────────
 
   const testSuiteAPI = {
 
@@ -1089,19 +1762,33 @@
 
     assertExists,
 
+    assertCallable,
+
     state:
 
       testState
 
   };
 
+
+  // ─────────────────────────────────────────────
+  // Browser Global
+  // ─────────────────────────────────────────────
+
   global.BloggerSaaSTestSuite =
 
     testSuiteAPI;
 
+
+  // ─────────────────────────────────────────────
+  // Node / Test Export
+  // ─────────────────────────────────────────────
+
   if (
 
-    typeof module !== "undefined" &&
+    typeof module !==
+
+      "undefined" &&
 
     module.exports
 
@@ -1113,9 +1800,11 @@
 
   }
 
-})(
 
-  typeof globalThis !== "undefined"
+})(
+  typeof globalThis !==
+
+    "undefined"
 
     ? globalThis
 
