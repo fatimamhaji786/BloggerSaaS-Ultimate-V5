@@ -1,254 +1,1398 @@
 /**
-
-BloggerSaaS Ultimate V5 Package 41–50 Testing Layer Integration Test Flow Coordinates the complete safe-development verification flow. Lifecycle: Verify dependencies Initialize integration Register available modules Run health check Run package verification Run test suite Calculate readiness Return consolidated result Safety: No production modification No live Firebase modification No user account modification No automatic deployment No external data deletion */ 
+ * BloggerSaaS Ultimate V5
+ * Package 41–50
+ * Testing Layer
+ * Integration Test
+ *
+ * Coordinates the complete safe-development verification flow.
+ *
+ * Flow:
+ * 1. Initialize Test Center
+ * 2. Run Test Suite
+ * 3. Generate Test Report
+ * 4. Run Final Layer
+ * 5. Return consolidated integration result
+ *
+ * Safe development only.
+ *
+ * Safety:
+ * - Does not modify production systems.
+ * - Does not modify live Firebase data.
+ * - Does not modify user accounts.
+ * - Does not deploy automatically.
+ * - Does not delete external data.
+ */
 
 (function (global) {
 
-"use strict";
+  "use strict";
 
-// ───────────────────────────────────────────── // Integration Test State // ─────────────────────────────────────────────
 
-const integrationTestState = {
+  // ─────────────────────────────────────────────
+  // Integration Test State
+  // ─────────────────────────────────────────────
 
-initialized: false, running: false, environment: "safe-development", startedAt: null, completedAt: null, runCount: 0, status: "not-run", readiness: { ready: false, score: 0, status: "not-calculated", passedChecks: 0, totalChecks: 0, checks: [] }, modules: {}, errors: [], lastResult: null 
+  const integrationState = {
 
-};
+    initialized: false,
 
-// ───────────────────────────────────────────── // Module Discovery // ─────────────────────────────────────────────
+    running: false,
 
-function getModule(moduleName) {
+    environment:
+      "safe-development",
 
-if ( typeof moduleName !== "string" || !moduleName.trim() ) { return null; } return ( global[moduleName] || null ); 
+    runCount: 0,
 
-}
+    startedAt: null,
 
-function getIntegration() {
+    completedAt: null,
 
-return getModule( "BloggerSaaSIntegration" ); 
+    status:
+      "not-run",
 
-}
+    lastResult: null,
 
-function getFirebase() {
+    errors: []
 
-return getModule( "BloggerSaaSFirebase" ); 
+  };
 
-}
 
-function getHealth() {
+  // ─────────────────────────────────────────────
+  // Module Discovery
+  // ─────────────────────────────────────────────
 
-return getModule( "BloggerSaaSHealth" ); 
+  function getTestCenter() {
 
-}
+    return (
 
-function getDashboard() {
+      global.BloggerSaaSTestCenter ||
 
-return getModule( "BloggerSaaSDashboard" ); 
+      null
 
-}
+    );
 
-function getVerification() {
+  }
 
-return getModule( "BloggerSaaSVerification" ); 
 
-}
+  function getTestLauncher() {
 
-function getFinal() {
+    return (
 
-return getModule( "BloggerSaaSFinal" ); 
+      global.BloggerSaaSTestLauncher ||
 
-}
+      null
 
-function getTestLauncher() {
+    );
 
-return getModule( "BloggerSaaSTestLauncher" ); 
+  }
 
-}
 
-// ───────────────────────────────────────────── // Result Status Helpers // ─────────────────────────────────────────────
+  function getTestReport() {
 
-function normalizeStatus(status) {
+    return (
 
-return ( typeof status === "string" ? status.trim().toLowerCase() : "" ); 
+      global.BloggerSaaSTestReport ||
 
-}
+      null
 
-function isSuccessfulResult(result) {
+    );
 
-if ( !result ) { return false; } if ( result.success === true ) { return true; } const status = normalizeStatus( result.status ); return ( status === "healthy" || status === "pass" || status === "passed" || status === "verified" || status === "ready" || status === "approved" || status === "completed" ); 
+  }
 
-}
 
-function safeErrorMessage(error) {
+  function getFinalLayer() {
 
-return ( error && error.message ? error.message : String(error) ); 
+    return (
 
-}
+      global.BloggerSaaSFinal ||
 
-// ───────────────────────────────────────────── // Dependency Verification // ─────────────────────────────────────────────
+      null
 
-function verifyDependencies() {
+    );
 
-const dependencies = { integration: getIntegration(), firebase: getFirebase(), health: getHealth(), dashboard: getDashboard(), verification: getVerification(), final: getFinal(), testLauncher: getTestLauncher() }; const missing = []; Object.keys( dependencies ).forEach( function (moduleName) { if ( !dependencies[moduleName] ) { missing.push( moduleName ); } } ); integrationTestState.modules = dependencies; return { valid: missing.length === 0, missing, available: Object.keys( dependencies ).filter( function (moduleName) { return ( dependencies[moduleName] !== null ); } ) }; 
+  }
 
-}
 
-// ───────────────────────────────────────────── // Initialize Integration // ─────────────────────────────────────────────
+  // ─────────────────────────────────────────────
+  // Safe Error Message
+  // ─────────────────────────────────────────────
 
-function initializeIntegration() {
+  function getErrorMessage(error) {
 
-const integration = getIntegration(); if ( !integration ) { return { success: false, status: "unavailable", message: "Integration module is unavailable." }; } try { if ( typeof integration .initializeIntegration === "function" ) { const result = integration .initializeIntegration(); const success = isSuccessfulResult( result ); integrationTestState.initialized = success; return { success, status: success ? "passed" : "failed", result }; } integrationTestState.initialized = true; return { success: true, status: "completed", message: "Integration module detected and initialized." }; } catch (error) { return { success: false, status: "error", message: safeErrorMessage( error ) }; } 
+    if (
 
-}
+      error &&
 
-// ───────────────────────────────────────────── // Register Core Modules // ─────────────────────────────────────────────
+      typeof error.message ===
 
-function registerCoreModules() {
+        "string"
 
-const integration = getIntegration(); if ( !integration || typeof integration .registerModule !== "function" ) { return { success: false, status: "unavailable", message: "Module registration API unavailable.", registered: [], alreadyRegistered: [], errors: [] }; } const modules = { firebase: getFirebase(), health: getHealth(), dashboard: getDashboard(), verification: getVerification(), final: getFinal(), testLauncher: getTestLauncher() }; const registered = []; const alreadyRegistered = []; const registrationErrors = []; Object.keys( modules ).forEach( function (moduleName) { const moduleInstance = modules[moduleName]; if ( !moduleInstance ) { const errorRecord = { stage: "module-registration", module: moduleName, message: "Module instance is unavailable.", timestamp: new Date().toISOString() }; registrationErrors.push( errorRecord ); integrationTestState.errors.push( errorRecord ); return; } let existingModule = null; if ( typeof integration .getModule === "function" ) { existingModule = integration.getModule( moduleName ); } if ( existingModule ) { alreadyRegistered.push( moduleName ); return; } try { integration.registerModule( moduleName, moduleInstance ); registered.push( moduleName ); } catch (error) { const errorRecord = { stage: "module-registration", module: moduleName, message: safeErrorMessage( error ), timestamp: new Date().toISOString() }; registrationErrors.push( errorRecord ); integrationTestState.errors.push( errorRecord ); } } ); return { success: registrationErrors.length === 0, status: registrationErrors.length === 0 ? "completed" : "partial", registered, alreadyRegistered, errors: registrationErrors }; 
+    ) {
 
-}
+      return error.message;
 
-// ───────────────────────────────────────────── // Run Health Check // ─────────────────────────────────────────────
+    }
 
-function runHealthCheck() {
 
-const health = getHealth(); if ( !health ) { return { success: false, status: "unavailable", message: "Health module is unavailable." }; } try { let result; if ( typeof health .runHealthCheck === "function" ) { result = health.runHealthCheck(); } else if ( typeof health .getHealthStatus === "function" ) { result = health.getHealthStatus(); } else { return { success: false, status: "unsupported", message: "No health check API is available." }; } const success = isSuccessfulResult( result ); return { success, status: success ? "passed" : "failed", result }; } catch (error) { return { success: false, status: "error", message: safeErrorMessage( error ) }; } 
+    return String(error);
 
-}
+  }
 
-// ───────────────────────────────────────────── // Run Package Verification // ─────────────────────────────────────────────
 
-function runPackageVerification() {
+  // ─────────────────────────────────────────────
+  // Normalize Status
+  // ─────────────────────────────────────────────
 
-const verification = getVerification(); if ( !verification ) { return { success: false, status: "unavailable", message: "Verification module is unavailable." }; } try { let result; if ( typeof verification .verifyPackage === "function" ) { result = verification.verifyPackage(); } else if ( typeof verification .runVerification === "function" ) { result = verification.runVerification(); } else if ( typeof verification .getVerificationReport === "function" ) { result = verification.getVerificationReport(); } else { return { success: false, status: "unsupported", message: "No package verification API is available." }; } const success = isSuccessfulResult( result ); return { success, status: success ? "passed" : "failed", result }; } catch (error) { return { success: false, status: "error", message: safeErrorMessage( error ) }; } 
+  function normalizeStatus(status) {
 
-}
+    return (
 
-// ───────────────────────────────────────────── // Run Test Suite // ─────────────────────────────────────────────
+      typeof status ===
 
-function runTests() {
+        "string"
 
-const launcher = getTestLauncher(); if ( !launcher ) { return { success: false, status: "unavailable", message: "Test launcher is unavailable." }; } try { let result; if ( typeof launcher .runAndGetSummary === "function" ) { result = launcher.runAndGetSummary(); } else if ( typeof launcher .runTestSuiteAndReport === "function" ) { result = launcher.runTestSuiteAndReport(); } else if ( typeof launcher .runTestSuite === "function" ) { result = launcher.runTestSuite(); } else { return { success: false, status: "unsupported", message: "No test launcher API is available." }; } const success = isSuccessfulResult( result ); return { success, status: success ? "passed" : "failed", result }; } catch (error) { return { success: false, status: "error", message: safeErrorMessage( error ) }; } 
+        ? status.trim().toLowerCase()
 
-}
+        : ""
 
-// ───────────────────────────────────────────── // Calculate Readiness // ─────────────────────────────────────────────
+    );
 
-function calculateReadiness(
+  }
 
-results 
 
-) {
+  // ─────────────────────────────────────────────
+  // Determine Success
+  // ─────────────────────────────────────────────
 
-const checks = [ { name: "Dependencies", passed: !!( results && results.dependencies && results.dependencies.valid === true ) }, { name: "Initialization", passed: !!( results && results.initialization && results.initialization.success === true ) }, { name: "Registration", passed: !!( results && results.registration && results.registration.success === true ) }, { name: "Health", passed: !!( results && results.health && results.health.success === true ) }, { name: "Verification", passed: !!( results && results.verification && results.verification.success === true ) }, { name: "Tests", passed: !!( results && results.tests && results.tests.success === true ) } ]; const passedChecks = checks.filter( function (check) { return ( check.passed === true ); } ).length; const totalChecks = checks.length; const score = totalChecks > 0 ? Math.round( ( passedChecks / totalChecks ) * 100 ) : 0; let status = "not-ready"; if ( score === 100 ) { status = "ready"; } else if ( score >= 80 ) { status = "conditionally-ready"; } integrationTestState.readiness = { ready: score === 100, score, passedChecks, totalChecks, status, checks }; return ( integrationTestState.readiness ); 
+  function isSuccessful(result) {
 
-}
+    if (!result) {
 
-// ───────────────────────────────────────────── // Run Complete Integration Test // ─────────────────────────────────────────────
+      return false;
 
-function runIntegrationTest() {
+    }
 
-if ( integrationTestState.running ) { return { success: false, status: "already-running", message: "Integration test is already running.", environment: integrationTestState.environment }; } integrationTestState.running = true; integrationTestState.status = "running"; integrationTestState.startedAt = new Date().toISOString(); integrationTestState.completedAt = null; integrationTestState.runCount++; const results = { dependencies: { valid: false, missing: [], available: [] }, initialization: { success: false }, registration: { success: false }, health: { success: false }, verification: { success: false }, tests: { success: false } }; try { // 1. Verify dependencies. results.dependencies = verifyDependencies(); if ( !results.dependencies.valid ) { throw new Error( "Required package modules are missing." ); } // 2. Initialize integration. results.initialization = initializeIntegration(); // 3. Register modules. results.registration = registerCoreModules(); // 4. Run health check. results.health = runHealthCheck(); // 5. Run package verification. results.verification = runPackageVerification(); // 6. Run complete test suite. results.tests = runTests(); // 7. Calculate final readiness. const readiness = calculateReadiness( results ); const success = readiness.ready; integrationTestState.status = success ? "passed" : "failed"; integrationTestState.completedAt = new Date().toISOString(); integrationTestState.running = false; const finalResult = { success, status: integrationTestState.status, environment: integrationTestState.environment, startedAt: integrationTestState.startedAt, completedAt: integrationTestState.completedAt, runCount: integrationTestState.runCount, readiness, results }; integrationTestState.lastResult = finalResult; return finalResult; } catch (error) { integrationTestState.running = false; integrationTestState.status = "error"; integrationTestState.completedAt = new Date().toISOString(); const integrationError = { stage: "integration-test", message: safeErrorMessage( error ), timestamp: new Date().toISOString() }; integrationTestState.errors.push( integrationError ); const finalResult = { success: false, status: "error", environment: integrationTestState.environment, startedAt: integrationTestState.startedAt, completedAt: integrationTestState.completedAt, runCount: integrationTestState.runCount, error: integrationError, readiness: calculateReadiness( results ), results }; integrationTestState.lastResult = finalResult; return finalResult; } 
 
-}
+    if (
 
-// ───────────────────────────────────────────── // Compatibility Aliases // ─────────────────────────────────────────────
+      result.success === true
 
-function run() {
+    ) {
 
-return runIntegrationTest(); 
+      return true;
 
-}
+    }
 
-function runAllTests() {
 
-return runIntegrationTest(); 
+    const status =
 
-}
+      normalizeStatus(
 
-// ───────────────────────────────────────────── // Get Last Result // ─────────────────────────────────────────────
+        result.status
 
-function getLastResult() {
+      );
 
-return ( integrationTestState.lastResult ); 
 
-}
+    return (
 
-// ───────────────────────────────────────────── // Get Integration Test Status // ─────────────────────────────────────────────
+      status === "passed" ||
 
-function getStatus() {
+      status === "pass" ||
 
-return { initialized: integrationTestState.initialized, running: integrationTestState.running, environment: integrationTestState.environment, startedAt: integrationTestState.startedAt, completedAt: integrationTestState.completedAt, runCount: integrationTestState.runCount, status: integrationTestState.status, readiness: Object.assign( {}, integrationTestState.readiness ), errorCount: integrationTestState.errors.length, hasResult: integrationTestState.lastResult !== null }; 
+      status === "healthy" ||
 
-}
+      status === "verified" ||
 
-// ───────────────────────────────────────────── // Get Modules // ─────────────────────────────────────────────
+      status === "ready" ||
 
-function getModules() {
+      status === "completed"
 
-return Object.assign( {}, integrationTestState.modules ); 
+    );
 
-}
+  }
 
-// ───────────────────────────────────────────── // Get Readiness // ─────────────────────────────────────────────
 
-function getReadiness() {
+  // ─────────────────────────────────────────────
+  // Initialize Integration Test
+  // ─────────────────────────────────────────────
 
-return Object.assign( {}, integrationTestState.readiness ); 
+  function initialize() {
 
-}
+    integrationState.initialized = true;
 
-// ───────────────────────────────────────────── // Get Errors // ─────────────────────────────────────────────
+    integrationState.status =
 
-function getErrors() {
+      "initialized";
 
-return ( integrationTestState.errors.slice() ); 
 
-}
+    return getStatus();
 
-// ───────────────────────────────────────────── // Reset // ─────────────────────────────────────────────
+  }
 
-function reset() {
 
-integrationTestState.initialized = false; integrationTestState.running = false; integrationTestState.startedAt = null; integrationTestState.completedAt = null; integrationTestState.runCount = 0; integrationTestState.status = "not-run"; integrationTestState.readiness = { ready: false, score: 0, status: "not-calculated", passedChecks: 0, totalChecks: 0, checks: [] }; integrationTestState.modules = {}; integrationTestState.errors = []; integrationTestState.lastResult = null; return true; 
+  // ─────────────────────────────────────────────
+  // Run Test Center
+  // ─────────────────────────────────────────────
 
-}
+  function runTestCenter() {
 
-// ───────────────────────────────────────────── // Public API // ─────────────────────────────────────────────
+    const testCenter =
 
-const integrationTestAPI = {
+      getTestCenter();
 
-verifyDependencies, initializeIntegration, registerCoreModules, runHealthCheck, runPackageVerification, runTests, calculateReadiness, runIntegrationTest, run, runAllTests, getLastResult, getStatus, getModules, getReadiness, getErrors, reset, state: integrationTestState 
 
-};
+    if (!testCenter) {
 
-// ───────────────────────────────────────────── // Browser Global // ─────────────────────────────────────────────
+      return {
 
-if (
+        success: false,
 
-typeof window !== "undefined" 
+        status:
+          "unavailable",
 
-) {
+        message:
+          "Test Center module is unavailable."
 
-window.BloggerSaaSIntegrationTest = integrationTestAPI; 
+      };
 
-}
+    }
 
-// ───────────────────────────────────────────── // Node / Test Export // ─────────────────────────────────────────────
 
-if (
+    try {
 
-typeof module !== "undefined" && module.exports 
+      if (
 
-) {
+        typeof testCenter.run !==
 
-module.exports = integrationTestAPI; 
+          "function"
 
-}
+      ) {
 
-})( typeof globalThis !==
+        return {
 
-"undefined" ? globalThis : this 
+          success: false,
+
+          status:
+            "unsupported",
+
+          message:
+            "No supported Test Center API found."
+
+        };
+
+      }
+
+
+      const result =
+
+        testCenter.run();
+
+
+      return {
+
+        success:
+
+          isSuccessful(
+
+            result
+
+          ),
+
+        status:
+
+          isSuccessful(
+
+            result
+
+          )
+
+            ? "passed"
+
+            : "failed",
+
+        result
+
+      };
+
+    }
+
+    catch (error) {
+
+      return {
+
+        success: false,
+
+        status:
+          "error",
+
+        message:
+
+          getErrorMessage(
+
+            error
+
+          )
+
+      };
+
+    }
+
+  }
+
+
+  // ─────────────────────────────────────────────
+  // Run Test Launcher
+  // ─────────────────────────────────────────────
+
+  function runTestLauncher() {
+
+    const launcher =
+
+      getTestLauncher();
+
+
+    if (!launcher) {
+
+      return {
+
+        success: false,
+
+        status:
+          "unavailable",
+
+        message:
+          "Test Launcher module is unavailable."
+
+      };
+
+    }
+
+
+    try {
+
+      if (
+
+        typeof launcher.runAndGetSummary ===
+
+          "function"
+
+      ) {
+
+        const result =
+
+          launcher.runAndGetSummary();
+
+
+        return {
+
+          success:
+
+            isSuccessful(
+
+              result
+
+            ),
+
+          status:
+
+            isSuccessful(
+
+              result
+
+                )
+
+              ? "passed"
+
+              : "failed",
+
+          result
+
+        };
+
+      }
+
+
+      if (
+
+        typeof launcher.run ===
+
+          "function"
+
+      ) {
+
+        const result =
+
+          launcher.run();
+
+
+        return {
+
+          success:
+
+            isSuccessful(
+
+              result
+
+            ),
+
+          status:
+
+            isSuccessful(
+
+              result
+
+            )
+
+              ? "passed"
+
+              : "failed",
+
+          result
+
+        };
+
+      }
+
+
+      return {
+
+        success: false,
+
+        status:
+          "unsupported",
+
+        message:
+          "No supported Test Launcher API found."
+
+      };
+
+    }
+
+    catch (error) {
+
+      return {
+
+        success: false,
+
+        status:
+          "error",
+
+        message:
+
+          getErrorMessage(
+
+            error
+
+          )
+
+      };
+
+    }
+
+  }
+
+
+  // ─────────────────────────────────────────────
+  // Generate Report
+  // ─────────────────────────────────────────────
+
+  function generateReport(
+
+    sourceResult
+
+  ) {
+
+    const report =
+
+      getTestReport();
+
+
+    if (!report) {
+
+      return {
+
+        success: false,
+
+        status:
+          "unavailable",
+
+        message:
+          "Test Report module is unavailable."
+
+      };
+
+    }
+
+
+    try {
+
+      if (
+
+        typeof report.generateReport !==
+
+          "function"
+
+      ) {
+
+        return {
+
+          success: false,
+
+          status:
+            "unsupported",
+
+          message:
+            "No supported Test Report API found."
+
+        };
+
+      }
+
+
+      const sourceReport =
+
+        sourceResult &&
+
+        sourceResult.result
+
+          ? sourceResult.result
+
+          : sourceResult;
+
+
+      const result =
+
+        report.generateReport(
+
+          sourceReport
+
+        );
+
+
+      return {
+
+        success: true,
+
+        status:
+          "completed",
+
+        result
+
+      };
+
+    }
+
+    catch (error) {
+
+      return {
+
+        success: false,
+
+        status:
+          "error",
+
+        message:
+
+          getErrorMessage(
+
+            error
+
+          )
+
+      };
+
+    }
+
+  }
+
+
+  // ─────────────────────────────────────────────
+  // Run Final Layer
+  // ─────────────────────────────────────────────
+
+  function runFinalLayer() {
+
+    const finalLayer =
+
+      getFinalLayer();
+
+
+    if (!finalLayer) {
+
+      return {
+
+        success: false,
+
+        status:
+          "unavailable",
+
+        message:
+          "Final Layer module is unavailable."
+
+      };
+
+    }
+
+
+    try {
+
+      if (
+
+        typeof finalLayer.startFinalLayer !==
+
+          "function"
+
+      ) {
+
+        return {
+
+          success: false,
+
+          status:
+            "unsupported",
+
+          message:
+            "No supported Final Layer API found."
+
+        };
+
+      }
+
+
+      const result =
+
+        finalLayer.startFinalLayer();
+
+
+      return {
+
+        success:
+
+          isSuccessful(
+
+            result
+
+          ),
+
+        status:
+
+          isSuccessful(
+
+            result
+
+          )
+
+            ? "passed"
+
+            : "failed",
+
+        result
+
+      };
+
+    }
+
+    catch (error) {
+
+      return {
+
+        success: false,
+
+        status:
+          "error",
+
+        message:
+
+          getErrorMessage(
+
+            error
+
+          )
+
+      };
+
+    }
+
+  }
+
+
+  // ─────────────────────────────────────────────
+  // Calculate Integration Readiness
+  // ─────────────────────────────────────────────
+
+  function calculateReadiness(
+
+    results
+
+  ) {
+
+    const checks = [
+
+      {
+
+        name:
+          "Test Center",
+
+        passed:
+
+          !!(
+
+            results &&
+
+            results.testCenter &&
+
+            results.testCenter.success === true
+
+          )
+
+      },
+
+      {
+
+        name:
+          "Test Launcher",
+
+        passed:
+
+          !!(
+
+            results &&
+
+            results.launcher &&
+
+            results.launcher.success === true
+
+          )
+
+      },
+
+      {
+
+        name:
+          "Test Report",
+
+        passed:
+
+          !!(
+
+            results &&
+
+            results.report &&
+
+            results.report.success === true
+
+          )
+
+      },
+
+      {
+
+        name:
+          "Final Layer",
+
+        passed:
+
+          !!(
+
+            results &&
+
+            results.final &&
+
+            results.final.success === true
+
+          )
+
+      }
+
+    ];
+
+
+    const passedChecks =
+
+      checks.filter(
+
+        function (check) {
+
+          return (
+
+            check.passed === true
+
+          );
+
+        }
+
+      ).length;
+
+
+    const totalChecks =
+
+      checks.length;
+
+
+    const score =
+
+      totalChecks > 0
+
+        ? Math.round(
+
+            (
+
+              passedChecks /
+
+              totalChecks
+
+            ) *
+
+            100
+
+          )
+
+        : 0;
+
+
+    let status =
+
+      "not-ready";
+
+
+    if (
+
+      score === 100
+
+    ) {
+
+      status =
+
+        "ready";
+
+    }
+
+    else if (
+
+      score >= 75
+
+    ) {
+
+      status =
+
+        "conditionally-ready";
+
+    }
+
+
+    return {
+
+      ready:
+
+        score === 100,
+
+      score,
+
+      status,
+
+      passedChecks,
+
+      totalChecks,
+
+      checks
+
+    };
+
+  }
+
+
+  // ─────────────────────────────────────────────
+  // Run Complete Integration Test
+  // ─────────────────────────────────────────────
+
+  function runIntegrationTest() {
+
+    if (
+
+      integrationState.running
+
+    ) {
+
+      return {
+
+        success: false,
+
+        status:
+          "already-running",
+
+        message:
+          "Integration Test is already running."
+
+      };
+
+    }
+
+
+    integrationState.initialized = true;
+
+    integrationState.running = true;
+
+    integrationState.status =
+
+      "running";
+
+    integrationState.runCount++;
+
+
+    integrationState.startedAt =
+
+      new Date().toISOString();
+
+
+    const results = {
+
+      testCenter: {
+
+        success: false,
+
+        status:
+          "not-run"
+
+      },
+
+      launcher: {
+
+        success: false,
+
+        status:
+          "not-run"
+
+      },
+
+      report: {
+
+        success: false,
+
+        status:
+          "not-run"
+
+      },
+
+      final: {
+
+        success: false,
+
+        status:
+          "not-run"
+
+      }
+
+    };
+
+
+    try {
+
+
+      // 1. Test Center
+
+      results.testCenter =
+
+        runTestCenter();
+
+
+      // 2. Test Launcher
+
+      results.launcher =
+
+        runTestLauncher();
+
+
+      // 3. Test Report
+
+      results.report =
+
+        generateReport(
+
+          results.launcher
+
+        );
+
+
+      // 4. Final Layer
+
+      results.final =
+
+        runFinalLayer();
+
+
+      // 5. Calculate Readiness
+
+      const readiness =
+
+        calculateReadiness(
+
+          results
+
+        );
+
+
+      const success =
+
+        readiness.ready;
+
+
+      integrationState.status =
+
+        success
+
+          ? "passed"
+
+          : "failed";
+
+
+      integrationState.completedAt =
+
+        new Date().toISOString();
+
+
+      integrationState.running =
+
+        false;
+
+
+      const finalResult = {
+
+        success,
+
+        status:
+
+          integrationState.status,
+
+        environment:
+
+          integrationState.environment,
+
+        runCount:
+
+          integrationState.runCount,
+
+        startedAt:
+
+          integrationState.startedAt,
+
+        completedAt:
+
+          integrationState.completedAt,
+
+        readiness,
+
+        results
+
+      };
+
+
+      integrationState.lastResult =
+
+        finalResult;
+
+
+      return finalResult;
+
+    }
+
+
+    catch (error) {
+
+      integrationState.running =
+
+        false;
+
+      integrationState.status =
+
+        "error";
+
+
+      integrationState.completedAt =
+
+        new Date().toISOString();
+
+
+      const errorRecord = {
+
+        message:
+
+          getErrorMessage(
+
+            error
+
+          ),
+
+        timestamp:
+
+          new Date().toISOString()
+
+      };
+
+
+      integrationState.errors.push(
+
+        errorRecord
+
+      );
+
+
+      const readiness =
+
+        calculateReadiness(
+
+          results
+
+        );
+
+
+      const finalResult = {
+
+        success: false,
+
+        status:
+          "error",
+
+        environment:
+
+          integrationState.environment,
+
+        error:
+
+          errorRecord,
+
+        readiness,
+
+        results
+
+      };
+
+
+      integrationState.lastResult =
+
+        finalResult;
+
+
+      return finalResult;
+
+    }
+
+  }
+
+
+  // ─────────────────────────────────────────────
+  // Compatibility Aliases
+  // ─────────────────────────────────────────────
+
+  function run() {
+
+    return runIntegrationTest();
+
+  }
+
+
+  function execute() {
+
+    return runIntegrationTest();
+
+  }
+
+
+  function runAllTests() {
+
+    return runIntegrationTest();
+
+  }
+
+
+  // ─────────────────────────────────────────────
+  // Get Status
+  // ─────────────────────────────────────────────
+
+  function getStatus() {
+
+    return {
+
+      initialized:
+
+        integrationState.initialized,
+
+      running:
+
+        integrationState.running,
+
+      environment:
+
+        integrationState.environment,
+
+      runCount:
+
+        integrationState.runCount,
+
+      startedAt:
+
+        integrationState.startedAt,
+
+      completedAt:
+
+        integrationState.completedAt,
+
+      status:
+
+        integrationState.status,
+
+      errorCount:
+
+        integrationState.errors.length,
+
+      hasResult:
+
+        integrationState.lastResult !== null
+
+    };
+
+  }
+
+
+  // ─────────────────────────────────────────────
+  // Get Last Result
+  // ─────────────────────────────────────────────
+
+  function getLastResult() {
+
+    return (
+
+      integrationState.lastResult
+
+    );
+
+  }
+
+
+  // ─────────────────────────────────────────────
+  // Get Errors
+  // ─────────────────────────────────────────────
+
+  function getErrors() {
+
+    return [
+
+      ...integrationState.errors
+
+    ];
+
+  }
+
+
+  // ─────────────────────────────────────────────
+  // Reset
+  // ─────────────────────────────────────────────
+
+  function reset() {
+
+    integrationState.initialized = false;
+
+    integrationState.running = false;
+
+    integrationState.runCount = 0;
+
+    integrationState.startedAt = null;
+
+    integrationState.completedAt = null;
+
+    integrationState.status =
+
+      "not-run";
+
+    integrationState.lastResult =
+
+      null;
+
+    integrationState.errors = [];
+
+
+    return true;
+
+  }
+
+
+  // ─────────────────────────────────────────────
+  // Public API
+  // ─────────────────────────────────────────────
+
+  const integrationTestAPI = {
+
+    initialize,
+
+    run,
+
+    execute,
+
+    runAllTests,
+
+    runIntegrationTest,
+
+    runTestCenter,
+
+    runTestLauncher,
+
+    generateReport,
+
+    runFinalLayer,
+
+    calculateReadiness,
+
+    getStatus,
+
+    getLastResult,
+
+    getErrors,
+
+    reset,
+
+    state:
+
+      integrationState
+
+  };
+
+
+  // ─────────────────────────────────────────────
+  // Browser Global
+  // ─────────────────────────────────────────────
+
+  global.BloggerSaaSIntegrationTest =
+
+    integrationTestAPI;
+
+
+  // ─────────────────────────────────────────────
+  // Node / Test Export
+  // ─────────────────────────────────────────────
+
+  if (
+
+    typeof module !==
+
+      "undefined" &&
+
+    module.exports
+
+  ) {
+
+    module.exports =
+
+      integrationTestAPI;
+
+  }
+
+
+})(
+  typeof globalThis !==
+
+    "undefined"
+
+    ? globalThis
+
+    : this
 
 );
-
