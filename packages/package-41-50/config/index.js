@@ -1,106 +1,490 @@
 /**
 
-BloggerSaaS Ultimate V5 Package 41–50 Configuration Index Central configuration registry. This module provides safe access to package configuration modules without modifying production systems. */ 
+* BloggerSaaS Ultimate V5
+* Package 41–50
+* Configuration Index
+* 
+* Central configuration registry.
+* 
+* Responsibilities:
+* - Safely register package configuration modules.
+* - Retrieve registered configuration modules.
+* - Validate configuration registration.
+* - Expose configuration status.
+* - Support safe development and testing.
+* 
+* Safety:
+* - Does not modify production systems.
+* - Does not modify live Firebase data.
+* - Does not modify user accounts.
+* - Does not deploy automatically.
+* - Does not delete external data.
+    */
 
 (function (global) {
 
 "use strict";
 
-// ───────────────────────────────────────────── // Configuration State // ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// Configuration State
+// ─────────────────────────────────────────────
 
 const configurationState = {
 
-initialized: false, environment: "safe-development", sources: {}, errors: [] 
+initialized: false,
+
+environment: "safe-development",
+
+sources: {},
+
+errors: []
 
 };
 
-// ───────────────────────────────────────────── // Configuration Registration // ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// Validate Configuration Name
+// ─────────────────────────────────────────────
 
-function registerConfig(configName, configObject) {
+function validateConfigName(configName) {
 
-if (!configName) { throw new Error( "Configuration name is required." ); } if (!configObject) { throw new Error( "Configuration object is required." ); } configurationState.sources[configName] = configObject; return true; 
+return (
+
+  typeof configName === "string" &&
+
+  configName.trim().length > 0
+
+);
 
 }
 
-// ───────────────────────────────────────────── // Configuration Retrieval // ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// Validate Configuration Object
+// ─────────────────────────────────────────────
+
+function isValidConfigObject(configObject) {
+
+return (
+
+  configObject !== null &&
+
+  typeof configObject === "object" &&
+
+  !Array.isArray(configObject)
+
+);
+
+}
+
+// ─────────────────────────────────────────────
+// Configuration Registration
+// ─────────────────────────────────────────────
+
+function registerConfig(
+
+configName,
+
+configObject,
+
+options = {}
+
+) {
+
+if (
+
+  !validateConfigName(configName)
+
+) {
+
+  throw new Error(
+
+    "Configuration name must be a non-empty string."
+
+  );
+
+}
+
+
+if (
+
+  !isValidConfigObject(configObject)
+
+) {
+
+  throw new TypeError(
+
+    "Configuration object must be a non-null plain object."
+
+  );
+
+}
+
+
+const overwrite =
+
+  options.overwrite === true;
+
+
+if (
+
+  hasConfig(configName) &&
+
+  !overwrite
+
+) {
+
+  throw new Error(
+
+    `Configuration "${configName}" is already registered.`
+
+  );
+
+}
+
+
+configurationState.sources[
+
+  configName.trim()
+
+] = configObject;
+
+
+return true;
+
+}
+
+// ─────────────────────────────────────────────
+// Configuration Retrieval
+// ─────────────────────────────────────────────
 
 function getConfig(configName) {
 
-return ( configurationState.sources[configName] || null ); 
+if (
+
+  !validateConfigName(configName)
+
+) {
+
+  return null;
 
 }
 
-// ───────────────────────────────────────────── // Configuration Existence Check // ─────────────────────────────────────────────
+
+return (
+
+  configurationState.sources[
+
+    configName.trim()
+
+  ] ||
+
+  null
+
+);
+
+}
+
+// ─────────────────────────────────────────────
+// Configuration Existence Check
+// ─────────────────────────────────────────────
 
 function hasConfig(configName) {
 
-return Boolean( configurationState.sources[configName] ); 
+if (
+
+  !validateConfigName(configName)
+
+) {
+
+  return false;
 
 }
 
-// ───────────────────────────────────────────── // List Registered Configurations // ─────────────────────────────────────────────
+
+return Object.prototype.hasOwnProperty.call(
+
+  configurationState.sources,
+
+  configName.trim()
+
+);
+
+}
+
+// ─────────────────────────────────────────────
+// List Registered Configurations
+// ─────────────────────────────────────────────
 
 function listConfigs() {
 
-return Object.keys( configurationState.sources ); 
+return Object.keys(
+
+  configurationState.sources
+
+);
 
 }
 
-// ───────────────────────────────────────────── // Configuration Validation // ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// Get All Configurations
+// ─────────────────────────────────────────────
+
+function getAllConfigs() {
+
+return Object.assign(
+
+  {},
+
+  configurationState.sources
+
+);
+
+}
+
+// ─────────────────────────────────────────────
+// Configuration Validation
+// ─────────────────────────────────────────────
 
 function validateConfig(configName) {
 
-const config = getConfig(configName); if (!config) { return { valid: false, configName, message: "Configuration not registered." }; } return { valid: true, configName, message: "Configuration is registered." }; 
+const config =
+
+  getConfig(configName);
+
+
+if (!config) {
+
+  return {
+
+    valid: false,
+
+    configName,
+
+    status: "FAILED",
+
+    message:
+
+      "Configuration is not registered."
+
+  };
 
 }
 
-// ───────────────────────────────────────────── // Initialize Configuration System // ─────────────────────────────────────────────
 
-function initializeConfig() {
+return {
 
-if ( configurationState.initialized ) { return getConfigStatus(); } configurationState.initialized = true; return getConfigStatus(); 
+  valid: true,
 
-}
+  configName,
 
-// ───────────────────────────────────────────── // Configuration Status // ─────────────────────────────────────────────
+  status: "HEALTHY",
 
-function getConfigStatus() {
+  message:
 
-return { initialized: configurationState.initialized, environment: configurationState.environment, registeredConfigs: listConfigs(), configCount: listConfigs().length, errorCount: configurationState.errors.length }; 
-
-}
-
-// ───────────────────────────────────────────── // Safe Reset // ─────────────────────────────────────────────
-
-function resetConfig() {
-
-configurationState.sources = {}; configurationState.errors = []; configurationState.initialized = false; return true; 
-
-}
-
-// ───────────────────────────────────────────── // Public API // ─────────────────────────────────────────────
-
-const configurationAPI = {
-
-initializeConfig, registerConfig, getConfig, hasConfig, listConfigs, validateConfig, getConfigStatus, resetConfig, state: configurationState 
+    "Configuration is registered."
 
 };
 
-// ───────────────────────────────────────────── // Browser Global // ─────────────────────────────────────────────
+}
 
-if ( typeof window !== "undefined" ) {
+// ─────────────────────────────────────────────
+// Validate All Configurations
+// ─────────────────────────────────────────────
 
-window.BloggerSaaSConfig = configurationAPI; 
+function validateAllConfigs() {
+
+const configs = listConfigs();
+
+const results = {};
+
+configs.forEach(
+
+  function (configName) {
+
+    results[configName] =
+
+      validateConfig(configName);
+
+  }
+
+);
+
+return results;
 
 }
 
-// ───────────────────────────────────────────── // Node / Test Export // ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// Initialize Configuration System
+// ─────────────────────────────────────────────
 
-if ( typeof module !== "undefined" && module.exports ) {
+function initializeConfig() {
 
-module.exports = configurationAPI; 
+if (
+
+  configurationState.initialized
+
+) {
+
+  return getConfigStatus();
 
 }
 
-})( typeof globalThis !== "undefined" ? globalThis : this );
 
+configurationState.initialized = true;
+
+
+return getConfigStatus();
+
+}
+
+// ─────────────────────────────────────────────
+// Configuration Status
+// ─────────────────────────────────────────────
+
+function getConfigStatus() {
+
+const registeredConfigs =
+
+  listConfigs();
+
+
+return {
+
+  initialized:
+
+    configurationState.initialized,
+
+  environment:
+
+    configurationState.environment,
+
+  registeredConfigs,
+
+  configCount:
+
+    registeredConfigs.length,
+
+  errorCount:
+
+    configurationState.errors.length
+
+};
+
+}
+
+// ─────────────────────────────────────────────
+// Record Configuration Error
+// ─────────────────────────────────────────────
+
+function recordError(error) {
+
+const message =
+
+  error &&
+
+  error.message
+
+    ? error.message
+
+    : String(error);
+
+
+configurationState.errors.push({
+
+  message,
+
+  timestamp:
+
+    new Date().toISOString()
+
+});
+
+
+return false;
+
+}
+
+// ─────────────────────────────────────────────
+// Safe Reset
+// ─────────────────────────────────────────────
+
+function resetConfig() {
+
+configurationState.sources = {};
+
+configurationState.errors = [];
+
+configurationState.initialized = false;
+
+
+return true;
+
+}
+
+// ─────────────────────────────────────────────
+// Public API
+// ─────────────────────────────────────────────
+
+const configurationAPI = {
+
+initializeConfig,
+
+registerConfig,
+
+getConfig,
+
+hasConfig,
+
+listConfigs,
+
+getAllConfigs,
+
+validateConfig,
+
+validateAllConfigs,
+
+getConfigStatus,
+
+recordError,
+
+resetConfig,
+
+state:
+
+  configurationState
+
+};
+
+// ─────────────────────────────────────────────
+// Browser Global
+// ─────────────────────────────────────────────
+
+global.BloggerSaaSConfig =
+
+configurationAPI;
+
+// ─────────────────────────────────────────────
+// Node / Test Export
+// ─────────────────────────────────────────────
+
+if (
+
+typeof module !== "undefined" &&
+
+module.exports
+
+) {
+
+module.exports =
+
+  configurationAPI;
+
+}
+
+})(
+typeof globalThis !== "undefined"
+
+? globalThis
+
+: this
+
+);
