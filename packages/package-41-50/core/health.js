@@ -114,6 +114,7 @@
 
     const manifest = getManifest();
 
+
     if (!manifest) {
 
       return {
@@ -129,6 +130,7 @@
       };
 
     }
+
 
     if (
 
@@ -154,9 +156,11 @@
 
     }
 
+
     const packageManifest =
 
       manifest.getPackageManifest();
+
 
     if (!packageManifest) {
 
@@ -173,6 +177,7 @@
       };
 
     }
+
 
     return {
 
@@ -207,6 +212,7 @@
 
       getIntegration();
 
+
     if (!integration) {
 
       return {
@@ -222,6 +228,7 @@
       };
 
     }
+
 
     if (
 
@@ -247,11 +254,13 @@
 
     }
 
+
     const status =
 
       integration
 
         .getIntegrationStatus();
+
 
     return {
 
@@ -298,6 +307,7 @@
 
       getFirebase();
 
+
     if (!firebase) {
 
       return {
@@ -313,6 +323,7 @@
       };
 
     }
+
 
     if (
 
@@ -338,11 +349,13 @@
 
     }
 
+
     const status =
 
       firebase
 
         .getFirebaseStatus();
+
 
     return {
 
@@ -382,6 +395,82 @@
 
 
   // ─────────────────────────────────────────────
+  // Calculate Overall Health
+  // ─────────────────────────────────────────────
+
+  function calculateOverallHealth() {
+
+    if (
+
+      healthState.errors.length > 0
+
+    ) {
+
+      return "UNHEALTHY";
+
+    }
+
+
+    if (
+
+      healthState.warnings.length > 0
+
+    ) {
+
+      return "WARNING";
+
+    }
+
+
+    const checks =
+
+      Object.values(
+
+        healthState.checks
+
+      );
+
+
+    if (
+
+      checks.length === 0
+
+    ) {
+
+      return "UNKNOWN";
+
+    }
+
+
+    const allHealthy =
+
+      checks.every(
+
+        function (check) {
+
+          return (
+
+            check.status ===
+
+            "HEALTHY"
+
+          );
+
+        }
+
+      );
+
+
+    return allHealthy
+
+      ? "HEALTHY"
+
+      : "WARNING";
+
+  }
+
+
+  // ─────────────────────────────────────────────
   // Run Complete Health Check
   // ─────────────────────────────────────────────
 
@@ -391,9 +480,12 @@
 
       new Date().toISOString();
 
+
     healthState.errors = [];
 
+
     healthState.warnings = [];
+
 
     const checks = {
 
@@ -411,7 +503,9 @@
 
     };
 
+
     healthState.checks = checks;
+
 
     Object.keys(checks)
 
@@ -422,6 +516,7 @@
           const check =
 
             checks[checkName];
+
 
           if (
 
@@ -473,25 +568,11 @@
 
       );
 
-    const hasErrors =
-
-      healthState.errors.length > 0;
-
-    const hasWarnings =
-
-      healthState.warnings.length > 0;
 
     healthState.status =
 
-      hasErrors
+      calculateOverallHealth();
 
-        ? "UNHEALTHY"
-
-        : hasWarnings
-
-          ? "WARNING"
-
-          : "HEALTHY";
 
     return getHealthStatus();
 
@@ -544,33 +625,7 @@
 
   }
 
-function calculateOverallHealth() {
 
-  if (healthState.errors.length > 0) {
-    return "UNHEALTHY";
-  }
-
-  if (healthState.warnings.length > 0) {
-    return "WARNING";
-  }
-
-  const checks = Object.values(
-    healthState.checks
-  );
-
-  if (checks.length === 0) {
-    return "UNKNOWN";
-  }
-
-  const allHealthy = checks.every(
-    check =>
-      check.status === "HEALTHY"
-  );
-
-  return allHealthy
-    ? "HEALTHY"
-    : "WARNING";
-}
   // ─────────────────────────────────────────────
   // Reset Health State
   // ─────────────────────────────────────────────
@@ -606,6 +661,8 @@ function calculateOverallHealth() {
 
     getHealthStatus,
 
+    calculateOverallHealth,
+
     resetHealth,
 
     checkManifest,
@@ -619,27 +676,7 @@ function calculateOverallHealth() {
       healthState
 
   };
-const healthAPI = {
 
-  initializeHealth,
-
-  runHealthCheck,
-
-  getHealthStatus,
-
-  resetHealth,
-
-  calculateOverallHealth,
-
-  checkManifest,
-
-  checkIntegration,
-
-  checkFirebase,
-
-  state: healthState
-
-};
 
   // ─────────────────────────────────────────────
   // Browser Global
@@ -675,5 +712,4 @@ const healthAPI = {
     ? globalThis
 
     : this
-
 );
