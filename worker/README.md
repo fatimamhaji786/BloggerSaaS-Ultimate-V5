@@ -1,4 +1,3 @@
-
 # BloggerSaaS Ultimate V5 Cloudflare Worker
 
 Production Worker for BloggerSaaS Ultimate V5.
