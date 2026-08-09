@@ -1,1 +1,14 @@
-
+{
+  "name": "bloggersaas-ultimate-v5-worker",
+  "version": "5.1.0",
+  "private": true,
+  "description": "Production Cloudflare Worker for BloggerSaaS Ultimate V5",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "wrangler dev --local"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
