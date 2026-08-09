@@ -144,7 +144,7 @@ function buildHeaders(request, env, extra = {}) {
 
 
 /* ================================================================
- * 4. RESPONSE HELPERS
+ * 4.  HELPERS
  * ================================================================ */
 
 function jsonResponse(
