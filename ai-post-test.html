@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>BloggerSaaS Ultimate V5 — AI POST Test</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0b1020;
+      color: #ffffff;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: auto;
+    }
+
+    h1 {
+      font-size: 24px;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      margin: 12px 0;
+      border: 0;
+      border-radius: 8px;
+      background: #00bcd4;
+      color: #001018;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    pre {
+      background: #111827;
+      border: 1px solid #263244;
+      border-radius: 8px;
+      padding: 15px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow-x: auto;
+    }
+
+    .status {
+      margin: 12px 0;
+      padding: 10px;
+      border-radius: 8px;
+      background: #111827;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <h1>BloggerSaaS Ultimate V5</h1>
+
+  <p>AI POST Endpoint Test — V5.1.2</p>
+
+  <div class="status">
+    Worker:
+    <br>
+    bloggersaas-ai-proxy.fatimamhajia.workers.dev
+  </div>
+
+  <button id="testButton">
+    SEND REAL POST REQUEST
+  </button>
+
+  <pre id="result">Ready for test...</pre>
+
+</div>
+
+<script>
+
+const WORKER_AI_URL =
+  "https://bloggersaas-ai-proxy.fatimamhajia.workers.dev/api/ai";
+
+const resultElement =
+  document.getElementById("result");
+
+const testButton =
+  document.getElementById("testButton");
+
+
+testButton.addEventListener("click", async () => {
+
+  resultElement.textContent =
+    "Sending POST request...\n\n";
+
+  try {
+
+    const response =
+      await fetch(
+        WORKER_AI_URL,
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+
+          body: JSON.stringify({
+            message:
+              "Hello from BloggerSaaS Ultimate V5"
+          })
+        }
+      );
+
+
+    const responseText =
+      await response.text();
+
+
+    let formattedResponse;
+
+    try {
+
+      formattedResponse =
+        JSON.stringify(
+          JSON.parse(responseText),
+          null,
+          2
+        );
+
+    } catch {
+
+      formattedResponse =
+        responseText;
+
+    }
+
+
+    resultElement.textContent =
+      "POST REQUEST COMPLETED\n\n" +
+      "HTTP STATUS: " +
+      response.status +
+      "\n\n" +
+      formattedResponse;
+
+  } catch (error) {
+
+    resultElement.textContent =
+      "POST REQUEST FAILED\n\n" +
+      error.message;
+
+  }
+
+});
+
+</script>
+
+</body>
+</html>
