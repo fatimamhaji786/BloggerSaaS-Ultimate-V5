@@ -37,7 +37,7 @@
  *   GEMINI_MODEL
  *
  * Default model:
- *   gemini-2.5-flash
+ *   gemini-3.6-flash
  *
  * IMPORTANT:
  *   No API key is hard-coded in this file.
