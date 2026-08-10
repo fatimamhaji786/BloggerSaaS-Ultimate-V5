@@ -8,7 +8,7 @@
  *   worker/worker/worker.js
  *
  * Version:
- *   5.1.2
+ *   5.1.3
  *
  * Purpose:
  *   Production API foundation and Gemini AI proxy.
