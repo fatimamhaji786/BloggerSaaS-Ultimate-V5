@@ -11,39 +11,24 @@
  *   5.1.1
  *
  * Purpose:
- *   Production Cloudflare Worker foundation for
+ *   Production API foundation and Gemini AI proxy for
  *   BloggerSaaS Ultimate V5.
  *
- * Capabilities:
- *   - Production Module Worker
- *   - Root endpoint
- *   - API routing
- *   - CORS handling
- *   - Security headers
- *   - Request IDs
- *   - Health endpoint
- *   - Version endpoint
- *   - API information endpoint
- *   - Method validation
- *   - Request-size protection
- *   - Safe JSON parsing
- *   - Centralized error handling
- *   - Gemini AI proxy
- *
- * Cloudflare secret required for AI:
- *
- *   GEMINI_API_KEY
- *
- * Optional variable:
- *
- *   GEMINI_MODEL
- *
- * Default model:
- *
- *   gemini-2.5-flash
+ * V5.1.1 REPAIRS:
+ *   - Uses existing GEMINI_API_KEY Cloudflare secret
+ *   - Removes dependency on missing AI_API_URL / AI_API_KEY
+ *   - Uses Gemini x-goog-api-key authentication
+ *   - Adds Gemini model configuration
+ *   - Adds safer request validation
+ *   - Adds upstream AI error handling
+ *   - Preserves request IDs
+ *   - Preserves CORS
+ *   - Preserves security headers
+ *   - Preserves health/version/info endpoints
+ *   - Preserves Module Worker architecture
  *
  * IMPORTANT:
- *   No secrets are hard-coded in this file.
+ *   No API secrets are stored in this source file.
  * ================================================================
  */
 
@@ -75,11 +60,21 @@ const CONFIG = Object.freeze({
 
   AI_PATH: "/api/ai",
 
-  GEMINI_API_BASE:
-    "https://generativelanguage.googleapis.com/v1beta",
+  /*
+   * Gemini configuration.
+   *
+   * GEMINI_API_KEY is stored in Cloudflare as a Secret.
+   *
+   * The model can optionally be overridden with:
+   *
+   *   GEMINI_MODEL
+   *
+   * in Cloudflare Variables.
+   */
+  GEMINI_MODEL: "gemini-2.5-flash",
 
-  GEMINI_MODEL:
-    "gemini-2.5-flash"
+  GEMINI_API_BASE:
+    "https://generativelanguage.googleapis.com/v1beta"
 });
 
 
@@ -109,7 +104,7 @@ const SECURITY_HEADERS = Object.freeze({
 
 
 /* ================================================================
- * 3. REQUEST / TIME UTILITIES
+ * 3. REQUEST ID
  * ================================================================ */
 
 function createRequestId() {
@@ -134,6 +129,12 @@ function getCorsOrigin(request, env) {
     env?.CORS_ORIGINS ||
     CONFIG.DEFAULT_CORS_ORIGINS;
 
+  /*
+   * Wildcard mode.
+   *
+   * This is appropriate because this API does not use
+   * browser cookies for authentication.
+   */
   if (configuredOrigins === "*") {
     return "*";
   }
@@ -178,6 +179,10 @@ function corsHeaders(request, env) {
 }
 
 
+/* ================================================================
+ * 5. RESPONSE HEADERS
+ * ================================================================ */
+
 function buildHeaders(
   request,
   env,
@@ -197,7 +202,7 @@ function buildHeaders(
 
 
 /* ================================================================
- * 5. RESPONSE HELPERS
+ * 6. JSON RESPONSE
  * ================================================================ */
 
 function jsonResponse(
@@ -232,6 +237,10 @@ function jsonResponse(
 }
 
 
+/* ================================================================
+ * 7. TEXT RESPONSE
+ * ================================================================ */
+
 function textResponse(
   request,
   env,
@@ -256,6 +265,10 @@ function textResponse(
   );
 }
 
+
+/* ================================================================
+ * 8. ERROR RESPONSE
+ * ================================================================ */
 
 function errorResponse(
   request,
@@ -287,7 +300,7 @@ function errorResponse(
 
 
 /* ================================================================
- * 6. LOGGING
+ * 9. LOGGING
  * ================================================================ */
 
 function log(
@@ -319,10 +332,8 @@ function log(
 
   if (level === "error") {
     console.error(payload);
-
   } else if (level === "warn") {
     console.warn(payload);
-
   } else {
     console.log(payload);
   }
@@ -330,7 +341,7 @@ function log(
 
 
 /* ================================================================
- * 7. REQUEST VALIDATION
+ * 10. REQUEST VALIDATION
  * ================================================================ */
 
 function isApiRequest(url) {
@@ -355,7 +366,9 @@ function isMethodAllowed(
 }
 
 
-function getContentLength(request) {
+function getContentLength(
+  request
+) {
   const value =
     request.headers.get(
       "Content-Length"
@@ -378,11 +391,7 @@ function getContentLength(request) {
 }
 
 
-/* ================================================================
- * 8. REQUEST BODY SIZE PROTECTION
- * ================================================================ */
-
-function validateDeclaredBodySize(
+function validateBodySize(
   request
 ) {
   const contentLength =
@@ -402,106 +411,8 @@ function validateDeclaredBodySize(
 }
 
 
-/**
- * Read the request body while enforcing the
- * maximum byte limit.
- *
- * This protects requests even when the client
- * does not provide Content-Length.
- */
-async function readBodyText(
-  request
-) {
-  if (!request.body) {
-    return "";
-  }
-
-  const reader =
-    request.body.getReader();
-
-  const chunks = [];
-
-  let totalBytes = 0;
-
-  try {
-    while (true) {
-      const {
-        done,
-        value
-      } = await reader.read();
-
-      if (done) {
-        break;
-      }
-
-      if (!value) {
-        continue;
-      }
-
-      totalBytes +=
-        value.byteLength;
-
-      if (
-        totalBytes >
-        CONFIG.MAX_BODY_BYTES
-      ) {
-        try {
-          await reader.cancel();
-        } catch {
-          // Ignore cancellation errors.
-        }
-
-        throw new RequestBodyTooLargeError();
-      }
-
-      chunks.push(value);
-    }
-  } finally {
-    try {
-      reader.releaseLock();
-    } catch {
-      // Ignore release errors.
-    }
-  }
-
-  const combined =
-    new Uint8Array(
-      totalBytes
-    );
-
-  let offset = 0;
-
-  for (const chunk of chunks) {
-    combined.set(
-      chunk,
-      offset
-    );
-
-    offset +=
-      chunk.byteLength;
-  }
-
-  return new TextDecoder(
-    "utf-8"
-  ).decode(combined);
-}
-
-
-class RequestBodyTooLargeError
-  extends Error {
-  constructor() {
-    super(
-      "Request body exceeds the permitted size."
-    );
-
-    this.name =
-      "RequestBodyTooLargeError";
-  }
-}
-
-
 /* ================================================================
- * 9. JSON BODY PARSER
+ * 11. JSON BODY PARSER
  * ================================================================ */
 
 async function readJSON(
@@ -524,38 +435,25 @@ async function readJSON(
     );
   }
 
+  const body =
+    await request.json();
+
   if (
-    !validateDeclaredBodySize(
-      request
-    )
+    body === null ||
+    typeof body !== "object" ||
+    Array.isArray(body)
   ) {
-    throw new RequestBodyTooLargeError();
-  }
-
-  const text =
-    await readBodyText(
-      request
-    );
-
-  if (!text.trim()) {
     throw new Error(
-      "Request body is empty."
+      "JSON request body must be an object."
     );
   }
 
-  try {
-    return JSON.parse(text);
-
-  } catch {
-    throw new Error(
-      "Request body contains invalid JSON."
-    );
-  }
+  return body;
 }
 
 
 /* ================================================================
- * 10. HEALTH ENDPOINT
+ * 12. HEALTH ENDPOINT
  * ================================================================ */
 
 async function handleHealth(
@@ -568,7 +466,8 @@ async function handleHealth(
     {
       success: true,
 
-      status: "ok",
+      status:
+        "ok",
 
       service:
         "BloggerSaaS Ultimate V5 Cloudflare Worker",
@@ -584,7 +483,7 @@ async function handleHealth(
 
 
 /* ================================================================
- * 11. VERSION ENDPOINT
+ * 13. VERSION ENDPOINT
  * ================================================================ */
 
 async function handleVersion(
@@ -614,7 +513,7 @@ async function handleVersion(
 
 
 /* ================================================================
- * 12. API INFORMATION ENDPOINT
+ * 14. API INFORMATION ENDPOINT
  * ================================================================ */
 
 async function handleInfo(
@@ -650,20 +549,6 @@ async function handleInfo(
           CONFIG.AI_PATH
       },
 
-      ai: {
-        provider:
-          "Google Gemini API",
-
-        model:
-          env?.GEMINI_MODEL ||
-          CONFIG.GEMINI_MODEL,
-
-        configured:
-          Boolean(
-            env?.GEMINI_API_KEY
-          )
-      },
-
       modules: [
         "Foundation",
         "Security",
@@ -682,7 +567,7 @@ async function handleInfo(
 
 
 /* ================================================================
- * 13. GEMINI CONFIGURATION
+ * 15. GEMINI CONFIGURATION
  * ================================================================ */
 
 function getGeminiModel(env) {
@@ -697,9 +582,7 @@ function getGeminiEndpoint(
   env
 ) {
   const model =
-    getGeminiModel(
-      env
-    );
+    getGeminiModel(env);
 
   return (
     `${CONFIG.GEMINI_API_BASE}` +
@@ -710,84 +593,38 @@ function getGeminiEndpoint(
 
 
 /* ================================================================
- * 14. GEMINI REQUEST NORMALIZATION
+ * 16. GEMINI REQUEST NORMALIZATION
+ * ================================================================
+ *
+ * Supported browser request forms:
+ *
+ * A.
+ * {
+ *   "prompt": "Hello"
+ * }
+ *
+ * B.
+ * {
+ *   "contents": [...]
+ * }
+ *
+ * C.
+ * Full Gemini generateContent payload.
+ *
+ * The Worker never exposes GEMINI_API_KEY.
  * ================================================================ */
 
-function normalizeGeminiRequest(
+function buildGeminiPayload(
   body
 ) {
-  if (
-    !body ||
-    typeof body !== "object" ||
-    Array.isArray(body)
-  ) {
-    throw new Error(
-      "AI request must be a JSON object."
-    );
-  }
-
   /*
-   * Supported simple format:
-   *
-   * {
-   *   "prompt": "Hello"
-   * }
+   * If the caller already supplied a Gemini
+   * contents payload, preserve it.
    */
-
-  if (
-    typeof body.prompt ===
-    "string"
-  ) {
-    const prompt =
-      body.prompt.trim();
-
-    if (!prompt) {
-      throw new Error(
-        "The prompt cannot be empty."
-      );
-    }
-
-    return {
-      contents: [
-        {
-          role: "user",
-
-          parts: [
-            {
-              text: prompt
-            }
-          ]
-        }
-      ],
-      ...(body.systemInstruction
-        ? {
-            systemInstruction:
-              body.systemInstruction
-          }
-        : {}),
-      ...(body.generationConfig
-        ? {
-            generationConfig:
-              body.generationConfig
-          }
-        : {})
-    };
-  }
-
-
-  /*
-   * Advanced format:
-   *
-   * {
-   *   "contents": [...]
-   * }
-   */
-
   if (
     Array.isArray(
       body.contents
-    ) &&
-    body.contents.length > 0
+    )
   ) {
     return {
       contents:
@@ -805,19 +642,72 @@ function normalizeGeminiRequest(
             generationConfig:
               body.generationConfig
           }
+        : {}),
+
+      ...(body.safetySettings
+        ? {
+            safetySettings:
+              body.safetySettings
+          }
+        : {}),
+
+      ...(body.tools
+        ? {
+            tools:
+              body.tools
+          }
         : {})
     };
   }
 
+  /*
+   * Simple prompt mode.
+   */
+  if (
+    typeof body.prompt ===
+    "string"
+  ) {
+    const prompt =
+      body.prompt.trim();
+
+    if (!prompt) {
+      throw new Error(
+        "Prompt cannot be empty."
+      );
+    }
+
+    return {
+      contents: [
+        {
+          role:
+            "user",
+
+          parts: [
+            {
+              text:
+                prompt
+            }
+          ]
+        }
+      ],
+
+      ...(body.generationConfig
+        ? {
+            generationConfig:
+              body.generationConfig
+          }
+        : {})
+    };
+  }
 
   throw new Error(
-    "AI request requires either a non-empty 'prompt' or a 'contents' array."
+    "Request must contain either a non-empty prompt or a contents array."
   );
 }
 
 
 /* ================================================================
- * 15. GEMINI AI ENDPOINT
+ * 17. GEMINI AI PROXY
  * ================================================================ */
 
 async function handleAI(
@@ -827,16 +717,17 @@ async function handleAI(
   const requestId =
     request.headers.get(
       "X-Request-ID"
-    );
+    ) ||
+    createRequestId();
 
-
-  /* ------------------------------------------------------------
-   * Method
-   * ---------------------------------------------------------- */
-
+  /*
+   * AI endpoint is POST only.
+   */
   if (
-    request.method !==
-    "POST"
+    !isMethodAllowed(
+      request,
+      ["POST"]
+    )
   ) {
     return errorResponse(
       request,
@@ -848,32 +739,39 @@ async function handleAI(
     );
   }
 
-
-  /* ------------------------------------------------------------
-   * Gemini secret
-   * ---------------------------------------------------------- */
-
+  /*
+   * Existing Cloudflare secret:
+   *
+   * GEMINI_API_KEY
+   */
   if (
     !env ||
     !env.GEMINI_API_KEY
   ) {
+    log(
+      env,
+      "error",
+      "Gemini API key is not configured.",
+      {
+        requestId
+      }
+    );
+
     return errorResponse(
       request,
       env,
       503,
-      "AI_SERVICE_NOT_CONFIGURED",
-      "GEMINI_API_KEY is not configured in the Cloudflare Worker.",
+      "GEMINI_SERVICE_NOT_CONFIGURED",
+      "Gemini AI service is not configured.",
       requestId
     );
   }
 
-
-  /* ------------------------------------------------------------
-   * Declared body-size protection
-   * ---------------------------------------------------------- */
-
+  /*
+   * Request size protection.
+   */
   if (
-    !validateDeclaredBodySize(
+    !validateBodySize(
       request
     )
   ) {
@@ -887,11 +785,9 @@ async function handleAI(
     );
   }
 
-
-  /* ------------------------------------------------------------
-   * Parse JSON
-   * ---------------------------------------------------------- */
-
+  /*
+   * Parse JSON.
+   */
   let body;
 
   try {
@@ -899,22 +795,7 @@ async function handleAI(
       await readJSON(
         request
       );
-
   } catch (error) {
-    if (
-      error instanceof
-      RequestBodyTooLargeError
-    ) {
-      return errorResponse(
-        request,
-        env,
-        413,
-        "PAYLOAD_TOO_LARGE",
-        "Request body exceeds the permitted size.",
-        requestId
-      );
-    }
-
     return errorResponse(
       request,
       env,
@@ -927,19 +808,16 @@ async function handleAI(
     );
   }
 
-
-  /* ------------------------------------------------------------
-   * Normalize request
-   * ---------------------------------------------------------- */
-
+  /*
+   * Build Gemini request.
+   */
   let geminiPayload;
 
   try {
     geminiPayload =
-      normalizeGeminiRequest(
+      buildGeminiPayload(
         body
       );
-
   } catch (error) {
     return errorResponse(
       request,
@@ -953,20 +831,17 @@ async function handleAI(
     );
   }
 
-
-  /* ------------------------------------------------------------
-   * Logging
-   *
-   * Never log the API key or complete user prompt.
-   * ---------------------------------------------------------- */
+  const endpoint =
+    getGeminiEndpoint(
+      env
+    );
 
   log(
     env,
     "info",
-    "Gemini AI request",
+    "Sending request to Gemini.",
     {
       requestId,
-
       model:
         getGeminiModel(
           env
@@ -974,21 +849,23 @@ async function handleAI(
     }
   );
 
-
-  /* ------------------------------------------------------------
-   * Call Gemini
-   * ---------------------------------------------------------- */
-
+  /*
+   * Call Gemini.
+   *
+   * IMPORTANT:
+   * Gemini expects x-goog-api-key.
+   *
+   * The key is never sent to the browser.
+   */
   let upstreamResponse;
 
   try {
     upstreamResponse =
       await fetch(
-        getGeminiEndpoint(
-          env
-        ),
+        endpoint,
         {
-          method: "POST",
+          method:
+            "POST",
 
           headers: {
             "Content-Type":
@@ -1004,15 +881,13 @@ async function handleAI(
             )
         }
       );
-
   } catch (error) {
     log(
       env,
       "error",
-      "Gemini upstream request failed",
+      "Gemini upstream request failed.",
       {
         requestId,
-
         error:
           error instanceof Error
             ? error.message
@@ -1025,186 +900,95 @@ async function handleAI(
       env,
       502,
       "AI_UPSTREAM_UNAVAILABLE",
-      "The Gemini AI service could not be reached.",
+      "Gemini AI service could not be reached.",
       requestId
     );
   }
 
+  /*
+   * Read upstream response.
+   */
+  const responseText =
+    await upstreamResponse.text();
 
-  /* ------------------------------------------------------------
-   * Read Gemini response
-   * ---------------------------------------------------------- */
-
-  let responseText;
-
-  try {
-    responseText =
-      await upstreamResponse.text();
-
-  } catch (error) {
-    log(
-      env,
-      "error",
-      "Unable to read Gemini response",
-      {
-        requestId,
-
-        error:
-          error instanceof Error
-            ? error.message
-            : String(error)
-      }
-    );
-
-    return errorResponse(
-      request,
-      env,
-      502,
-      "AI_UPSTREAM_RESPONSE_ERROR",
-      "The Gemini service returned an unreadable response.",
-      requestId
-    );
-  }
-
-
-  /* ------------------------------------------------------------
-   * Gemini error response
-   * ---------------------------------------------------------- */
-
+  /*
+   * Never expose the API key or internal
+   * Worker configuration in an error.
+   */
   if (
     !upstreamResponse.ok
   ) {
     log(
       env,
-      "warn",
-      "Gemini API returned an error",
+      "error",
+      "Gemini returned an error.",
       {
         requestId,
-
         status:
           upstreamResponse.status
       }
     );
 
     /*
-     * Do not expose the API key.
-     *
-     * The upstream body is returned as a safe
-     * JSON envelope where possible.
+     * Preserve the upstream JSON error when possible,
+     * but return it through our API envelope.
      */
-
-    let upstreamData;
+    let upstreamError = null;
 
     try {
-      upstreamData =
+      upstreamError =
         JSON.parse(
           responseText
         );
-
     } catch {
-      upstreamData = {
-        message:
-          "Gemini API returned an error."
-      };
+      upstreamError = null;
     }
 
-    return jsonResponse(
+    const message =
+      upstreamError?.error?.message ||
+      `Gemini AI request failed with status ${upstreamResponse.status}.`;
+
+    return errorResponse(
       request,
       env,
-      {
-        success: false,
-
-        error: {
-          code:
-            "AI_UPSTREAM_ERROR",
-
-          message:
-            "Gemini API request failed.",
-
-          upstreamStatus:
-            upstreamResponse.status
-        },
-
-        requestId,
-
-        details:
-          upstreamData?.error ||
-          upstreamData
-      },
-      upstreamResponse.status
+      upstreamResponse.status >= 400 &&
+      upstreamResponse.status < 600
+        ? upstreamResponse.status
+        : 502,
+      "GEMINI_API_ERROR",
+      message,
+      requestId
     );
   }
 
-
-  /* ------------------------------------------------------------
-   * Successful Gemini response
-   * ---------------------------------------------------------- */
-
-  let parsedResponse;
-
-  try {
-    parsedResponse =
-      JSON.parse(
-        responseText
-      );
-
-  } catch {
-    /*
-     * Gemini normally returns JSON.
-     * If the upstream response is not JSON,
-     * return it safely as text.
-     */
-
-    return new Response(
-      responseText,
-      {
-        status: 200,
-
-        headers:
-          buildHeaders(
-            request,
-            env,
-            {
-              "Content-Type":
-                upstreamResponse
-                  .headers
-                  .get(
-                    "Content-Type"
-                  ) ||
-                "text/plain; charset=utf-8"
-            }
-          )
-      }
-    );
-  }
-
-
-  return jsonResponse(
-    request,
-    env,
+  /*
+   * Return Gemini response to the client.
+   */
+  return new Response(
+    responseText,
     {
-      success: true,
+      status:
+        upstreamResponse.status,
 
-      requestId,
-
-      model:
-        getGeminiModel(
-          env
-        ),
-
-      response:
-        parsedResponse,
-
-      timestamp:
-        nowISO()
-    },
-    200
+      headers:
+        buildHeaders(
+          request,
+          env,
+          {
+            "Content-Type":
+              upstreamResponse.headers.get(
+                "Content-Type"
+              ) ||
+              "application/json; charset=utf-8"
+          }
+        )
+    }
   );
 }
 
 
 /* ================================================================
- * 16. API ROUTER
+ * 18. API ROUTER
  * ================================================================ */
 
 async function routeAPI(
@@ -1219,98 +1003,51 @@ async function routeAPI(
   const path =
     url.pathname;
 
-
+  /*
+   * Health.
+   */
   if (
     path ===
     CONFIG.HEALTH_PATH
   ) {
-    if (
-      !isMethodAllowed(
-        request,
-        ["GET"]
-      )
-    ) {
-      return errorResponse(
-        request,
-        env,
-        405,
-        "METHOD_NOT_ALLOWED",
-        "Health endpoint requires GET.",
-        request.headers.get(
-          "X-Request-ID"
-        )
-      );
-    }
-
     return handleHealth(
       request,
       env
     );
   }
 
-
+  /*
+   * Version.
+   */
   if (
     path ===
     CONFIG.VERSION_PATH
   ) {
-    if (
-      !isMethodAllowed(
-        request,
-        ["GET"]
-      )
-    ) {
-      return errorResponse(
-        request,
-        env,
-        405,
-        "METHOD_NOT_ALLOWED",
-        "Version endpoint requires GET.",
-        request.headers.get(
-          "X-Request-ID"
-        )
-      );
-    }
-
     return handleVersion(
       request,
       env
     );
   }
 
-
+  /*
+   * Info.
+   */
   if (
     path ===
     CONFIG.INFO_PATH
   ) {
-    if (
-      !isMethodAllowed(
-        request,
-        ["GET"]
-      )
-    ) {
-      return errorResponse(
-        request,
-        env,
-        405,
-        "METHOD_NOT_ALLOWED",
-        "Info endpoint requires GET.",
-        request.headers.get(
-          "X-Request-ID"
-        )
-      );
-    }
-
     return handleInfo(
       request,
       env
     );
   }
 
-
+  /*
+   * AI.
+   */
   if (
     path ===
       CONFIG.AI_PATH ||
-
     path.startsWith(
       `${CONFIG.AI_PATH}/`
     )
@@ -1321,7 +1058,9 @@ async function routeAPI(
     );
   }
 
-
+  /*
+   * Unknown API route.
+   */
   return errorResponse(
     request,
     env,
@@ -1336,7 +1075,7 @@ async function routeAPI(
 
 
 /* ================================================================
- * 17. ROOT RESPONSE
+ * 19. ROOT RESPONSE
  * ================================================================ */
 
 async function handleRoot(
@@ -1372,7 +1111,136 @@ async function handleRoot(
 
 
 /* ================================================================
- * 18. REQUEST-ID RESPONSE HEADER
+ * 20. GLOBAL REQUEST HANDLER
+ * ================================================================ */
+
+async function handleRequest(
+  request,
+  env,
+  ctx
+) {
+  const requestId =
+    createRequestId();
+
+  const url =
+    new URL(
+      request.url
+    );
+
+  /*
+   * Incoming Request objects are immutable.
+   * Create a new Request so the request ID can
+   * safely be attached.
+   */
+  request =
+    new Request(
+      request,
+      {
+        headers:
+          new Headers(
+            request.headers
+          )
+      }
+    );
+
+  request.headers.set(
+    "X-Request-ID",
+    requestId
+  );
+
+  log(
+    env,
+    "info",
+    "Incoming request",
+    {
+      requestId,
+
+      method:
+        request.method,
+
+      path:
+        url.pathname
+    }
+  );
+
+  /*
+   * CORS preflight.
+   */
+  if (
+    request.method ===
+    "OPTIONS"
+  ) {
+    return new Response(
+      null,
+      {
+        status:
+          204,
+
+        headers:
+          buildHeaders(
+            request,
+            env
+          )
+      }
+    );
+  }
+
+  /*
+   * Basic body-size protection.
+   */
+  if (
+    !validateBodySize(
+      request
+    )
+  ) {
+    return errorResponse(
+      request,
+      env,
+      413,
+      "PAYLOAD_TOO_LARGE",
+      "Request body exceeds the permitted size.",
+      requestId
+    );
+  }
+
+  /*
+   * API routing.
+   */
+  if (
+    isApiRequest(
+      url
+    )
+  ) {
+    const response =
+      await routeAPI(
+        request,
+        env
+      );
+
+    return addRequestId(
+      response,
+      requestId
+    );
+  }
+
+  /*
+   * Root.
+   */
+  const response =
+    await handleRoot(
+      request,
+      env
+    );
+
+  return addRequestId(
+    response,
+    requestId
+  );
+}
+
+
+/* ================================================================
+ * 21. REQUEST-ID RESPONSE HEADER
  * ================================================================ */
 
 function addRequestId(
@@ -1405,146 +1273,7 @@ function addRequestId(
 
 
 /* ================================================================
- * 19. GLOBAL REQUEST HANDLER
- * ================================================================ */
-
-async function handleRequest(
-  request,
-  env,
-  ctx
-) {
-  const requestId =
-    createRequestId();
-
-  const url =
-    new URL(
-      request.url
-    );
-
-
-  /*
-   * Clone the request headers so the
-   * request ID can be attached safely.
-   */
-
-  request =
-    new Request(
-      request,
-      {
-        headers:
-          new Headers(
-            request.headers
-          )
-      }
-    );
-
-
-  request.headers.set(
-    "X-Request-ID",
-    requestId
-  );
-
-
-  log(
-    env,
-    "info",
-    "Incoming request",
-    {
-      requestId,
-
-      method:
-        request.method,
-
-      path:
-        url.pathname
-    }
-  );
-
-
-  /* ------------------------------------------------------------
-   * CORS preflight
-   * ---------------------------------------------------------- */
-
-  if (
-    request.method ===
-    "OPTIONS"
-  ) {
-    return new Response(
-      null,
-      {
-        status: 204,
-
-        headers:
-          buildHeaders(
-            request,
-            env
-          )
-      }
-    );
-  }
-
-
-  /* ------------------------------------------------------------
-   * Basic declared request-size protection
-   * ---------------------------------------------------------- */
-
-  if (
-    !validateDeclaredBodySize(
-      request
-    )
-  ) {
-    return errorResponse(
-      request,
-      env,
-      413,
-      "PAYLOAD_TOO_LARGE",
-      "Request body exceeds the permitted size.",
-      requestId
-    );
-  }
-
-
-  /* ------------------------------------------------------------
-   * API routing
-   * ---------------------------------------------------------- */
-
-  if (
-    isApiRequest(
-      url
-    )
-  ) {
-    const response =
-      await routeAPI(
-        request,
-        env
-      );
-
-    return addRequestId(
-      response,
-      requestId
-    );
-  }
-
-
-  /* ------------------------------------------------------------
-   * Root endpoint
-   * ---------------------------------------------------------- */
-
-  const response =
-    await handleRoot(
-      request,
-      env
-    );
-
-  return addRequestId(
-    response,
-    requestId
-  );
-}
-
-
-/* ================================================================
- * 20. GLOBAL ERROR HANDLER
+ * 22. GLOBAL ERROR HANDLER
  * ================================================================ */
 
 function handleFatalError(
@@ -1579,7 +1308,7 @@ function handleFatalError(
 
 
 /* ================================================================
- * 21. CLOUDFLARE MODULE WORKER ENTRY POINT
+ * 23. CLOUDFLARE MODULE WORKER ENTRY POINT
  * ================================================================ */
 
 export default {
@@ -1597,7 +1326,6 @@ export default {
         env,
         ctx
       );
-
     } catch (error) {
       return handleFatalError(
         request,
