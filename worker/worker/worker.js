@@ -122,12 +122,9 @@ function getCorsOrigin(request, env) {
     request.headers.get("Origin");
 
   const configuredOrigins =
-    env?.CORS_ORIGINS ||
-    CONFIG.DEFAULT_CORS_ORIGINS;
-
-  if (configuredOrigins === "*") {
-    return "*";
-  }
+    typeof env?.CORS_ORIGINS === "string"
+      ? env.CORS_ORIGINS
+      : CONFIG.DEFAULT_CORS_ORIGINS;
 
   const allowed =
     configuredOrigins
@@ -142,7 +139,7 @@ function getCorsOrigin(request, env) {
     return requestOrigin;
   }
 
-  return allowed[0] || "null";
+  return "null";
 }
 
 
