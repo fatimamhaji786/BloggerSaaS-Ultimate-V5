@@ -8,7 +8,7 @@
  *   worker/worker/worker.js
  *
  * Version:
- *   5.1.5
+ *   5.1.6
  *
  * Purpose:
  *   Production API foundation and Gemini AI proxy.
@@ -53,7 +53,7 @@
 
 const CONFIG = Object.freeze({
   APP_NAME: "BloggerSaaS Ultimate V5",
-  VERSION: "5.1.5",
+  VERSION: "5.1.6",
 
   API_PREFIX: "/api",
 
