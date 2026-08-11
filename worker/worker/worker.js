@@ -674,7 +674,77 @@ function normalizeAIRequest(body) {
 
 
 /* ================================================================
- * 16. GEMINI MODEL
+ * 16. AI PROXY TOKEN AUTHENTICATION
+ * ================================================================ */
+
+function validateAIProxyToken(request, env) {
+  const configuredToken =
+    env?.AI_PROXY_TOKEN;
+
+  if (
+    typeof configuredToken !== "string" ||
+    !configuredToken.trim()
+  ) {
+    return {
+      valid: false,
+      code: "AI_PROXY_TOKEN_NOT_CONFIGURED",
+      message:
+        "AI proxy authentication is not configured."
+    };
+  }
+
+  const authorization =
+    request.headers.get(
+      "Authorization"
+    ) || "";
+
+  if (
+    !authorization.startsWith(
+      "Bearer "
+    )
+  ) {
+    return {
+      valid: false,
+      code: "AI_PROXY_UNAUTHORIZED",
+      message:
+        "Valid AI proxy authorization is required."
+    };
+  }
+
+  const suppliedToken =
+    authorization
+      .slice(7)
+      .trim();
+
+  if (!suppliedToken) {
+    return {
+      valid: false,
+      code: "AI_PROXY_UNAUTHORIZED",
+      message:
+        "Valid AI proxy authorization is required."
+    };
+  }
+
+  if (
+    suppliedToken !==
+    configuredToken.trim()
+  ) {
+    return {
+      valid: false,
+      code: "AI_PROXY_UNAUTHORIZED",
+      message:
+        "Valid AI proxy authorization is required."
+    };
+  }
+
+  return {
+    valid: true
+  };
+}
+
+
+/* ================================================================
+ * 17. GEMINI MODEL
  * ================================================================ */
 
 function getGeminiModel(env) {
@@ -694,7 +764,7 @@ function getGeminiModel(env) {
 
 
 /* ================================================================
- * 17. GEMINI AI PROXY
+ * 18. GEMINI AI PROXY
  * ================================================================ */
 
 async function handleAI(
@@ -727,6 +797,31 @@ async function handleAI(
       requestId
     );
   }
+
+
+  /* ------------------------------------------------------------
+ * AI proxy token validation
+ * ---------------------------------------------------------- */
+
+const proxyAuth =
+  validateAIProxyToken(
+    request,
+    env
+  );
+
+if (!proxyAuth.valid) {
+  return errorResponse(
+    request,
+    env,
+    proxyAuth.code ===
+      "AI_PROXY_TOKEN_NOT_CONFIGURED"
+      ? 503
+      : 401,
+    proxyAuth.code,
+    proxyAuth.message,
+    requestId
+  );
+}
 
 
   /* ------------------------------------------------------------
@@ -967,7 +1062,7 @@ async function handleAI(
 
 
 /* ================================================================
- * 18. API ROUTER
+ * 19. API ROUTER
  * ================================================================ */
 
 async function routeAPI(
@@ -1064,7 +1159,7 @@ async function routeAPI(
 
 
 /* ================================================================
- * 19. ROOT RESPONSE
+ * 20. ROOT RESPONSE
  * ================================================================ */
 
 async function handleRoot(
@@ -1100,7 +1195,7 @@ async function handleRoot(
 
 
 /* ================================================================
- * 20. REQUEST-ID RESPONSE HEADER
+ * 21. REQUEST-ID RESPONSE HEADER
  * ================================================================ */
 
 function addRequestId(
@@ -1133,7 +1228,7 @@ function addRequestId(
 
 
 /* ================================================================
- * 21. GLOBAL REQUEST HANDLER
+ * 22. GLOBAL REQUEST HANDLER
  * ================================================================ */
 
 async function handleRequest(
@@ -1274,7 +1369,7 @@ async function handleRequest(
 
 
 /* ================================================================
- * 22. GLOBAL FATAL ERROR HANDLER
+ * 23. GLOBAL FATAL ERROR HANDLER
  * ================================================================ */
 
 function handleFatalError(
@@ -1309,7 +1404,7 @@ function handleFatalError(
 
 
 /* ================================================================
- * 23. CLOUDFLARE MODULE WORKER ENTRY POINT
+ * 24. CLOUDFLARE MODULE WORKER ENTRY POINT
  * ================================================================ */
 
 export default {
