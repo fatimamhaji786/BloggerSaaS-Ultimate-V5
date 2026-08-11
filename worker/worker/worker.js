@@ -61,7 +61,7 @@ const CONFIG = Object.freeze({
 
   ENABLE_LOGS: true,
 
-  DEFAULT_CORS_ORIGINS: "*",
+  DEFAULT_CORS_ORIGINS: "",
 
   HEALTH_PATH: "/api/health",
   VERSION_PATH: "/api/version",
