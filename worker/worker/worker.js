@@ -8,7 +8,7 @@
  *   worker/worker/worker.js
  *
  * Version:
- *   5.1.3
+ *   5.1.5
  *
  * Purpose:
  *   Production API foundation and Gemini AI proxy.
@@ -53,7 +53,7 @@
 
 const CONFIG = Object.freeze({
   APP_NAME: "BloggerSaaS Ultimate V5",
-  VERSION: "5.1.3",
+  VERSION: "5.1.5",
 
   API_PREFIX: "/api",
 
@@ -72,7 +72,7 @@ const CONFIG = Object.freeze({
     "https://generativelanguage.googleapis.com/v1beta",
 
   DEFAULT_GEMINI_MODEL:
-    "gemini-2.5-flash"
+    "gemini-3.6-flash"
 });
 
 
