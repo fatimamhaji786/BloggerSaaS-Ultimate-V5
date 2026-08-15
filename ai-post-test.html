@@ -13,7 +13,7 @@
     content="noindex,nofollow"
   >
 
-  <title>BloggerSaaS Ultimate V5 — AI POST Endpoint Test</title>
+  <title>BloggerSaaS Ultimate V5 — AI Proxy Test</title>
 
   <style>
     * {
@@ -27,10 +27,7 @@
       min-height: 100%;
       background: #070d1d;
       color: #f5f7ff;
-      font-family:
-        Arial,
-        Helvetica,
-        sans-serif;
+      font-family: Arial, Helvetica, sans-serif;
     }
 
     body {
@@ -118,10 +115,7 @@
       white-space: pre-wrap;
       word-break: break-word;
       line-height: 1.6;
-      font-family:
-        Consolas,
-        Monaco,
-        monospace;
+      font-family: Consolas, Monaco, monospace;
       font-size: 14px;
     }
 
@@ -156,16 +150,10 @@
     <h1>BloggerSaaS Ultimate V5</h1>
 
     <div class="subtitle">
-      AI POST Endpoint Test — V5.1.7
+      AI Proxy POST Endpoint Test — V5.1.7
     </div>
 
-
-    <!-- =========================================================
-         WORKER INFORMATION
-         ========================================================= -->
-
     <div class="card">
-
       <strong>Production Worker</strong>
 
       <div
@@ -175,15 +163,9 @@
           word-break: break-word;
         "
       >
-        bloggersaas-ai-proxy.fatimamhajia.workers.dev
+        https://d11399ac-bloggersaas-ai-proxy.fatimamhajia.workers.dev
       </div>
-
     </div>
-
-
-    <!-- =========================================================
-         AI PROXY TOKEN
-         ========================================================= -->
 
     <div class="card">
 
@@ -204,17 +186,12 @@
       >
 
       <div class="hint">
-        Your token is entered only in this browser session.
-        It is NOT stored in this GitHub file.
-        Do not paste your token into the source code.
+        Enter your AI Proxy Token only for this test.
+        It is not stored in this page or GitHub.
+        Never place the token inside the source code.
       </div>
 
     </div>
-
-
-    <!-- =========================================================
-         PROMPT
-         ========================================================= -->
 
     <div class="card">
 
@@ -227,7 +204,6 @@
 
       <textarea
         id="prompt"
-        placeholder="Enter a test prompt..."
       >Please reply with: BloggerSaaS Ultimate V5 AI Proxy is working.</textarea>
 
       <button
@@ -238,11 +214,6 @@
       </button>
 
     </div>
-
-
-    <!-- =========================================================
-         RESULT
-         ========================================================= -->
 
     <div class="card">
 
@@ -258,56 +229,46 @@
 
     </div>
 
-
     <div class="small">
-      Security test page — no API key or proxy token is hard-coded.
+      V5.1.7 security test page.
+      No Gemini API key or AI proxy token is hard-coded.
     </div>
 
   </div>
 
-
   <script>
     "use strict";
 
-
     /* ============================================================
-     * CONFIGURATION
+     * 1. PRODUCTION CONFIGURATION
      * ============================================================ */
 
     const WORKER_BASE =
-  "https://bloggersaas-ai-proxy.fatimamhajia.workers.dev";
+      "https://d11399ac-bloggersaas-ai-proxy.fatimamhajia.workers.dev";
 
-const AI_ENDPOINT =
-  `${WORKER_BASE}/api/ai`;
+    const AI_ENDPOINT =
+      `${WORKER_BASE}/api/ai`;
 
 
     /* ============================================================
-     * DOM
+     * 2. DOM REFERENCES
      * ============================================================ */
 
     const tokenInput =
-      document.getElementById(
-        "proxyToken"
-      );
+      document.getElementById("proxyToken");
 
     const promptInput =
-      document.getElementById(
-        "prompt"
-      );
+      document.getElementById("prompt");
 
     const sendButton =
-      document.getElementById(
-        "sendButton"
-      );
+      document.getElementById("sendButton");
 
     const result =
-      document.getElementById(
-        "result"
-      );
+      document.getElementById("result");
 
 
     /* ============================================================
-     * DISPLAY HELPERS
+     * 3. DISPLAY HELPERS
      * ============================================================ */
 
     function showResult(
@@ -322,9 +283,7 @@ const AI_ENDPOINT =
     }
 
 
-    function formatJSON(
-      value
-    ) {
+    function formatJSON(value) {
       try {
         return JSON.stringify(
           value,
@@ -338,7 +297,7 @@ const AI_ENDPOINT =
 
 
     /* ============================================================
-     * SEND REAL POST REQUEST
+     * 4. REAL AUTHENTICATED POST REQUEST
      * ============================================================ */
 
     async function sendRealPostRequest() {
@@ -349,10 +308,6 @@ const AI_ENDPOINT =
       const prompt =
         promptInput.value.trim();
 
-
-      /* ----------------------------------------------------------
-       * Token validation
-       * -------------------------------------------------------- */
 
       if (!token) {
 
@@ -366,10 +321,6 @@ const AI_ENDPOINT =
       }
 
 
-      /* ----------------------------------------------------------
-       * Prompt validation
-       * -------------------------------------------------------- */
-
       if (!prompt) {
 
         showResult(
@@ -381,10 +332,6 @@ const AI_ENDPOINT =
         return;
       }
 
-
-      /* ----------------------------------------------------------
-       * Disable button
-       * -------------------------------------------------------- */
 
       sendButton.disabled =
         true;
@@ -399,10 +346,6 @@ const AI_ENDPOINT =
       );
 
 
-      /* ----------------------------------------------------------
-       * Gemini-compatible payload
-       * -------------------------------------------------------- */
-
       const payload = {
 
         prompt: prompt,
@@ -416,10 +359,6 @@ const AI_ENDPOINT =
 
 
       try {
-
-        /* --------------------------------------------------------
-         * REAL REQUEST
-         * ------------------------------------------------------ */
 
         const response =
           await fetch(
@@ -445,10 +384,6 @@ const AI_ENDPOINT =
           );
 
 
-        /* --------------------------------------------------------
-         * Read response
-         * ------------------------------------------------------ */
-
         const responseText =
           await response.text();
 
@@ -470,10 +405,6 @@ const AI_ENDPOINT =
         }
 
 
-        /* --------------------------------------------------------
-         * HTTP ERROR
-         * ------------------------------------------------------ */
-
         if (!response.ok) {
 
           showResult(
@@ -486,7 +417,8 @@ const AI_ENDPOINT =
               responseData
             ),
 
-            response.status === 401
+            response.status === 401 ||
+            response.status === 503
               ? "warning"
               : "error"
 
@@ -495,10 +427,6 @@ const AI_ENDPOINT =
           return;
         }
 
-
-        /* --------------------------------------------------------
-         * SUCCESS
-         * ------------------------------------------------------ */
 
         showResult(
 
@@ -516,10 +444,6 @@ const AI_ENDPOINT =
 
 
       } catch (error) {
-
-        /* --------------------------------------------------------
-         * NETWORK / CORS / FETCH ERROR
-         * ------------------------------------------------------ */
 
         showResult(
 
@@ -553,7 +477,7 @@ const AI_ENDPOINT =
 
 
     /* ============================================================
-     * BUTTON
+     * 5. BUTTON
      * ============================================================ */
 
     sendButton.addEventListener(
@@ -563,12 +487,12 @@ const AI_ENDPOINT =
 
 
     /* ============================================================
-     * ENTER KEY
+     * 6. CTRL/CMD + ENTER
      * ============================================================ */
 
     promptInput.addEventListener(
       "keydown",
-      function (event) {
+      function(event) {
 
         if (
           event.key === "Enter" &&
@@ -584,4 +508,4 @@ const AI_ENDPOINT =
   </script>
 
 </body>
-        </html>
+  </html>
