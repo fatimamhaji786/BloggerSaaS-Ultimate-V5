@@ -117,47 +117,68 @@ function nowISO() {
  * 4. CORS
  * ================================================================ */
 
+/* ================================================================
+ * 4. CORS — PRODUCTION HARDENED
+ * ================================================================ */
+
+function getAllowedCorsOrigins(env) {
+  const configuredOrigins =
+    typeof env?.CORS_ORIGINS === "string" &&
+    env.CORS_ORIGINS.trim()
+      ? env.CORS_ORIGINS
+      : CONFIG.DEFAULT_CORS_ORIGINS;
+
+  return configuredOrigins
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+}
+
+
 function getCorsOrigin(request, env) {
   const requestOrigin =
     request.headers.get("Origin");
 
-  // No Origin header means this is not a browser
-  // cross-origin request.
+  /*
+   * Requests without an Origin header are normally
+   * same-origin, server-to-server, or non-browser requests.
+   *
+   * They do not require Access-Control-Allow-Origin.
+   */
   if (!requestOrigin) {
-    return "null";
+    return null;
   }
 
-  const configuredOrigins =
-    typeof env?.CORS_ORIGINS === "string"
-      ? env.CORS_ORIGINS
-      : CONFIG.DEFAULT_CORS_ORIGINS;
-
   const allowedOrigins =
-    configuredOrigins
-      .split(",")
-      .map((item) => item.trim())
-      .filter(Boolean);
+    getAllowedCorsOrigins(env);
 
-  // Only return an origin that is explicitly
-  // configured in CORS_ORIGINS.
+  /*
+   * Exact origin matching.
+   *
+   * We NEVER reflect an arbitrary Origin header.
+   */
   if (
-    allowedOrigins.includes(requestOrigin)
+    allowedOrigins.includes(
+      requestOrigin
+    )
   ) {
     return requestOrigin;
   }
 
-  // Never reflect an untrusted Origin.
-  return "null";
+  return null;
 }
 
 
 function corsHeaders(request, env) {
-  return {
-    "Access-Control-Allow-Origin":
-      getCorsOrigin(request, env),
+  const origin =
+    getCorsOrigin(
+      request,
+      env
+    );
 
+  const headers = {
     "Access-Control-Allow-Methods":
-      "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+      "GET, POST, OPTIONS",
 
     "Access-Control-Allow-Headers":
       "Content-Type, Authorization, X-Requested-With, X-Request-ID",
@@ -171,6 +192,18 @@ function corsHeaders(request, env) {
     "Vary":
       "Origin"
   };
+
+  /*
+   * Only send ACAO when the requesting Origin
+   * is explicitly allowed.
+   */
+  if (origin) {
+    headers[
+      "Access-Control-Allow-Origin"
+    ] = origin;
+  }
+
+  return headers;
 }
 
 
