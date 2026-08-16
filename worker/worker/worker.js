@@ -121,24 +121,32 @@ function getCorsOrigin(request, env) {
   const requestOrigin =
     request.headers.get("Origin");
 
+  // No Origin header means this is not a browser
+  // cross-origin request.
+  if (!requestOrigin) {
+    return "null";
+  }
+
   const configuredOrigins =
     typeof env?.CORS_ORIGINS === "string"
       ? env.CORS_ORIGINS
       : CONFIG.DEFAULT_CORS_ORIGINS;
 
-  const allowed =
+  const allowedOrigins =
     configuredOrigins
       .split(",")
       .map((item) => item.trim())
       .filter(Boolean);
 
+  // Only return an origin that is explicitly
+  // configured in CORS_ORIGINS.
   if (
-    requestOrigin &&
-    allowed.includes(requestOrigin)
+    allowedOrigins.includes(requestOrigin)
   ) {
     return requestOrigin;
   }
 
+  // Never reflect an untrusted Origin.
   return "null";
 }
 
