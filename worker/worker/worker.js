@@ -103,6 +103,26 @@ const SECURITY_HEADERS = Object.freeze({
  * 3. REQUEST UTILITIES
  * ================================================================ */
 
+function normalizeGeminiResponse(providerData, requestId, model) {
+  const text =
+    providerData?.candidates?.[0]?.content?.parts
+      ?.filter(part => typeof part?.text === "string")
+      ?.map(part => part.text)
+      ?.join("") || "";
+
+  const candidate = providerData?.candidates?.[0];
+
+  return {
+    success: true,
+    data: {
+      text,
+      model: model || null,
+      finishReason: candidate?.finishReason || null
+    },
+    requestId
+  };
+}
+
 function createRequestId() {
   return crypto.randomUUID();
 }
