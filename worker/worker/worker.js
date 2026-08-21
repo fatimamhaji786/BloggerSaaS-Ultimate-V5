@@ -77,7 +77,7 @@ const CONFIG = Object.freeze({
 
 
 /* ================================================================
- * 2. SECURITY HEADERS
+* 2. SECURITY HEADERS
  * ================================================================ */
 
 const SECURITY_HEADERS = Object.freeze({
