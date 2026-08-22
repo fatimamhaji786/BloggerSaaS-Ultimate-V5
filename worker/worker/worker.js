@@ -1097,29 +1097,66 @@ if (!proxyAuth.valid) {
    * The browser never receives the Gemini API key.
    * ---------------------------------------------------------- */
 
-  return new Response(
-    responseText,
-    {
-      status:
-        upstreamResponse.status,
+  /* ------------------------------------------------------------
+ * Normalize successful Gemini response
+ * ---------------------------------------------------------- */
 
-      headers:
-        buildHeaders(
-          request,
-          env,
-          {
-            "Content-Type":
-              upstreamResponse
-                .headers
-                .get(
-                  "Content-Type"
-                ) ||
-              "application/json; charset=utf-8"
-          }
-        )
-    }
+if (upstreamResponse.ok) {
+  let providerData;
+
+  try {
+    providerData =
+      JSON.parse(responseText);
+  } catch {
+    return errorResponse(
+      request,
+      env,
+      502,
+      "GEMINI_INVALID_RESPONSE",
+      "Gemini returned an invalid JSON response.",
+      requestId
+    );
+  }
+
+  return jsonResponse(
+    request,
+    env,
+    normalizeGeminiResponse(
+      providerData,
+      requestId,
+      model
+    ),
+    200
   );
 }
+
+
+/* ------------------------------------------------------------
+ * Preserve Gemini error details
+ * ---------------------------------------------------------- */
+
+return new Response(
+  responseText,
+  {
+    status:
+      upstreamResponse.status,
+
+    headers:
+      buildHeaders(
+        request,
+        env,
+        {
+          "Content-Type":
+            upstreamResponse
+              .headers
+              .get(
+                "Content-Type"
+              ) ||
+            "application/json; charset=utf-8"
+        }
+      )
+  }
+);
 
 
 /* ================================================================
