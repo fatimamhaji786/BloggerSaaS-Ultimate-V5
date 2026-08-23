@@ -1,37 +1,145 @@
 /*
 ===========================================
 BloggerSaaS Ultimate V5 Enterprise
-Authentication
+Firebase Authentication
 ===========================================
 */
 
-// This file will contain:
-// - Login
-// - Logout
-// - Forgot Password
-// - Session Check
-// - Route Protection
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  signOut,
+  sendPasswordResetEmail
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 
-function login(email, password) {
+import {
+  initializeApp
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
 
-    console.log("Login:", email);
+import {
+  firebaseConfig
+} from "./firebase-config.js";
 
-    // Firebase Authentication code will be added here.
 
+/* ============================================================
+ * Firebase initialization
+ * ============================================================ */
+
+const app = initializeApp(firebaseConfig);
+
+const auth = getAuth(app);
+
+const googleProvider =
+  new GoogleAuthProvider();
+
+
+/* ============================================================
+ * EMAIL / PASSWORD LOGIN
+ * ============================================================ */
+
+export async function login(
+  email,
+  password
+) {
+  const normalizedEmail =
+    String(email || "")
+      .trim();
+
+  if (!normalizedEmail) {
+    throw new Error(
+      "Please enter your email address."
+    );
+  }
+
+  if (!password) {
+    throw new Error(
+      "Please enter your password."
+    );
+  }
+
+  return await signInWithEmailAndPassword(
+    auth,
+    normalizedEmail,
+    password
+  );
 }
 
-function logout() {
 
-    console.log("Logout");
+/* ============================================================
+ * GOOGLE LOGIN
+ * ============================================================ */
 
-    // Firebase Sign Out
-
+export async function loginWithGoogle() {
+  return await signInWithPopup(
+    auth,
+    googleProvider
+  );
 }
 
-function checkAuth() {
 
-    console.log("Checking user session...");
+/* ============================================================
+ * LOGOUT
+ * ============================================================ */
 
-    // Firebase Auth State Listener
-
+export async function logout() {
+  await signOut(auth);
 }
+
+
+/* ============================================================
+ * PASSWORD RESET
+ * ============================================================ */
+
+export async function resetPassword(
+  email
+) {
+  const normalizedEmail =
+    String(email || "")
+      .trim();
+
+  if (!normalizedEmail) {
+    throw new Error(
+      "Please enter your email address."
+    );
+  }
+
+  return await sendPasswordResetEmail(
+    auth,
+    normalizedEmail
+  );
+}
+
+
+/* ============================================================
+ * SESSION CHECK
+ * ============================================================ */
+
+export function checkAuth(
+  callback
+) {
+  return onAuthStateChanged(
+    auth,
+    callback
+  );
+}
+
+
+/* ============================================================
+ * CURRENT USER
+ * ============================================================ */
+
+export function getCurrentUser() {
+  return auth.currentUser;
+}
+
+
+/* ============================================================
+ * EXPORT AUTH INSTANCE
+ * ============================================================ */
+
+export {
+  auth
+};
