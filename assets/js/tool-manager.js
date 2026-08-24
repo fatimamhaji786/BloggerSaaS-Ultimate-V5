@@ -1,239 +1,118 @@
-/*==========================================================
- BloggerSaaS Ultimate V3
+/*
+==========================================================
+ BloggerSaaS Ultimate V5 Enterprise
  Tool Manager
- Version : 3.0
- Author : ChatGPT + Fatima Haji
-==========================================================*/
-
-/*==========================================================
- Firebase Configuration
-==========================================================*/
+==========================================================
+*/
 
 const firebaseConfig = {
-    apiKey: "AIzaSyBJLJTKsM3wjYZFx9je2tAtxs4zPQu_7e8",
+    apiKey: "YOUR_EXISTING_FIREBASE_API_KEY",
     authDomain: "bloggersaas-v1.firebaseapp.com",
-    databaseURL:
-    "https://bloggersaas-v1-default-rtdb.asia-southeast1.firebasedatabase.app",
+    databaseURL: "https://bloggersaas-v1-default-rtdb.asia-southeast1.firebasedatabase.app",
     projectId: "bloggersaas-v1",
     storageBucket: "bloggersaas-v1.firebasestorage.app",
-    messagingSenderId: "187643103324",
-    appId:
-    "1:187643103324:web:e5070919496c09a277be99"
+    messagingSenderId: "YOUR_EXISTING_MESSAGING_SENDER_ID",
+    appId: "YOUR_EXISTING_FIREBASE_APP_ID"
 };
 
-/*==========================================================
- Initialize Firebase
-==========================================================*/
+/* ======================================================
+   Firebase Initialization
+====================================================== */
 
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 
-const database = firebase.database();
 const auth = firebase.auth();
-
-/*==========================================================
- Global Variables
-==========================================================*/
-
-let currentEditingKey = null;
-
-let tools = [];
-
-let filteredTools = [];
-
-let currentSort = "name";
-
-let currentCategory = "All";
-
-/*==========================================================
- DOM Elements
-==========================================================*/
-
-const toolGrid = document.getElementById("toolGrid");
-
-const modal = document.getElementById("toolModal");
-
-const modalTitle = document.getElementById("modalTitle");
-
-const addToolBtn = document.getElementById("addToolBtn");
-
-const saveToolBtn = document.getElementById("saveToolBtn");
-
-const closeBtn = document.querySelector(".close");
-
-const searchInput = document.getElementById("searchTool");
-
-const totalTools = document.getElementById("totalTools");
-
-const totalCategories = document.getElementById("totalCategories");
-
-const activeTools = document.getElementById("activeTools");
-
-const lastUpdated = document.getElementById("lastUpdated");
-
-/*==========================================================
- Firebase Reference
-==========================================================*/
-
+const database = firebase.database();
 const toolsRef = database.ref("tools");
 
-/*==========================================================
- Application Start
-==========================================================*/
+/* ======================================================
+   Application State
+====================================================== */
 
-document.addEventListener("DOMContentLoaded", () => {
+let toolsCache = [];
+let currentEditingKey = null;
+let searchKeyword = "";
 
-    console.clear();
+/* ======================================================
+   DOM Elements
+====================================================== */
 
-    console.log("======================================");
+const toolGrid = document.getElementById("toolGrid");
+const modal = document.getElementById("toolModal");
+const modalTitle = document.getElementById("modalTitle");
+const addToolBtn = document.getElementById("addToolBtn");
+const saveToolBtn = document.getElementById("saveToolBtn");
+const closeBtn = document.querySelector(".close");
+const searchInput = document.getElementById("searchTool");
 
-    console.log(" BloggerSaaS Ultimate V3");
+const totalToolsCard = document.getElementById("totalTools");
+const totalCategoriesCard = document.getElementById("totalCategories");
+const activeToolsCard = document.getElementById("activeTools");
+const lastUpdatedCard = document.getElementById("lastUpdated");
 
-    console.log(" Tool Manager Started");
+const toolName = document.getElementById("toolName");
+const toolCategory = document.getElementById("toolCategory");
+const toolURL = document.getElementById("toolURL");
+const toolDescription = document.getElementById("toolDescription");
 
-    console.log("======================================");
+/* ======================================================
+   Utility Functions
+====================================================== */
 
-    initializeToolManager();
+function generateTimestamp() {
+    return Date.now();
+}
 
-});
+function generateReadableDate(timestamp) {
+    if (!timestamp) return "--";
 
-// ======================================================
-// BloggerSaaS Ultimate V3
-// Tool Manager
-// Part 2
-// Authentication + Global Variables
-// ======================================================
+    return new Date(timestamp).toLocaleString();
+}
 
-// ------------------------------------------------------
-// Firebase Services
-// ------------------------------------------------------
-
-const auth = firebase.auth();
-const database = firebase.database();
-
-// ------------------------------------------------------
-// Authentication Guard
-// ------------------------------------------------------
+/* ======================================================
+   Authentication Guard
+====================================================== */
 
 auth.onAuthStateChanged((user) => {
 
     if (!user) {
-
-        window.location.href = "../login.html";
+        window.location.href = "login.html";
         return;
-
     }
 
-    console.log("✅ Logged in as:", user.email);
+    console.log("✅ Tool Manager authenticated:", user.email);
 
+    initializeToolManager();
 });
 
-// ------------------------------------------------------
-// Global Variables
-// ------------------------------------------------------
+/* ======================================================
+   Initialize Tool Manager
+====================================================== */
 
-let currentEditingKey = null;
-let currentEditingCard = null;
+let initialized = false;
 
-let toolsCache = [];
+function initializeToolManager() {
 
-let selectedCategory = "all";
+    if (initialized) return;
 
-let searchKeyword = "";
+    initialized = true;
 
-// ------------------------------------------------------
-// DOM Elements
-// ------------------------------------------------------
+    console.log("======================================");
+    console.log(" BloggerSaaS Ultimate V5");
+    console.log(" Tool Manager Started");
+    console.log("======================================");
 
-const toolGrid = document.getElementById("toolGrid");
-
-const modal = document.getElementById("toolModal");
-
-const modalTitle = document.getElementById("modalTitle");
-
-const saveToolBtn = document.getElementById("saveToolBtn");
-
-const addToolBtn = document.getElementById("addToolBtn");
-
-const searchInput = document.getElementById("searchTool");
-
-const closeBtn = document.querySelector(".close");
-
-// Dashboard Cards
-
-const totalToolsCard =
-document.getElementById("totalTools");
-
-const totalCategoriesCard =
-document.getElementById("totalCategories");
-
-const activeToolsCard =
-document.getElementById("activeTools");
-
-const lastUpdatedCard =
-document.getElementById("lastUpdated");
-
-// ------------------------------------------------------
-// Form Fields
-// ------------------------------------------------------
-
-const toolName =
-document.getElementById("toolName");
-
-const toolCategory =
-document.getElementById("toolCategory");
-
-const toolURL =
-document.getElementById("toolURL");
-
-const toolDescription =
-document.getElementById("toolDescription");
-
-// ------------------------------------------------------
-// Utility
-// ------------------------------------------------------
-
-function generateTimestamp(){
-
-    return Date.now();
-
-}
-
-function generateReadableDate(timestamp){
-
-    if(!timestamp) return "--";
-
-    return new Date(timestamp).toLocaleString();
-
-}
-
-// ------------------------------------------------------
-// Initial Application Load
-// ------------------------------------------------------
-
-document.addEventListener("DOMContentLoaded",()=>{
-
-    console.log("🚀 Tool Manager V3 Started");
-
-    initialiseEvents();
-
+    initializeEvents();
     loadTools();
+}
 
-});
+/* ======================================================
+   Event Handlers
+====================================================== */
 
-// ======================================================
-// BloggerSaaS Ultimate V3
-// Tool Manager
-// Part 3
-// Modal Manager + Form Validation
-// ======================================================
-
-// ------------------------------------------------------
-// Initialise Events
-// ------------------------------------------------------
-
-function initialiseEvents() {
+function initializeEvents() {
 
     if (addToolBtn) {
         addToolBtn.addEventListener("click", openAddModal);
@@ -249,9 +128,9 @@ function initialiseEvents() {
 
     if (searchInput) {
 
-        searchInput.addEventListener("keyup", function () {
+        searchInput.addEventListener("input", function () {
 
-            searchKeyword = this.value.toLowerCase();
+            searchKeyword = this.value.trim().toLowerCase();
 
             renderTools();
 
@@ -259,11 +138,28 @@ function initialiseEvents() {
 
     }
 
-    window.addEventListener("click", function (e) {
+    window.addEventListener("click", function (event) {
 
-        if (e.target === modal) {
-
+        if (event.target === modal) {
             closeModal();
+        }
+
+    });
+
+    document.addEventListener("keydown", function (event) {
+
+        if (event.key === "Escape") {
+            closeModal();
+        }
+
+        if (
+            event.ctrlKey &&
+            event.key.toLowerCase() === "n"
+        ) {
+
+            event.preventDefault();
+
+            openAddModal();
 
         }
 
@@ -271,58 +167,75 @@ function initialiseEvents() {
 
 }
 
-// ------------------------------------------------------
-// Open Add Tool Modal
-// ------------------------------------------------------
+/* ======================================================
+   Add Tool
+====================================================== */
 
 function openAddModal() {
 
     currentEditingKey = null;
 
-    modalTitle.innerHTML =
-    '<i class="fas fa-plus-circle"></i> Add New Tool';
+    if (modalTitle) {
+        modalTitle.textContent = "Add New Tool";
+    }
 
     clearForm();
 
-    modal.style.display = "block";
+    if (modal) {
+        modal.style.display = "block";
+    }
 
 }
 
-// ------------------------------------------------------
-// Open Edit Tool Modal
-// ------------------------------------------------------
+/* ======================================================
+   Edit Tool
+====================================================== */
 
 function openEditModal(toolKey) {
 
-    currentEditingKey = toolKey;
-
-    const tool = toolsCache.find(t => t.key === toolKey);
+    const tool = toolsCache.find(
+        item => item.key === toolKey
+    );
 
     if (!tool) return;
 
-    modalTitle.innerHTML =
-    '<i class="fas fa-edit"></i> Edit Tool';
+    currentEditingKey = toolKey;
 
-    toolName.value = tool.name || "";
+    if (modalTitle) {
+        modalTitle.textContent = "Edit Tool";
+    }
 
-    toolCategory.value = tool.category || "";
+    if (toolName) {
+        toolName.value = tool.name || "";
+    }
 
-    toolURL.value = tool.url || "";
+    if (toolCategory) {
+        toolCategory.value = tool.category || "";
+    }
 
-    toolDescription.value =
-    tool.description || "";
+    if (toolURL) {
+        toolURL.value = tool.url || "";
+    }
 
-    modal.style.display = "block";
+    if (toolDescription) {
+        toolDescription.value = tool.description || "";
+    }
+
+    if (modal) {
+        modal.style.display = "block";
+    }
 
 }
 
-// ------------------------------------------------------
-// Close Modal
-// ------------------------------------------------------
+/* ======================================================
+   Close Modal
+====================================================== */
 
 function closeModal() {
 
-    modal.style.display = "none";
+    if (modal) {
+        modal.style.display = "none";
+    }
 
     clearForm();
 
@@ -330,59 +243,73 @@ function closeModal() {
 
 }
 
-// ------------------------------------------------------
-// Clear Form
-// ------------------------------------------------------
+/* ======================================================
+   Clear Form
+====================================================== */
 
 function clearForm() {
 
-    toolName.value = "";
+    if (toolName) {
+        toolName.value = "";
+    }
 
-    toolCategory.value = "";
+    if (toolCategory) {
+        toolCategory.value = "";
+    }
 
-    toolURL.value = "";
+    if (toolURL) {
+        toolURL.value = "";
+    }
 
-    toolDescription.value = "";
+    if (toolDescription) {
+        toolDescription.value = "";
+    }
 
 }
 
-// ------------------------------------------------------
-// Form Validation
-// ------------------------------------------------------
+/* ======================================================
+   Validate Form
+====================================================== */
 
 function validateForm() {
 
-    if (toolName.value.trim() === "") {
+    if (!toolName || toolName.value.trim() === "") {
 
         alert("Please enter Tool Name.");
 
-        toolName.focus();
+        if (toolName) {
+            toolName.focus();
+        }
 
         return false;
-
     }
 
-    if (toolCategory.value.trim() === "") {
+    if (
+        !toolCategory ||
+        toolCategory.value.trim() === ""
+    ) {
 
         alert("Please enter Category.");
 
-        toolCategory.focus();
+        if (toolCategory) {
+            toolCategory.focus();
+        }
 
         return false;
-
     }
 
     return true;
-
 }
 
-// ------------------------------------------------------
-// Save Tool
-// ------------------------------------------------------
+/* ======================================================
+   Save Tool
+====================================================== */
 
 function saveTool() {
 
-    if (!validateForm()) return;
+    if (!validateForm()) {
+        return;
+    }
 
     const toolData = {
 
@@ -390,9 +317,13 @@ function saveTool() {
 
         category: toolCategory.value.trim(),
 
-        url: toolURL.value.trim(),
+        url: toolURL
+            ? toolURL.value.trim()
+            : "",
 
-        description: toolDescription.value.trim(),
+        description: toolDescription
+            ? toolDescription.value.trim()
+            : "",
 
         active: true,
 
@@ -402,198 +333,212 @@ function saveTool() {
 
     };
 
-    // ----------------------------
-    // Edit Existing Tool
-    // ----------------------------
+    /* --------------------------------------------------
+       Update Existing Tool
+    -------------------------------------------------- */
 
     if (currentEditingKey) {
 
         database
-        .ref("tools/" + currentEditingKey)
-        .update(toolData)
-        .then(() => {
+            .ref("tools/" + currentEditingKey)
+            .update(toolData)
+            .then(() => {
 
-            alert("✅ Tool Updated Successfully");
+                alert("✅ Tool Updated Successfully");
 
-            closeModal();
+                closeModal();
 
-        })
-        .catch(error => {
+            })
+            .catch((error) => {
 
-            alert(error.message);
+                console.error(
+                    "Tool update failed:",
+                    error
+                );
 
-        });
+                alert(
+                    "Unable to update tool: " +
+                    error.message
+                );
+
+            });
 
         return;
-
     }
 
-    // ----------------------------
-    // New Tool
-    // ----------------------------
+    /* --------------------------------------------------
+       Create New Tool
+    -------------------------------------------------- */
 
     toolData.createdAt = generateTimestamp();
 
     database
-    .ref("tools")
-    .push(toolData)
-    .then(() => {
+        .ref("tools")
+        .push(toolData)
+        .then(() => {
 
-        alert("✅ New Tool Added");
+            alert("✅ New Tool Added");
 
-        closeModal();
+            closeModal();
 
-    })
-    .catch(error => {
+        })
+        .catch((error) => {
 
-        alert(error.message);
+            console.error(
+                "Tool creation failed:",
+                error
+            );
 
-    });
-
-     }
-// ======================================================
-// BloggerSaaS Ultimate V3
-// Tool Manager
-// Part 4
-// Load Tools + Render Cards
-// ======================================================
-
-// ------------------------------------------------------
-// Load Tools from Firebase
-// ------------------------------------------------------
-
-function loadTools() {
-
-    toolsRef.on("value", (snapshot) => {
-
-        toolsCache = [];
-
-        if (!snapshot.exists()) {
-
-            renderEmptyState();
-
-            updateDashboard();
-
-            return;
-
-        }
-
-        snapshot.forEach((child) => {
-
-            toolsCache.push({
-
-                key: child.key,
-
-                ...child.val()
-
-            });
+            alert(
+                "Unable to add tool: " +
+                error.message
+            );
 
         });
 
-        renderTools();
+}
 
-        updateDashboard();
+/* ======================================================
+   Load Tools
+====================================================== */
 
-    });
+function loadTools() {
+
+    toolsRef.on(
+        "value",
+        (snapshot) => {
+
+            toolsCache = [];
+
+            if (snapshot.exists()) {
+
+                snapshot.forEach((child) => {
+
+                    toolsCache.push({
+
+                        key: child.key,
+
+                        ...child.val()
+
+                    });
+
+                });
+
+            }
+
+            renderTools();
+
+            updateDashboard();
+
+        },
+        (error) => {
+
+            console.error(
+                "Firebase tools read failed:",
+                error
+            );
+
+            if (toolGrid) {
+
+                toolGrid.innerHTML = `
+                    <div class="empty-state">
+                        <h2>Firebase Error</h2>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+
+            }
+
+        }
+    );
 
 }
 
-// ------------------------------------------------------
-// Render Tools
-// ------------------------------------------------------
+/* ======================================================
+   Render Tools
+====================================================== */
 
 function renderTools() {
+
+    if (!toolGrid) return;
 
     toolGrid.innerHTML = "";
 
     let visibleTools = toolsCache;
 
-    // ------------------------------
-    // Search
-    // ------------------------------
-
     if (searchKeyword !== "") {
 
-        visibleTools = visibleTools.filter(tool =>
+        visibleTools = visibleTools.filter(
+            (tool) => {
 
-            (tool.name || "")
-            .toLowerCase()
-            .includes(searchKeyword)
+                const name =
+                    (tool.name || "")
+                    .toLowerCase();
 
-            ||
+                const category =
+                    (tool.category || "")
+                    .toLowerCase();
 
-            (tool.category || "")
-            .toLowerCase()
-            .includes(searchKeyword)
+                return (
+                    name.includes(searchKeyword) ||
+                    category.includes(searchKeyword)
+                );
 
+            }
         );
 
     }
-
-    // ------------------------------
-    // Empty Search
-    // ------------------------------
 
     if (visibleTools.length === 0) {
 
         renderEmptyState();
 
         return;
-
     }
 
-    // ------------------------------
-    // Cards
-    // ------------------------------
-
-    visibleTools.forEach(tool => {
+    visibleTools.forEach((tool) => {
 
         toolGrid.appendChild(
-
             createToolCard(tool)
-
         );
 
     });
 
 }
 
-// ------------------------------------------------------
-// Tool Card
-// ------------------------------------------------------
+/* ======================================================
+   Create Tool Card
+====================================================== */
 
 function createToolCard(tool) {
 
-    const card = document.createElement("div");
+    const card =
+        document.createElement("div");
 
     card.className = "tool-card";
 
     card.dataset.key = tool.key;
 
-    card.dataset.name =
-    (tool.name || "").toLowerCase();
+    const statusText =
+        tool.active === false
+            ? "Inactive"
+            : "Active";
 
-    card.dataset.category =
-    (tool.category || "").toLowerCase();
+    const statusClass =
+        tool.active === false
+            ? "status-inactive"
+            : "status-active";
 
     card.innerHTML = `
 
         <div class="tool-header">
 
-            <h3>${tool.name}</h3>
+            <h3>
+                ${escapeHTML(tool.name || "Unnamed Tool")}
+            </h3>
 
-            <span class="${
-                tool.active===false
-                ? "status-inactive"
-                : "status-active"
-            }">
-
-            ${
-                tool.active===false
-                ? "Inactive"
-                : "Active"
-            }
-
+            <span class="${statusClass}">
+                ${statusText}
             </span>
 
         </div>
@@ -601,29 +546,17 @@ function createToolCard(tool) {
         <div class="tool-body">
 
             <p>
-
-            <strong>Category</strong>
-
-            <br>
-
-            ${tool.category || "-"}
-
+                <strong>Category</strong><br>
+                ${escapeHTML(tool.category || "-")}
             </p>
 
             <p>
-
-            <strong>URL</strong>
-
-            <br>
-
-            ${tool.url || "-"}
-
+                <strong>URL</strong><br>
+                ${escapeHTML(tool.url || "-")}
             </p>
 
             <p>
-
-            ${tool.description || ""}
-
+                ${escapeHTML(tool.description || "")}
             </p>
 
         </div>
@@ -631,37 +564,35 @@ function createToolCard(tool) {
         <div class="tool-footer">
 
             <button
-            class="edit-btn"
-            onclick="openEditModal('${tool.key}')">
-
-            ✏️ Edit
-
+                class="edit-btn"
+                onclick="openEditModal('${tool.key}')">
+                ✏️ Edit
             </button>
 
             <button
-            class="feature-btn"
-            onclick="toggleFeatured('${tool.key}')">
-
-            ${tool.featured ? "⭐ Featured" : "☆ Feature"}
-
+                class="feature-btn"
+                onclick="toggleFeatured('${tool.key}')">
+                ${
+                    tool.featured
+                        ? "⭐ Featured"
+                        : "☆ Feature"
+                }
             </button>
 
             <button
-            class="status-btn"
-            onclick="toggleStatus('${tool.key}')">
-
-            ${tool.active===false
-            ? "🟢 Activate"
-            : "🔴 Disable"}
-
+                class="status-btn"
+                onclick="toggleStatus('${tool.key}')">
+                ${
+                    tool.active === false
+                        ? "🟢 Activate"
+                        : "🔴 Disable"
+                }
             </button>
 
             <button
-            class="delete-btn"
-            onclick="deleteTool('${tool.key}')">
-
-            🗑 Delete
-
+                class="delete-btn"
+                onclick="deleteTool('${tool.key}')">
+                🗑 Delete
             </button>
 
         </div>
@@ -669,372 +600,42 @@ function createToolCard(tool) {
     `;
 
     return card;
+}
+
+/* ======================================================
+   HTML Escape
+====================================================== */
+
+function escapeHTML(value) {
+
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 
 }
 
-// ------------------------------------------------------
-// Empty State
-// ------------------------------------------------------
+/* ======================================================
+   Empty State
+====================================================== */
 
 function renderEmptyState() {
 
-    toolGrid.innerHTML = `
-
-    <div class="empty-state">
-
-        <i class="fas fa-toolbox"></i>
-
-        <h2>No Tools Found</h2>
-
-        <p>
-
-        Click Add Tool to create your first tool.
-
-        </p>
-
-    </div>
-
-    `;
-
-}
-
-// ------------------------------------------------------
-// Dashboard Statistics
-// ------------------------------------------------------
-
-function updateDashboard() {
-
-    totalToolsCard.innerHTML = toolsCache.length;
-
-    const categories = new Set();
-
-    let active = 0;
-
-    let newest = 0;
-
-    toolsCache.forEach(tool => {
-
-        if (tool.category) {
-
-            categories.add(tool.category);
-
-        }
-
-        if (tool.active !== false) {
-
-            active++;
-
-        }
-
-        if (tool.updatedAt > newest) {
-
-            newest = tool.updatedAt;
-
-        }
-
-    });
-
-    totalCategoriesCard.innerHTML =
-    categories.size;
-
-    activeToolsCard.innerHTML =
-    active;
-
-    lastUpdatedCard.innerHTML =
-    generateReadableDate(newest);
-
-              }
-
-// ======================================================
-// BloggerSaaS Ultimate V3
-// Tool Manager
-// Part 5
-// Tool Actions
-// ======================================================
-
-// ------------------------------------------------------
-// Delete Tool
-// ------------------------------------------------------
-
-function deleteTool(toolKey) {
-
-    const tool = toolsCache.find(t => t.key === toolKey);
-
-    if (!tool) return;
-
-    const confirmed = confirm(
-        `Delete "${tool.name}" permanently?`
-    );
-
-    if (!confirmed) return;
-
-    toolsRef.child(toolKey)
-        .remove()
-        .then(() => {
-
-            console.log("Tool Deleted");
-
-        })
-        .catch(error => {
-
-            alert(error.message);
-
-        });
-
-}
-
-// ------------------------------------------------------
-// Toggle Featured
-// ------------------------------------------------------
-
-function toggleFeatured(toolKey) {
-
-    const tool = toolsCache.find(t => t.key === toolKey);
-
-    if (!tool) return;
-
-    toolsRef.child(toolKey).update({
-
-        featured: !tool.featured,
-
-        updatedAt: generateTimestamp()
-
-    });
-
-}
-
-// ------------------------------------------------------
-// Toggle Active
-// ------------------------------------------------------
-
-function toggleStatus(toolKey) {
-
-    const tool = toolsCache.find(t => t.key === toolKey);
-
-    if (!tool) return;
-
-    toolsRef.child(toolKey).update({
-
-        active: !(tool.active === false),
-
-        updatedAt: generateTimestamp()
-
-    });
-
-}
-
-// ------------------------------------------------------
-// Refresh Dashboard
-// ------------------------------------------------------
-
-function refreshDashboard() {
-
-    renderTools();
-
-    updateDashboard();
-
-}
-
-// ------------------------------------------------------
-// Dashboard Counters
-// ------------------------------------------------------
-
-function updateCounters() {
-
-    totalToolsCard.innerHTML =
-        toolsCache.length;
-
-    activeToolsCard.innerHTML =
-        toolsCache.filter(
-            tool => tool.active !== false
-        ).length;
-
-    totalCategoriesCard.innerHTML =
-        new Set(
-            toolsCache.map(
-                tool => tool.category
-            )
-        ).size;
-
-}
-
-// ------------------------------------------------------
-// Last Updated Card
-// ------------------------------------------------------
-
-function updateLastUpdated() {
-
-    if (toolsCache.length === 0) {
-
-        lastUpdatedCard.innerHTML = "--";
-
-        return;
-
-    }
-
-    let latest = 0;
-
-    toolsCache.forEach(tool => {
-
-        if (tool.updatedAt > latest) {
-
-            latest = tool.updatedAt;
-
-        }
-
-    });
-
-    lastUpdatedCard.innerHTML =
-        generateReadableDate(latest);
-
-}
-
-// ------------------------------------------------------
-// Complete Dashboard Refresh
-// ------------------------------------------------------
-
-function updateDashboard() {
-
-    updateCounters();
-
-    updateLastUpdated();
-
-}
-
-// ------------------------------------------------------
-// Firebase Live Updates
-// ------------------------------------------------------
-
-toolsRef.on("value", (snapshot) => {
-
-    toolsCache = [];
-
-    if (snapshot.exists()) {
-
-        snapshot.forEach(child => {
-
-            toolsCache.push({
-
-                key: child.key,
-
-                ...child.val()
-
-            });
-
-        });
-
-    }
-
-    refreshDashboard();
-
-});
-
-// ------------------------------------------------------
-// Console Message
-// ------------------------------------------------------
-
-console.log("✅ Part 5 Loaded Successfully");
-
-/*==========================================================
- BloggerSaaS Ultimate V3
- Tool Manager
- Part 6
- Dashboard Statistics
-==========================================================*/
-
-// ------------------------------------------------------
-// Update Dashboard Statistics
-// ------------------------------------------------------
-
-function updateDashboard() {
-
-    let total = toolsCache.length;
-
-    let active = 0;
-
-    let categories = new Set();
-
-    let latestUpdate = 0;
-
-    let featured = 0;
-
-    toolsCache.forEach(tool => {
-
-        if (tool.active !== false) {
-            active++;
-        }
-
-        if (tool.featured === true) {
-            featured++;
-        }
-
-        if (tool.category) {
-            categories.add(tool.category);
-        }
-
-        if (tool.updatedAt && tool.updatedAt > latestUpdate) {
-            latestUpdate = tool.updatedAt;
-        }
-
-    });
-
-    if (totalToolsCard)
-        totalToolsCard.textContent = total;
-
-    if (activeToolsCard)
-        activeToolsCard.textContent = active;
-
-    if (totalCategoriesCard)
-        totalCategoriesCard.textContent = categories.size;
-
-    if (lastUpdatedCard) {
-
-        if (latestUpdate === 0) {
-
-            lastUpdatedCard.textContent = "--";
-
-        } else {
-
-            lastUpdatedCard.textContent =
-            new Date(latestUpdate).toLocaleDateString();
-
-        }
-
-    }
-
-}
-
-// ------------------------------------------------------
-// Refresh Dashboard after Every Firebase Change
-// ------------------------------------------------------
-
-toolsRef.on("value", function () {
-
-    updateDashboard();
-
-});
-
-// ------------------------------------------------------
-// Empty State
-// ------------------------------------------------------
-
-function showEmptyState() {
+    if (!toolGrid) return;
 
     toolGrid.innerHTML = `
 
         <div class="empty-state">
 
-            <i class="fas fa-toolbox"
-               style="
-                    font-size:60px;
-                    color:#3b82f6;
-                    margin-bottom:20px;">
-            </i>
+            <i class="fas fa-toolbox"></i>
 
             <h2>No Tools Found</h2>
 
             <p>
-            Click "Add Tool" to create your first tool.
+                Click "Add New Tool" to create
+                your first tool.
             </p>
 
         </div>
@@ -1043,52 +644,35 @@ function showEmptyState() {
 
 }
 
-// ------------------------------------------------------
-// Refresh Dashboard Every Minute
-// ------------------------------------------------------
-
-setInterval(function () {
-
-    updateDashboard();
-
-}, 60000);
-
-// ------------------------------------------------------
-// Console
-// ------------------------------------------------------
-
-console.log("✅ Dashboard Statistics Ready");
-
-// ======================================================
-// BloggerSaaS Ultimate V3
-// Tool Manager
-// Part 8
-// Dashboard + Auto Refresh + Final Initialisation
-// ======================================================
-
-// ------------------------------------------------------
-// Dashboard Statistics
-// ------------------------------------------------------
+/* ======================================================
+   Dashboard Statistics
+====================================================== */
 
 function updateDashboard() {
 
-    const total = toolsCache.length;
+    const total =
+        toolsCache.length;
 
-    const active = toolsCache.filter(t => t.active !== false).length;
+    const active =
+        toolsCache.filter(
+            tool => tool.active !== false
+        ).length;
 
-    const categories = new Set();
+    const categories =
+        new Set(
+            toolsCache
+                .map(tool => tool.category)
+                .filter(Boolean)
+        );
 
     let latest = 0;
 
-    toolsCache.forEach(tool => {
+    toolsCache.forEach((tool) => {
 
-        if (tool.category) {
-
-            categories.add(tool.category);
-
-        }
-
-        if (tool.updatedAt && tool.updatedAt > latest) {
+        if (
+            tool.updatedAt &&
+            tool.updatedAt > latest
+        ) {
 
             latest = tool.updatedAt;
 
@@ -1096,117 +680,151 @@ function updateDashboard() {
 
     });
 
-    if (totalToolsCard)
+    if (totalToolsCard) {
         totalToolsCard.textContent = total;
+    }
 
-    if (activeToolsCard)
+    if (activeToolsCard) {
         activeToolsCard.textContent = active;
+    }
 
-    if (totalCategoriesCard)
-        totalCategoriesCard.textContent = categories.size;
+    if (totalCategoriesCard) {
+        totalCategoriesCard.textContent =
+            categories.size;
+    }
 
-    if (lastUpdatedCard)
+    if (lastUpdatedCard) {
+
         lastUpdatedCard.textContent =
-        latest
-            ? new Date(latest).toLocaleString()
-            : "--";
-
-}
-
-// ------------------------------------------------------
-// Refresh Everything
-// ------------------------------------------------------
-
-function refreshDashboard() {
-
-    updateDashboard();
-
-    renderTools();
-
-}
-
-// ------------------------------------------------------
-// Keyboard Shortcuts
-// ------------------------------------------------------
-
-document.addEventListener("keydown", function (e) {
-
-    // ESC closes popup
-
-    if (e.key === "Escape") {
-
-        closeModal();
+            latest
+                ? generateReadableDate(latest)
+                : "--";
 
     }
 
-    // Ctrl + N
+}
 
-    if (e.ctrlKey && e.key.toLowerCase() === "n") {
+/* ======================================================
+   Delete Tool
+====================================================== */
 
-        e.preventDefault();
+function deleteTool(toolKey) {
 
-        openAddModal();
+    const tool =
+        toolsCache.find(
+            item => item.key === toolKey
+        );
 
+    if (!tool) return;
+
+    const confirmed = confirm(
+        `Delete "${tool.name}" permanently?`
+    );
+
+    if (!confirmed) {
+        return;
     }
 
-});
+    toolsRef
+        .child(toolKey)
+        .remove()
+        .then(() => {
 
-// ------------------------------------------------------
-// Export JSON (Future)
-// ------------------------------------------------------
+            console.log(
+                "✅ Tool deleted successfully."
+            );
 
-function exportTools() {
+        })
+        .catch((error) => {
 
-    console.log("Export coming soon.");
+            console.error(
+                "Delete failed:",
+                error
+            );
 
-}
+            alert(
+                "Unable to delete tool: " +
+                error.message
+            );
 
-// ------------------------------------------------------
-// Import JSON (Future)
-// ------------------------------------------------------
-
-function importTools() {
-
-    console.log("Import coming soon.");
-
-}
-
-// ------------------------------------------------------
-// Application Initialisation
-// ------------------------------------------------------
-
-function initializeToolManager() {
-
-    initialiseEvents();
-
-    loadTools();
+        });
 
 }
 
-// ------------------------------------------------------
-// Firebase Live Refresh
-// ------------------------------------------------------
+/* ======================================================
+   Toggle Featured
+====================================================== */
 
-toolsRef.on("value", function () {
+function toggleFeatured(toolKey) {
 
-    console.log("Firebase Updated");
+    const tool =
+        toolsCache.find(
+            item => item.key === toolKey
+        );
 
-});
+    if (!tool) return;
 
-// ------------------------------------------------------
-// Console Banner
-// ------------------------------------------------------
+    toolsRef
+        .child(toolKey)
+        .update({
+
+            featured:
+                !tool.featured,
+
+            updatedAt:
+                generateTimestamp()
+
+        })
+        .catch((error) => {
+
+            alert(
+                "Unable to update feature status: " +
+                error.message
+            );
+
+        });
+
+}
+
+/* ======================================================
+   Toggle Active Status
+====================================================== */
+
+function toggleStatus(toolKey) {
+
+    const tool =
+        toolsCache.find(
+            item => item.key === toolKey
+        );
+
+    if (!tool) return;
+
+    toolsRef
+        .child(toolKey)
+        .update({
+
+            active:
+                !(tool.active === false),
+
+            updatedAt:
+                generateTimestamp()
+
+        })
+        .catch((error) => {
+
+            alert(
+                "Unable to update tool status: " +
+                error.message
+            );
+
+        });
+
+}
+
+/* ======================================================
+   Console
+====================================================== */
 
 console.log(
-"%c BloggerSaaS Ultimate V3 Loaded",
-"color:#38bdf8;font-size:16px;font-weight:bold;"
+    "✅ BloggerSaaS Ultimate V5 Tool Manager loaded."
 );
-
-console.log(
-"%c Tool Manager Ready",
-"color:#22c55e;font-size:14px;"
-);
-
-// ======================================================
-// End of File
-// ======================================================
