@@ -4,7 +4,6 @@
  Tool Manager
 ==========================================================
 */
-
 const firebaseConfig = {
     apiKey: "YOUR_EXISTING_FIREBASE_API_KEY",
     authDomain: "bloggersaas-v1.firebaseapp.com",
