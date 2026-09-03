@@ -1,99 +1,72 @@
 /**
- * =====================================================================
+ * ================================================================
  * BloggerSaaS Ultimate V5
- * Cloudflare Worker V5.1.8 Enterprise
- * =====================================================================
+ * Cloudflare Worker V5.1.9 Enterprise
+ * ================================================================
  *
- * File:
- *   worker/worker/worker.js
- *
- * Version:
- *   5.1.8 Enterprise
+ * Secure Firebase Authenticated AI Gateway
  *
  * Architecture:
  *
- * Blogger AI Center V2.4.6 Enterprise
- *                |
- *                v
- * Cloudflare Worker V5.1.8 Enterprise
- *                |
- *                +-- Authentication
- *                +-- Operation Validation
- *                +-- Prompt Control
- *                +-- Rate Protection
- *                +-- Request Validation
- *                +-- Gemini AI Proxy
- *                |
- *                v
- *             Gemini API
+ * Blogger Frontend
+ *       ↓
+ * Firebase Authentication
+ *       ↓
+ * Firebase ID Token
+ *       ↓
+ * Cloudflare Worker
+ *       ↓
+ * JWT Verification
+ *       ↓
+ * Authorized User
+ *       ↓
+ * Gemini AI API
  *
+ * ================================================================
  *
- * SECURITY PRINCIPLES
- * ---------------------------------------------------------------------
- *
- * 1. GEMINI_API_KEY remains only in Cloudflare Secret.
- *
- * 2. AI instructions are controlled server-side.
- *
- * 3. Browser requests select an approved operation.
- *
- * 4. Arbitrary unrestricted system prompts are not accepted.
- *
- * 5. Firebase ID tokens can authenticate administrators.
- *
- * 6. Optional AI_PROXY_TOKEN can be used for controlled service access.
- *
- * 7. Generated code is returned as content only.
- *    This Worker NEVER automatically publishes generated code.
- *
- *
- * REQUIRED CLOUDFLARE SECRETS
- * ---------------------------------------------------------------------
+ * REQUIRED CLOUDFLARE SECRET
  *
  * GEMINI_API_KEY
  *
+ * REQUIRED CLOUDFLARE VARIABLE
  *
- * RECOMMENDED VARIABLES
- * ---------------------------------------------------------------------
- *
- * GEMINI_MODEL
- * CORS_ORIGINS
  * FIREBASE_PROJECT_ID
  *
+ * RECOMMENDED CLOUDFLARE VARIABLE
  *
- * OPTIONAL SECRETS
- * ---------------------------------------------------------------------
+ * CORS_ORIGINS
  *
- * AI_PROXY_TOKEN
+ * OPTIONAL CLOUDFLARE VARIABLE
  *
+ * GEMINI_MODEL
  *
- * OPTIONAL VARIABLES
- * ---------------------------------------------------------------------
+ * ================================================================
  *
- * REQUIRE_FIREBASE_AUTH=true
- * ALLOW_SERVICE_TOKEN=true
- * MAX_REQUESTS_PER_MINUTE=20
+ * SECURITY PRINCIPLES
  *
+ * ✓ No Gemini API key in Blogger
+ * ✓ No permanent AI proxy token in Blogger
+ * ✓ Firebase ID token authentication
+ * ✓ Google JWT signature verification
+ * ✓ Firebase issuer validation
+ * ✓ Firebase audience validation
+ * ✓ Firebase expiration validation
+ * ✓ Firebase subject validation
+ * ✓ Exact CORS origin matching
+ * ✓ Request-size protection
+ * ✓ Security headers
+ * ✓ Request IDs
+ * ✓ Safe error responses
  *
- * APPROVED OPERATIONS
- * ---------------------------------------------------------------------
- *
- * tool-generation
- * seo-generation
- * summary-generation
- * content-generation
- * tool-improvement
- * tool-debugging
- *
- * =====================================================================
+ * ================================================================
  */
 
 "use strict";
 
 
-/* =====================================================================
+/* ================================================================
  * 1. APPLICATION CONFIGURATION
- * ===================================================================== */
+ * ================================================================ */
 
 const CONFIG = Object.freeze({
 
@@ -101,10 +74,16 @@ const CONFIG = Object.freeze({
     "BloggerSaaS Ultimate V5",
 
   VERSION:
-    "5.1.8 Enterprise",
+    "5.1.9",
 
   API_PREFIX:
     "/api",
+
+  MAX_BODY_BYTES:
+    1024 * 1024,
+
+  ENABLE_LOGS:
+    true,
 
   HEALTH_PATH:
     "/api/health",
@@ -118,84 +97,24 @@ const CONFIG = Object.freeze({
   AI_PATH:
     "/api/ai",
 
-  AI_OPERATIONS_PATH:
-    "/api/ai/operations",
-
-
-  /* ---------------------------------------------------------------
-   * Request protection
-   * ------------------------------------------------------------- */
-
-  MAX_BODY_BYTES:
-    1024 * 1024,
-
-
-  MAX_PROMPT_CHARACTERS:
-    50000,
-
-
-  MAX_CONTEXT_CHARACTERS:
-    100000,
-
-
-  DEFAULT_MAX_REQUESTS_PER_MINUTE:
-    20,
-
-
-  /* ---------------------------------------------------------------
-   * Gemini
-   * ------------------------------------------------------------- */
-
   GEMINI_API_BASE:
     "https://generativelanguage.googleapis.com/v1beta",
 
   DEFAULT_GEMINI_MODEL:
     "gemini-2.5-flash",
 
-
-  /* ---------------------------------------------------------------
-   * Logging
-   * ------------------------------------------------------------- */
-
-  ENABLE_LOGS:
-    true,
-
-
-  /* ---------------------------------------------------------------
-   * Firebase
-   * ------------------------------------------------------------- */
-
-  FIREBASE_CERT_URL:
+  GOOGLE_PUBLIC_KEYS_URL:
     "https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com",
 
-
-  /* ---------------------------------------------------------------
-   * Supported operations
-   * ------------------------------------------------------------- */
-
-  OPERATIONS:
-    Object.freeze([
-
-      "tool-generation",
-
-      "seo-generation",
-
-      "summary-generation",
-
-      "content-generation",
-
-      "tool-improvement",
-
-      "tool-debugging"
-
-    ])
+  GOOGLE_CERT_CACHE_SECONDS:
+    3600
 
 });
 
 
-/* =====================================================================
+/* ================================================================
  * 2. SECURITY HEADERS
- * ===================================================================== */
+ * ================================================================ */
 
 const SECURITY_HEADERS = Object.freeze({
 
@@ -211,42 +130,23 @@ const SECURITY_HEADERS = Object.freeze({
   "Permissions-Policy":
     "camera=(), microphone=(), geolocation=(), payment=()",
 
-  "Cross-Origin-Resource-Policy":
-    "cross-origin",
-
   "Cache-Control":
-    "no-store"
+    "no-store, no-cache, must-revalidate",
+
+  "Pragma":
+    "no-cache"
 
 });
 
 
-/* =====================================================================
- * 3. IN-MEMORY RATE LIMIT STORAGE
+/* ================================================================
+ * 3. CERTIFICATE CACHE
  *
- * IMPORTANT:
- *
- * Cloudflare Workers do not guarantee global shared memory.
- *
- * This provides lightweight per-isolate protection.
- *
- * For strict global enterprise rate limiting, later use:
- *
- * - Cloudflare Rate Limiting
- * - Durable Objects
- * - Cloudflare KV
- * - Cloudflare WAF
- *
- * ===================================================================== */
+ * Cloudflare Worker memory may be reused between requests.
+ * This reduces unnecessary certificate downloads.
+ * ================================================================ */
 
-const RATE_LIMIT_STORE =
-  new Map();
-
-
-/* =====================================================================
- * 4. FIREBASE CERTIFICATE CACHE
- * ===================================================================== */
-
-let FIREBASE_CERT_CACHE = {
+let certificateCache = {
 
   certificates:
     null,
@@ -257,9 +157,9 @@ let FIREBASE_CERT_CACHE = {
 };
 
 
-/* =====================================================================
- * 5. BASIC UTILITIES
- * ===================================================================== */
+/* ================================================================
+ * 4. BASIC UTILITIES
+ * ================================================================ */
 
 function createRequestId() {
 
@@ -275,105 +175,34 @@ function nowISO() {
 }
 
 
-function getEnvString(
-  value,
-  fallback = ""
-) {
+function getUnixTime() {
 
-  if (
-    typeof value === "string" &&
-    value.trim()
-  ) {
-
-    return value.trim();
-
-  }
-
-  return fallback;
+  return Math.floor(
+    Date.now() / 1000
+  );
 
 }
 
 
-function getEnvBoolean(
-  value,
-  fallback = false
-) {
+function safeString(value) {
 
-  if (
-    typeof value !== "string"
-  ) {
-
-    return fallback;
-
-  }
-
-
-  const normalized =
-    value.trim().toLowerCase();
-
-
-  if (
-    normalized === "true" ||
-    normalized === "1" ||
-    normalized === "yes"
-  ) {
-
-    return true;
-
-  }
-
-
-  if (
-    normalized === "false" ||
-    normalized === "0" ||
-    normalized === "no"
-  ) {
-
-    return false;
-
-  }
-
-
-  return fallback;
+  return typeof value === "string"
+    ? value.trim()
+    : "";
 
 }
 
 
-function getEnvNumber(
-  value,
-  fallback
-) {
-
-  const number =
-    Number(value);
-
-
-  if (
-    Number.isFinite(number) &&
-    number > 0
-  ) {
-
-    return Math.floor(number);
-
-  }
-
-
-  return fallback;
-
-}
-
-
-/* =====================================================================
- * 6. LOGGING
+/* ================================================================
+ * 5. LOGGING
  *
  * Never log:
  *
- * - Gemini API key
- * - Authorization token
- * - Firebase token
- * - Complete private prompts
- *
- * ===================================================================== */
+ * • Gemini API key
+ * • Firebase token
+ * • Authorization header
+ * • Full AI prompt
+ * ================================================================ */
 
 function log(
   env,
@@ -382,9 +211,7 @@ function log(
   metadata = {}
 ) {
 
-  if (
-    !CONFIG.ENABLE_LOGS
-  ) {
+  if (!CONFIG.ENABLE_LOGS) {
 
     return;
 
@@ -411,58 +238,50 @@ function log(
   };
 
 
-  if (
-    level === "error"
-  ) {
+  if (level === "error") {
 
     console.error(payload);
 
+    return;
+
   }
 
-  else if (
-    level === "warn"
-  ) {
+
+  if (level === "warn") {
 
     console.warn(payload);
 
-  }
-
-  else {
-
-    console.log(payload);
+    return;
 
   }
+
+
+  console.log(payload);
 
 }
 
 
-/* =====================================================================
- * 7. CORS
- * ===================================================================== */
+/* ================================================================
+ * 6. CORS CONFIGURATION
+ * ================================================================ */
 
-function getAllowedCorsOrigins(
-  env
-) {
+function getAllowedOrigins(env) {
 
-  const origins =
-    getEnvString(
-      env?.CORS_ORIGINS,
-      ""
-    );
+  const value =
+    safeString(env?.CORS_ORIGINS);
 
 
-  if (!origins) {
+  if (!value) {
 
     return [];
 
   }
 
 
-  return origins
+  return value
     .split(",")
     .map(
-      origin =>
-        origin.trim()
+      origin => origin.trim()
     )
     .filter(Boolean);
 
@@ -475,9 +294,7 @@ function getCorsOrigin(
 ) {
 
   const requestOrigin =
-    request.headers.get(
-      "Origin"
-    );
+    request.headers.get("Origin");
 
 
   if (!requestOrigin) {
@@ -488,9 +305,7 @@ function getCorsOrigin(
 
 
   const allowedOrigins =
-    getAllowedCorsOrigins(
-      env
-    );
+    getAllowedOrigins(env);
 
 
   if (
@@ -545,8 +360,7 @@ function corsHeaders(
 
     headers[
       "Access-Control-Allow-Origin"
-    ] =
-      origin;
+    ] = origin;
 
   }
 
@@ -556,9 +370,9 @@ function corsHeaders(
 }
 
 
-/* =====================================================================
- * 8. RESPONSE HEADERS
- * ===================================================================== */
+/* ================================================================
+ * 7. RESPONSE HEADERS
+ * ================================================================ */
 
 function buildHeaders(
   request,
@@ -582,9 +396,9 @@ function buildHeaders(
 }
 
 
-/* =====================================================================
- * 9. JSON RESPONSE
- * ===================================================================== */
+/* ================================================================
+ * 8. JSON RESPONSE
+ * ================================================================ */
 
 function jsonResponse(
   request,
@@ -607,6 +421,7 @@ function jsonResponse(
       status,
 
       headers:
+
         buildHeaders(
 
           request,
@@ -631,9 +446,9 @@ function jsonResponse(
 }
 
 
-/* =====================================================================
- * 10. ERROR RESPONSE
- * ===================================================================== */
+/* ================================================================
+ * 9. ERROR RESPONSE
+ * ================================================================ */
 
 function errorResponse(
   request,
@@ -641,38 +456,8 @@ function errorResponse(
   status,
   code,
   message,
-  requestId,
-  details = null
+  requestId
 ) {
-
-  const response = {
-
-    success:
-      false,
-
-    error: {
-
-      code,
-
-      message
-
-    },
-
-    requestId,
-
-    timestamp:
-      nowISO()
-
-  };
-
-
-  if (details) {
-
-    response.error.details =
-      details;
-
-  }
-
 
   return jsonResponse(
 
@@ -680,7 +465,25 @@ function errorResponse(
 
     env,
 
-    response,
+    {
+
+      success:
+        false,
+
+      error: {
+
+        code,
+
+        message
+
+      },
+
+      requestId,
+
+      timestamp:
+        nowISO()
+
+    },
 
     status
 
@@ -689,9 +492,9 @@ function errorResponse(
 }
 
 
-/* =====================================================================
- * 11. REQUEST SIZE VALIDATION
- * ===================================================================== */
+/* ================================================================
+ * 10. REQUEST SIZE VALIDATION
+ * ================================================================ */
 
 function getContentLength(
   request
@@ -714,9 +517,7 @@ function getContentLength(
     Number(value);
 
 
-  if (
-    !Number.isFinite(number)
-  ) {
+  if (!Number.isFinite(number)) {
 
     return null;
 
@@ -732,16 +533,13 @@ function validateBodySize(
   request
 ) {
 
-  const length =
-    getContentLength(
-      request
-    );
+  const size =
+    getContentLength(request);
 
 
   if (
-    length !== null &&
-    length >
-      CONFIG.MAX_BODY_BYTES
+    size !== null &&
+    size > CONFIG.MAX_BODY_BYTES
   ) {
 
     return false;
@@ -754,9 +552,9 @@ function validateBodySize(
 }
 
 
-/* =====================================================================
- * 12. JSON REQUEST PARSER
- * ===================================================================== */
+/* ================================================================
+ * 11. SAFE JSON READER
+ * ================================================================ */
 
 async function readJSON(
   request
@@ -776,9 +574,15 @@ async function readJSON(
       )
   ) {
 
-    throw new Error(
-      "Content-Type must be application/json."
-    );
+    const error =
+      new Error(
+        "Content-Type must be application/json."
+      );
+
+    error.code =
+      "INVALID_CONTENT_TYPE";
+
+    throw error;
 
   }
 
@@ -811,45 +615,51 @@ async function readJSON(
   }
 
 
-  if (
-    !bodyText.trim()
-  ) {
+  if (!bodyText.trim()) {
 
-    throw new Error(
-      "Request body must not be empty."
-    );
+    const error =
+      new Error(
+        "Request body must not be empty."
+      );
+
+    error.code =
+      "EMPTY_BODY";
+
+    throw error;
 
   }
 
 
   try {
 
-    return JSON.parse(
-      bodyText
-    );
+    return JSON.parse(bodyText);
 
-  }
+  } catch {
 
-  catch {
+    const error =
+      new Error(
+        "A valid JSON request body is required."
+      );
 
-    throw new Error(
-      "A valid JSON request body is required."
-    );
+    error.code =
+      "INVALID_JSON";
+
+    throw error;
 
   }
 
 }
 
 
-/* =====================================================================
- * 13. BASE64URL UTILITIES
- * ===================================================================== */
+/* ================================================================
+ * 12. BASE64URL UTILITIES
+ * ================================================================ */
 
 function base64UrlToUint8Array(
   value
 ) {
 
-  const normalized =
+  const base64 =
     value
       .replace(/-/g, "+")
       .replace(/_/g, "/");
@@ -857,17 +667,14 @@ function base64UrlToUint8Array(
 
   const padding =
     "=".repeat(
-      (4 - normalized.length % 4) % 4
+      (4 - (base64.length % 4)) % 4
     );
 
 
-  const base64 =
-    normalized +
-    padding;
-
-
   const binary =
-    atob(base64);
+    atob(
+      base64 + padding
+    );
 
 
   const bytes =
@@ -898,9 +705,7 @@ function decodeBase64UrlJSON(
 ) {
 
   const bytes =
-    base64UrlToUint8Array(
-      value
-    );
+    base64UrlToUint8Array(value);
 
 
   const text =
@@ -913,131 +718,20 @@ function decodeBase64UrlJSON(
 }
 
 
-/* =====================================================================
- * 14. FETCH FIREBASE CERTIFICATES
- * ===================================================================== */
+/* ================================================================
+ * 13. JWT PARSER
+ * ================================================================ */
 
-async function getFirebaseCertificates() {
-
-  const now =
-    Date.now();
-
-
-  if (
-    FIREBASE_CERT_CACHE.certificates &&
-    FIREBASE_CERT_CACHE.expiresAt >
-      now
-  ) {
-
-    return FIREBASE_CERT_CACHE.certificates;
-
-  }
-
-
-  const response =
-    await fetch(
-      CONFIG.FIREBASE_CERT_URL
-    );
-
-
-  if (!response.ok) {
-
-    throw new Error(
-      "Unable to retrieve Firebase authentication certificates."
-    );
-
-  }
-
-
-  const certificates =
-    await response.json();
-
-
-  let cacheSeconds =
-    3600;
-
-
-  const cacheControl =
-    response.headers.get(
-      "Cache-Control"
-    ) || "";
-
-
-  const match =
-    cacheControl.match(
-      /max-age=(\d+)/
-    );
-
-
-  if (
-    match &&
-    match[1]
-  ) {
-
-    cacheSeconds =
-      Number(match[1]);
-
-  }
-
-
-  FIREBASE_CERT_CACHE = {
-
-    certificates,
-
-    expiresAt:
-      now +
-      cacheSeconds * 1000
-
-  };
-
-
-  return certificates;
-
-}
-
-
-/* =====================================================================
- * 15. FIREBASE ID TOKEN VERIFICATION
- *
- * Verifies:
- *
- * - JWT format
- * - RS256 algorithm
- * - Firebase project audience
- * - Firebase issuer
- * - expiration
- * - issued time
- * - signature
- *
- * ===================================================================== */
-
-async function verifyFirebaseIdToken(
-  token,
-  env
+function parseJWT(
+  token
 ) {
 
-  const projectId =
-    getEnvString(
-      env?.FIREBASE_PROJECT_ID
-    );
-
-
-  if (!projectId) {
-
-    throw new Error(
-      "FIREBASE_PROJECT_ID is not configured."
-    );
-
-  }
-
-
   if (
-    typeof token !== "string" ||
-    !token.trim()
+    typeof token !== "string"
   ) {
 
     throw new Error(
-      "Firebase ID token is required."
+      "Invalid authentication token."
     );
 
   }
@@ -1052,7 +746,7 @@ async function verifyFirebaseIdToken(
   ) {
 
     throw new Error(
-      "Invalid Firebase ID token format."
+      "Invalid authentication token format."
     );
 
   }
@@ -1070,226 +764,135 @@ async function verifyFirebaseIdToken(
     );
 
 
-  if (
-    header.alg !== "RS256"
-  ) {
-
-    throw new Error(
-      "Unsupported Firebase token algorithm."
-    );
-
-  }
-
-
-  if (
-    typeof header.kid !== "string" ||
-    !header.kid
-  ) {
-
-    throw new Error(
-      "Firebase token key identifier is missing."
-    );
-
-  }
-
-
-  const expectedIssuer =
-    `https://securetoken.google.com/${projectId}`;
-
-
-  if (
-    payload.aud !== projectId
-  ) {
-
-    throw new Error(
-      "Firebase token audience is invalid."
-    );
-
-  }
-
-
-  if (
-    payload.iss !== expectedIssuer
-  ) {
-
-    throw new Error(
-      "Firebase token issuer is invalid."
-    );
-
-  }
-
-
-  if (
-    typeof payload.sub !== "string" ||
-    !payload.sub ||
-    payload.sub.length > 128
-  ) {
-
-    throw new Error(
-      "Firebase token subject is invalid."
-    );
-
-  }
-
-
-  const nowSeconds =
-    Math.floor(
-      Date.now() / 1000
-    );
-
-
-  if (
-    typeof payload.exp !== "number" ||
-    payload.exp <= nowSeconds
-  ) {
-
-    throw new Error(
-      "Firebase token has expired."
-    );
-
-  }
-
-
-  if (
-    typeof payload.iat !== "number" ||
-    payload.iat > nowSeconds + 300
-  ) {
-
-    throw new Error(
-      "Firebase token issue time is invalid."
-    );
-
-  }
-
-
-  const certificates =
-    await getFirebaseCertificates();
-
-
-  const certificate =
-    certificates[
-      header.kid
-    ];
-
-
-  if (!certificate) {
-
-    throw new Error(
-      "Firebase token signing certificate was not found."
-    );
-
-  }
-
-
-  const publicKey =
-    await crypto.subtle.importKey(
-
-      "spki",
-
-      pemToArrayBuffer(
-        certificate
-      ),
-
-      {
-
-        name:
-          "RSASSA-PKCS1-v1_5",
-
-        hash:
-          "SHA-256"
-
-      },
-
-      false,
-
-      ["verify"]
-
-    );
-
-
-  const signedData =
-    new TextEncoder()
-      .encode(
-        `${parts[0]}.${parts[1]}`
-      );
-
-
-  const signature =
-    base64UrlToUint8Array(
-      parts[2]
-    );
-
-
-  const valid =
-    await crypto.subtle.verify(
-
-      {
-
-        name:
-          "RSASSA-PKCS1-v1_5"
-
-      },
-
-      publicKey,
-
-      signature,
-
-      signedData
-
-    );
-
-
-  if (!valid) {
-
-    throw new Error(
-      "Firebase token signature is invalid."
-    );
-
-  }
-
-
   return {
 
-    uid:
-      payload.sub,
+    header,
 
-    email:
-      typeof payload.email === "string"
-        ? payload.email
-        : null,
+    payload,
 
-    emailVerified:
-      payload.email_verified === true,
+    signature:
+      base64UrlToUint8Array(
+        parts[2]
+      ),
 
-    claims:
-      payload
+    signingInput:
+      new TextEncoder()
+        .encode(
+          `${parts[0]}.${parts[1]}`
+        )
 
   };
 
 }
 
 
-/* =====================================================================
- * 16. PEM TO ARRAY BUFFER
- * ===================================================================== */
+/* ================================================================
+ * 14. GOOGLE FIREBASE PUBLIC CERTIFICATES
+ * ================================================================ */
+
+async function getFirebaseCertificates() {
+
+  const now =
+    Date.now();
+
+
+  if (
+    certificateCache.certificates &&
+    certificateCache.expiresAt > now
+  ) {
+
+    return certificateCache.certificates;
+
+  }
+
+
+  const response =
+    await fetch(
+      CONFIG.GOOGLE_PUBLIC_KEYS_URL,
+      {
+
+        headers: {
+
+          "Accept":
+            "application/json"
+
+        }
+
+      }
+    );
+
+
+  if (!response.ok) {
+
+    throw new Error(
+      "Unable to retrieve Firebase verification certificates."
+    );
+
+  }
+
+
+  const certificates =
+    await response.json();
+
+
+  const cacheControl =
+    response.headers.get(
+      "Cache-Control"
+    ) || "";
+
+
+  const maxAgeMatch =
+    cacheControl.match(
+      /max-age=(\d+)/
+    );
+
+
+  const maxAgeSeconds =
+    maxAgeMatch
+      ? Math.min(
+          Number(maxAgeMatch[1]),
+          CONFIG.GOOGLE_CERT_CACHE_SECONDS
+        )
+      : CONFIG.GOOGLE_CERT_CACHE_SECONDS;
+
+
+  certificateCache = {
+
+    certificates,
+
+    expiresAt:
+      now +
+      (
+        maxAgeSeconds *
+        1000
+      )
+
+  };
+
+
+  return certificates;
+
+}
+
+
+/* ================================================================
+ * 15. PEM TO CRYPTO KEY
+ * ================================================================ */
 
 function pemToArrayBuffer(
   pem
 ) {
 
-  const base64 =
+  const clean =
     pem
-
       .replace(
         /-----BEGIN CERTIFICATE-----/g,
         ""
       )
-
       .replace(
         /-----END CERTIFICATE-----/g,
         ""
       )
-
       .replace(
         /\s/g,
         ""
@@ -1297,7 +900,7 @@ function pemToArrayBuffer(
 
 
   const binary =
-    atob(base64);
+    atob(clean);
 
 
   const bytes =
@@ -1323,32 +926,279 @@ function pemToArrayBuffer(
 }
 
 
-/* =====================================================================
- * 17. SERVICE TOKEN AUTHENTICATION
- *
- * Optional controlled service access.
- *
- * DO NOT place this permanent secret in a public Blogger page.
- *
- * ===================================================================== */
+/* ================================================================
+ * 16. FIREBASE JWT SIGNATURE VERIFICATION
+ * ================================================================ */
 
-function validateServiceToken(
-  request,
-  env
+async function verifyFirebaseSignature(
+  parsedToken
 ) {
 
-  const configuredToken =
-    getEnvString(
-      env?.AI_PROXY_TOKEN
+  const algorithm =
+    parsedToken.header?.alg;
+
+
+  if (
+    algorithm !== "RS256"
+  ) {
+
+    throw new Error(
+      "Unsupported Firebase token algorithm."
     );
-
-
-  if (!configuredToken) {
-
-    return false;
 
   }
 
+
+  const keyId =
+    parsedToken.header?.kid;
+
+
+  if (!keyId) {
+
+    throw new Error(
+      "Firebase token key ID is missing."
+    );
+
+  }
+
+
+  const certificates =
+    await getFirebaseCertificates();
+
+
+  const certificate =
+    certificates[keyId];
+
+
+  if (!certificate) {
+
+    certificateCache.expiresAt = 0;
+
+    const refreshedCertificates =
+      await getFirebaseCertificates();
+
+
+    const refreshedCertificate =
+      refreshedCertificates[keyId];
+
+
+    if (!refreshedCertificate) {
+
+      throw new Error(
+        "Firebase token signing certificate was not found."
+      );
+
+    }
+
+
+    return verifyWithCertificate(
+      parsedToken,
+      refreshedCertificate
+    );
+
+  }
+
+
+  return verifyWithCertificate(
+    parsedToken,
+    certificate
+  );
+
+}
+
+
+async function verifyWithCertificate(
+  parsedToken,
+  certificate
+) {
+
+  const certificateBuffer =
+    pemToArrayBuffer(
+      certificate
+    );
+
+
+  const cryptoKey =
+    await crypto.subtle.importKey(
+
+      "spki",
+
+      certificateBuffer,
+
+      {
+
+        name:
+          "RSASSA-PKCS1-v1_5",
+
+        hash:
+          "SHA-256"
+
+      },
+
+      false,
+
+      ["verify"]
+
+    );
+
+
+  return crypto.subtle.verify(
+
+    {
+
+      name:
+        "RSASSA-PKCS1-v1_5"
+
+    },
+
+    cryptoKey,
+
+    parsedToken.signature,
+
+    parsedToken.signingInput
+
+  );
+
+}
+
+
+/* ================================================================
+ * 17. FIREBASE TOKEN CLAIM VALIDATION
+ * ================================================================ */
+
+function validateFirebaseClaims(
+  payload,
+  env
+) {
+
+  const projectId =
+    safeString(
+      env?.FIREBASE_PROJECT_ID
+    );
+
+
+  if (!projectId) {
+
+    throw new Error(
+      "Firebase project authentication is not configured."
+    );
+
+  }
+
+
+  const expectedIssuer =
+    `https://securetoken.google.com/${projectId}`;
+
+
+  const expectedAudience =
+    projectId;
+
+
+  if (
+    payload.iss !== expectedIssuer
+  ) {
+
+    throw new Error(
+      "Invalid Firebase token issuer."
+    );
+
+  }
+
+
+  if (
+    payload.aud !== expectedAudience
+  ) {
+
+    throw new Error(
+      "Invalid Firebase token audience."
+    );
+
+  }
+
+
+  if (
+    typeof payload.sub !== "string" ||
+    !payload.sub ||
+    payload.sub.length > 128
+  ) {
+
+    throw new Error(
+      "Invalid Firebase token subject."
+    );
+
+  }
+
+
+  const now =
+    getUnixTime();
+
+
+  if (
+    typeof payload.exp !== "number" ||
+    payload.exp <= now
+  ) {
+
+    throw new Error(
+      "Firebase token has expired."
+    );
+
+  }
+
+
+  if (
+    typeof payload.iat !== "number" ||
+    payload.iat > now + 300
+  ) {
+
+    throw new Error(
+      "Invalid Firebase token issue time."
+    );
+
+  }
+
+
+  if (
+    typeof payload.auth_time === "number" &&
+    payload.auth_time > now + 300
+  ) {
+
+    throw new Error(
+      "Invalid Firebase authentication time."
+    );
+
+  }
+
+
+  return {
+
+    uid:
+      payload.sub,
+
+    email:
+      typeof payload.email === "string"
+        ? payload.email
+        : null,
+
+    emailVerified:
+      payload.email_verified === true,
+
+    provider:
+      payload.firebase?.sign_in_provider ||
+      null
+
+  };
+
+}
+
+
+/* ================================================================
+ * 18. FIREBASE AUTHENTICATION
+ * ================================================================ */
+
+async function authenticateFirebaseRequest(
+  request,
+  env
+) {
 
   const authorization =
     request.headers.get(
@@ -1362,472 +1212,143 @@ function validateServiceToken(
     )
   ) {
 
-    return false;
+    return {
+
+      authenticated:
+        false,
+
+      code:
+        "FIREBASE_AUTH_REQUIRED",
+
+      message:
+        "Firebase authentication is required."
+
+    };
 
   }
 
 
-  const suppliedToken =
+  const token =
     authorization
       .slice(7)
       .trim();
 
 
-  if (!suppliedToken) {
+  if (!token) {
 
-    return false;
+    return {
 
-  }
+      authenticated:
+        false,
 
+      code:
+        "FIREBASE_AUTH_REQUIRED",
 
-  return constantTimeEqual(
-    suppliedToken,
-    configuredToken
-  );
+      message:
+        "Firebase authentication is required."
 
-}
-
-
-/* =====================================================================
- * 18. CONSTANT-TIME STRING COMPARISON
- * ===================================================================== */
-
-function constantTimeEqual(
-  first,
-  second
-) {
-
-  if (
-    typeof first !== "string" ||
-    typeof second !== "string"
-  ) {
-
-    return false;
+    };
 
   }
 
 
-  if (
-    first.length !== second.length
-  ) {
+  try {
 
-    return false;
-
-  }
+    const parsedToken =
+      parseJWT(token);
 
 
-  let result = 0;
+    const signatureValid =
+      await verifyFirebaseSignature(
+        parsedToken
+      );
 
 
-  for (
-    let i = 0;
-    i < first.length;
-    i++
-  ) {
+    if (!signatureValid) {
 
-    result |=
-      first.charCodeAt(i) ^
-      second.charCodeAt(i);
+      return {
 
-  }
+        authenticated:
+          false,
 
+        code:
+          "FIREBASE_AUTH_INVALID",
 
-  return result === 0;
+        message:
+          "Firebase authentication token is invalid."
 
-}
-
-
-/* =====================================================================
- * 19. ENTERPRISE AUTHENTICATION
- *
- * Priority:
- *
- * 1. Firebase ID Token
- * 2. Optional service token
- *
- * ===================================================================== */
-
-async function authenticateRequest(
-  request,
-  env
-) {
-
-  const requireFirebaseAuth =
-    getEnvBoolean(
-      env?.REQUIRE_FIREBASE_AUTH,
-      true
-    );
-
-
-  const allowServiceToken =
-    getEnvBoolean(
-      env?.ALLOW_SERVICE_TOKEN,
-      false
-    );
-
-
-  const authorization =
-    request.headers.get(
-      "Authorization"
-    ) || "";
-
-
-  if (
-    authorization.startsWith(
-      "Bearer "
-    )
-  ) {
-
-    const token =
-      authorization
-        .slice(7)
-        .trim();
-
-
-    if (token) {
-
-      try {
-
-        const firebaseUser =
-          await verifyFirebaseIdToken(
-            token,
-            env
-          );
-
-
-        return {
-
-          authenticated:
-            true,
-
-          method:
-            "firebase",
-
-          user:
-            firebaseUser
-
-        };
-
-      }
-
-      catch (firebaseError) {
-
-        if (
-          allowServiceToken &&
-          validateServiceToken(
-            request,
-            env
-          )
-        ) {
-
-          return {
-
-            authenticated:
-              true,
-
-            method:
-              "service-token",
-
-            user:
-              null
-
-          };
-
-        }
-
-
-        if (
-          requireFirebaseAuth
-        ) {
-
-          return {
-
-            authenticated:
-              false,
-
-            code:
-              "FIREBASE_AUTH_INVALID",
-
-            message:
-              "Valid Firebase authentication is required."
-
-          };
-
-        }
-
-      }
+      };
 
     }
 
-  }
 
+    const user =
+      validateFirebaseClaims(
+        parsedToken.payload,
+        env
+      );
 
-  if (
-    allowServiceToken &&
-    validateServiceToken(
-      request,
-      env
-    )
-  ) {
 
     return {
 
       authenticated:
         true,
 
-      method:
-        "service-token",
-
-      user:
-        null
+      user
 
     };
 
-  }
-
-
-  if (!requireFirebaseAuth) {
+  } catch (error) {
 
     return {
 
       authenticated:
-        true,
-
-      method:
-        "public-development",
-
-      user:
-        null
-
-    };
-
-  }
-
-
-  return {
-
-    authenticated:
-      false,
-
-    code:
-      "AUTHENTICATION_REQUIRED",
-
-    message:
-      "Authentication is required."
-
-  };
-
-}
-
-
-/* =====================================================================
- * 20. RATE LIMITING
- * ===================================================================== */
-
-function getClientIdentifier(
-  request,
-  identity = null
-) {
-
-  if (
-    identity?.user?.uid
-  ) {
-
-    return `firebase:${identity.user.uid}`;
-
-  }
-
-
-  const forwarded =
-    request.headers.get(
-      "CF-Connecting-IP"
-    );
-
-
-  if (forwarded) {
-
-    return `ip:${forwarded}`;
-
-  }
-
-
-  return "anonymous";
-
-}
-
-
-function checkRateLimit(
-  request,
-  env,
-  identity
-) {
-
-  const limit =
-    getEnvNumber(
-      env?.MAX_REQUESTS_PER_MINUTE,
-      CONFIG.DEFAULT_MAX_REQUESTS_PER_MINUTE
-    );
-
-
-  const identifier =
-    getClientIdentifier(
-      request,
-      identity
-    );
-
-
-  const now =
-    Date.now();
-
-
-  const windowMs =
-    60 * 1000;
-
-
-  const record =
-    RATE_LIMIT_STORE.get(
-      identifier
-    );
-
-
-  if (
-    !record ||
-    now - record.start >= windowMs
-  ) {
-
-    RATE_LIMIT_STORE.set(
-
-      identifier,
-
-      {
-
-        start:
-          now,
-
-        count:
-          1
-
-      }
-
-    );
-
-
-    return {
-
-      allowed:
-        true,
-
-      remaining:
-        limit - 1
-
-    };
-
-  }
-
-
-  record.count += 1;
-
-
-  if (
-    record.count > limit
-  ) {
-
-    return {
-
-      allowed:
         false,
 
-      remaining:
-        0
+      code:
+        "FIREBASE_AUTH_INVALID",
+
+      message:
+        "Firebase authentication token could not be verified."
 
     };
 
   }
 
-
-  return {
-
-    allowed:
-      true,
-
-    remaining:
-      Math.max(
-        0,
-        limit - record.count
-      )
-
-  };
-
 }
 
 
-/* =====================================================================
- * 21. OPERATION VALIDATION
- * ===================================================================== */
+/* ================================================================
+ * 19. GEMINI MODEL
+ * ================================================================ */
 
-function validateOperation(
-  operation
+function getGeminiModel(
+  env
 ) {
 
-  if (
-    typeof operation !== "string"
-  ) {
-
-    return false;
-
-  }
-
-
-  return CONFIG.OPERATIONS.includes(
-    operation.trim()
-  );
-
-}
-
-
-/* =====================================================================
- * 22. STRING VALIDATION
- * ===================================================================== */
-
-function getSafeString(
-  value,
-  maxLength = 50000
-) {
-
-  if (
-    typeof value !== "string"
-  ) {
-
-    return "";
-
-  }
-
-
-  return value
-    .trim()
-    .slice(
-      0,
-      maxLength
+  const model =
+    safeString(
+      env?.GEMINI_MODEL
     );
 
+
+  if (model) {
+
+    return model;
+
+  }
+
+
+  return CONFIG.DEFAULT_GEMINI_MODEL;
+
 }
 
 
-/* =====================================================================
- * 23. AI REQUEST NORMALIZATION
- *
- * Browser request format:
- *
- * {
- *   operation: "tool-generation",
- *   prompt: "...",
- *   context: {...},
- *   generationConfig: {...}
- * }
- *
- * ===================================================================== */
+/* ================================================================
+ * 20. AI REQUEST NORMALIZATION
+ * ================================================================ */
 
-function normalizeEnterpriseAIRequest(
+function normalizeAIRequest(
   body
 ) {
 
@@ -1844,693 +1365,144 @@ function normalizeEnterpriseAIRequest(
   }
 
 
-  const operation =
-    getSafeString(
-      body.operation,
-      100
-    );
-
-
   if (
-    !validateOperation(
-      operation
-    )
+    Array.isArray(body.contents)
   ) {
-
-    throw new Error(
-      "The requested AI operation is not supported."
-    );
-
-  }
-
-
-  const prompt =
-    getSafeString(
-      body.prompt,
-      CONFIG.MAX_PROMPT_CHARACTERS
-    );
-
-
-  if (!prompt) {
-
-    throw new Error(
-      "A non-empty prompt is required."
-    );
-
-  }
-
-
-  let context = {};
-
-
-  if (
-    body.context &&
-    typeof body.context === "object" &&
-    !Array.isArray(body.context)
-  ) {
-
-    const serialized =
-      JSON.stringify(
-        body.context
-      );
-
 
     if (
-      serialized.length <=
-      CONFIG.MAX_CONTEXT_CHARACTERS
+      body.contents.length === 0
     ) {
 
-      context =
-        body.context;
+      throw new Error(
+        "contents must not be empty."
+      );
 
     }
 
-  }
 
+    return {
 
-  let generationConfig =
-    sanitizeGenerationConfig(
-      body.generationConfig
-    );
+      contents:
+        body.contents,
 
+      ...(body.systemInstruction
+        ? {
 
-  return {
+            systemInstruction:
+              body.systemInstruction
 
-    operation,
+          }
+        : {}),
 
-    prompt,
+      ...(body.generationConfig
+        ? {
 
-    context,
+            generationConfig:
+              body.generationConfig
 
-    generationConfig
-
-  };
-
-}
-
-
-/* =====================================================================
- * 24. GENERATION CONFIG SANITIZATION
- * ===================================================================== */
-
-function sanitizeGenerationConfig(
-  value
-) {
-
-  const defaults = {
-
-    temperature:
-      0.4,
-
-    maxOutputTokens:
-      8192
-
-  };
-
-
-  if (
-    !value ||
-    typeof value !== "object" ||
-    Array.isArray(value)
-  ) {
-
-    return defaults;
-
-  }
-
-
-  const result =
-    {
-
-      ...defaults
+          }
+        : {})
 
     };
 
-
-  if (
-    Number.isFinite(
-      value.temperature
-    )
-  ) {
-
-    result.temperature =
-      Math.min(
-        1.5,
-        Math.max(
-          0,
-          Number(value.temperature)
-        )
-      );
-
   }
 
 
   if (
-    Number.isFinite(
-      value.maxOutputTokens
-    )
+    typeof body.prompt === "string"
   ) {
 
-    result.maxOutputTokens =
-      Math.min(
-        16384,
-        Math.max(
-          256,
-          Math.floor(
-            Number(
-              value.maxOutputTokens
-            )
-          )
-        )
+    const prompt =
+      body.prompt.trim();
+
+
+    if (!prompt) {
+
+      throw new Error(
+        "prompt must not be empty."
       );
 
-  }
+    }
 
 
-  return result;
+    return {
 
-}
-
-
-/* =====================================================================
- * 25. SERVER-SIDE SYSTEM PROMPTS
- *
- * These prompts are controlled by the Worker.
- *
- * The browser does NOT provide unrestricted system instructions.
- *
- * ===================================================================== */
-
-function getSystemInstruction(
-  operation
-) {
-
-  const common = `
-You are the Enterprise AI engine for BloggerSaaS Ultimate V5.
-
-Follow these requirements:
-
-1. Be accurate and practical.
-2. Do not claim that generated content has been automatically tested.
-3. Do not invent external API credentials.
-4. Never include real secrets, API keys, passwords or tokens.
-5. Generate original, maintainable and clearly structured output.
-6. Generated tools must be responsive and suitable for browser use.
-7. Prefer HTML, CSS and vanilla JavaScript unless another technology is explicitly required.
-8. Do not automatically publish anything.
-9. Return useful structured content.
-10. When uncertainty exists, clearly identify assumptions.
-`;
-
-
-  const instructions = {
-
-    "tool-generation": `
-${common}
-
-Your task is to design a complete web tool.
-
-Create a sophisticated structured tool specification.
-
-Consider the following sections:
-
-- toolName
-- category
-- shortDescription
-- purpose
-- targetUsers
-- mainFeatures
-- inputs
-- outputs
-- validation
-- uniqueness
-- speciality
-- additionalInformation
-- howToUse
-- tips
-- seo
-- faq
-- generatedCode
-
-The generatedCode section should contain:
-
-- html
-- css
-- javascript
-
-The tool should work in a browser without exposing private credentials.
-
-For calculators and specialised tools, provide meaningful contextual results.
-
-Examples:
-
-Age Calculator:
-- age in years, months and days
-- total months
-- total weeks
-- total days
-- next birthday date
-- weekday of next birthday
-- days remaining until birthday
-- Western zodiac
-- Chinese zodiac where possible
-- clearly labelled calendar/date assumptions
-- brief tips
-- clearly labelled entertainment-only fun content where applicable
-
-BMI Calculator:
-- BMI result
-- category
-- healthy range guidance
-- approximate weight difference from a selected reference range
-- kg and pound support
-- age-aware general lifestyle suggestions
-- simple exercise ideas
-- balanced food suggestions
-- clear disclaimer that the tool is informational and not medical diagnosis
-
-Do not present entertainment predictions as guaranteed facts.
-`,
-
-
-
-    "seo-generation": `
-${common}
-
-Create an enterprise-quality SEO content plan.
-
-Include:
-
-- title ideas
-- SEO title
-- meta description
-- primary keyword
-- secondary keywords
-- search intent
-- target audience
-- recommended URL slug
-- H1
-- H2 structure
-- FAQ ideas
-- internal link ideas
-- content recommendations
-- call to action
-
-Avoid keyword stuffing.
-`,
-
-
-
-    "summary-generation": `
-${common}
-
-Create an accurate summary of the supplied text.
-
-Rules:
-
-- Preserve important facts.
-- Do not invent missing information.
-- Distinguish facts from assumptions.
-- Use clear language.
-- Respect the requested summary length.
-
-Provide:
-
-- summary
-- keyPoints
-- importantFacts
-- optionalActionItems where appropriate
-`,
-
-
-
-    "content-generation": `
-${common}
-
-Generate high-quality structured content based on the user's request.
-
-Include:
-
-- title
-- introduction
-- organised sections
-- practical information
-- conclusion
-
-Make the output suitable for later human review.
-`,
-
-
-
-    "tool-improvement": `
-${common}
-
-Analyse an existing web tool specification or code.
-
-Identify:
-
-- strengths
-- weaknesses
-- missing features
-- accessibility improvements
-- mobile improvements
-- validation improvements
-- usability improvements
-- SEO improvements
-- performance improvements
-
-Provide improved recommendations and revised code where appropriate.
-`,
-
-
-
-    "tool-debugging": `
-${common}
-
-Analyse the supplied web tool code or error.
-
-Provide:
-
-- probable cause
-- explanation
-- recommended fix
-- corrected code where possible
-- testing checklist
-
-Do not claim the code was executed unless execution evidence is provided.
-`
-
-  };
-
-
-  return instructions[
-    operation
-  ] || common;
-
-}
-
-
-/* =====================================================================
- * 26. BUILD GEMINI PAYLOAD
- * ===================================================================== */
-
-function buildGeminiPayload(
-  requestData
-) {
-
-  const contextText =
-    Object.keys(
-      requestData.context
-    ).length
-
-      ? `
-
-CONTEXT:
-${JSON.stringify(
-  requestData.context,
-  null,
-  2
-)}
-`
-
-      : "";
-
-
-  const userPrompt = `
-APPROVED OPERATION:
-${requestData.operation}
-
-USER REQUEST:
-${requestData.prompt}
-
-${contextText}
-
-Return a structured, practical response suitable for human review.
-`;
-
-
-  return {
-
-    systemInstruction: {
-
-      parts: [
+      contents: [
 
         {
 
-          text:
-            getSystemInstruction(
-              requestData.operation
-            )
+          role:
+            "user",
+
+          parts: [
+
+            {
+
+              text:
+                prompt
+
+            }
+
+          ]
 
         }
 
-      ]
+      ],
 
-    },
+      ...(body.systemInstruction
+        ? {
 
-
-    contents: [
-
-      {
-
-        role:
-          "user",
-
-        parts: [
-
-          {
-
-            text:
-              userPrompt
+            systemInstruction:
+              body.systemInstruction
 
           }
+        : {}),
 
-        ]
+      ...(body.generationConfig
+        ? {
 
-      }
+            generationConfig:
+              body.generationConfig
 
-    ],
+          }
+        : {})
 
+    };
 
-    generationConfig:
-      requestData.generationConfig
-
-  };
-
-}
+  }
 
 
-/* =====================================================================
- * 27. GEMINI MODEL
- * ===================================================================== */
-
-function getGeminiModel(
-  env
-) {
-
-  return getEnvString(
-
-    env?.GEMINI_MODEL,
-
-    CONFIG.DEFAULT_GEMINI_MODEL
-
+  throw new Error(
+    "Provide either a non-empty prompt or contents array."
   );
 
 }
 
 
-/* =====================================================================
- * 28. EXTRACT GEMINI TEXT
- * ===================================================================== */
-
-function extractGeminiText(
-  providerData
-) {
-
-  const candidate =
-    providerData
-      ?.candidates?.[0];
-
-
-  const parts =
-    candidate
-      ?.content
-      ?.parts;
-
-
-  if (
-    !Array.isArray(parts)
-  ) {
-
-    return "";
-
-  }
-
-
-  return parts
-
-    .filter(
-
-      part =>
-        typeof part?.text ===
-        "string"
-
-    )
-
-    .map(
-      part =>
-        part.text
-    )
-
-    .join("")
-    .trim();
-
-}
-
-
-/* =====================================================================
- * 29. EXTRACT JSON FROM AI RESPONSE
- *
- * Attempts to detect JSON when the AI returns:
- *
- * ```json
- * {...}
- * ```
- *
- * ===================================================================== */
-
-function extractStructuredJSON(
-  text
-) {
-
-  if (
-    typeof text !== "string" ||
-    !text.trim()
-  ) {
-
-    return null;
-
-  }
-
-
-  const cleaned =
-    text.trim();
-
-
-  try {
-
-    return JSON.parse(
-      cleaned
-    );
-
-  }
-
-  catch {
-
-    /* Continue */
-
-  }
-
-
-  const fenced =
-    cleaned.match(
-      /```json\s*([\s\S]*?)```/i
-    );
-
-
-  if (
-    fenced &&
-    fenced[1]
-  ) {
-
-    try {
-
-      return JSON.parse(
-        fenced[1].trim()
-      );
-
-    }
-
-    catch {
-
-      /* Continue */
-
-    }
-
-  }
-
-
-  const objectStart =
-    cleaned.indexOf("{");
-
-
-  const objectEnd =
-    cleaned.lastIndexOf("}");
-
-
-  if (
-    objectStart >= 0 &&
-    objectEnd > objectStart
-  ) {
-
-    const possibleJSON =
-      cleaned.slice(
-
-        objectStart,
-
-        objectEnd + 1
-
-      );
-
-
-    try {
-
-      return JSON.parse(
-        possibleJSON
-      );
-
-    }
-
-    catch {
-
-      return null;
-
-    }
-
-  }
-
-
-  return null;
-
-}
-
-
-/* =====================================================================
- * 30. NORMALIZE GEMINI RESPONSE
- * ===================================================================== */
+/* ================================================================
+ * 21. GEMINI RESPONSE NORMALIZATION
+ * ================================================================ */
 
 function normalizeGeminiResponse(
   providerData,
   requestId,
-  model,
-  operation
+  model
 ) {
 
   const candidate =
-    providerData
-      ?.candidates?.[0];
+    providerData?.candidates?.[0];
 
 
   const text =
-    extractGeminiText(
-      providerData
-    );
-
-
-  const structured =
-    extractStructuredJSON(
-      text
-    );
+    candidate?.content?.parts
+      ?.filter(
+        part =>
+          typeof part?.text === "string"
+      )
+      ?.map(
+        part => part.text
+      )
+      ?.join("") || "";
 
 
   return {
@@ -2538,35 +1510,27 @@ function normalizeGeminiResponse(
     success:
       true,
 
-    operation,
-
     data: {
 
       text,
 
-      structured,
-
       model,
 
       finishReason:
-        candidate?.finishReason ||
-        null
+        candidate?.finishReason || null
 
     },
 
-    requestId,
-
-    timestamp:
-      nowISO()
+    requestId
 
   };
 
 }
 
 
-/* =====================================================================
- * 31. HEALTH ENDPOINT
- * ===================================================================== */
+/* ================================================================
+ * 22. HEALTH ENDPOINT
+ * ================================================================ */
 
 async function handleHealth(
   request,
@@ -2593,6 +1557,9 @@ async function handleHealth(
       version:
         CONFIG.VERSION,
 
+      authentication:
+        "Firebase ID Token",
+
       timestamp:
         nowISO()
 
@@ -2603,9 +1570,9 @@ async function handleHealth(
 }
 
 
-/* =====================================================================
- * 32. VERSION ENDPOINT
- * ===================================================================== */
+/* ================================================================
+ * 23. VERSION ENDPOINT
+ * ================================================================ */
 
 async function handleVersion(
   request,
@@ -2632,11 +1599,8 @@ async function handleVersion(
       runtime:
         "Cloudflare Workers",
 
-      architecture:
-        "Enterprise Module Worker",
-
-      timestamp:
-        nowISO()
+      authentication:
+        "Firebase Authenticated Gateway"
 
     }
 
@@ -2645,9 +1609,9 @@ async function handleVersion(
 }
 
 
-/* =====================================================================
- * 33. API INFORMATION ENDPOINT
- * ===================================================================== */
+/* ================================================================
+ * 24. API INFORMATION ENDPOINT
+ * ================================================================ */
 
 async function handleInfo(
   request,
@@ -2674,69 +1638,33 @@ async function handleInfo(
       apiPrefix:
         CONFIG.API_PREFIX,
 
-      endpoints: {
+      authentication:
+        {
 
-        health:
-          CONFIG.HEALTH_PATH,
+          type:
+            "Firebase ID Token",
 
-        version:
-          CONFIG.VERSION_PATH,
+          browserSecretRequired:
+            false
 
-        info:
-          CONFIG.INFO_PATH,
+        },
 
-        ai:
-          CONFIG.AI_PATH,
+      endpoints:
+        {
 
-        operations:
-          CONFIG.AI_OPERATIONS_PATH
+          health:
+            CONFIG.HEALTH_PATH,
 
-      },
+          version:
+            CONFIG.VERSION_PATH,
 
+          info:
+            CONFIG.INFO_PATH,
 
-      approvedOperations:
-        CONFIG.OPERATIONS,
+          ai:
+            CONFIG.AI_PATH
 
-
-      capabilities: [
-
-        "Firebase Authentication",
-
-        "Optional Service Authentication",
-
-        "Structured AI Operations",
-
-        "Enterprise Tool Generation",
-
-        "SEO Generation",
-
-        "Summary Generation",
-
-        "Content Generation",
-
-        "Tool Improvement",
-
-        "Tool Debugging",
-
-        "Request Validation",
-
-        "Request Size Protection",
-
-        "Rate Protection",
-
-        "Server-Side Prompt Control",
-
-        "Gemini AI Proxy",
-
-        "Security Headers",
-
-        "Hardened CORS",
-
-        "Request IDs",
-
-        "Centralized Error Handling"
-
-      ]
+        }
 
     }
 
@@ -2745,63 +1673,15 @@ async function handleInfo(
 }
 
 
-/* =====================================================================
- * 34. AI OPERATIONS ENDPOINT
- * ===================================================================== */
-
-async function handleOperations(
-  request,
-  env
-) {
-
-  return jsonResponse(
-
-    request,
-
-    env,
-
-    {
-
-      success:
-        true,
-
-      operations:
-        CONFIG.OPERATIONS.map(
-
-          operation => ({
-
-            operation,
-
-            available:
-              true
-
-          })
-
-        ),
-
-      version:
-        CONFIG.VERSION
-
-    }
-
-  );
-
-}
-
-
-/* =====================================================================
- * 35. GEMINI AI REQUEST
- * ===================================================================== */
+/* ================================================================
+ * 25. GEMINI AI ENDPOINT
+ * ================================================================ */
 
 async function handleAI(
   request,
   env,
   requestId
 ) {
-
-  /* ---------------------------------------------------------------
-   * Method validation
-   * ------------------------------------------------------------- */
 
   if (
     request.method !== "POST"
@@ -2826,20 +1706,18 @@ async function handleAI(
   }
 
 
-  /* ---------------------------------------------------------------
-   * Authentication
-   * ------------------------------------------------------------- */
+  /* ------------------------------------------------------------
+   * Firebase authentication
+   * ---------------------------------------------------------- */
 
-  const identity =
-    await authenticateRequest(
+  const authentication =
+    await authenticateFirebaseRequest(
       request,
       env
     );
 
 
-  if (
-    !identity.authenticated
-  ) {
+  if (!authentication.authenticated) {
 
     return errorResponse(
 
@@ -2849,11 +1727,9 @@ async function handleAI(
 
       401,
 
-      identity.code ||
-        "UNAUTHORIZED",
+      authentication.code,
 
-      identity.message ||
-        "Authentication is required.",
+      authentication.message,
 
       requestId
 
@@ -2862,162 +1738,12 @@ async function handleAI(
   }
 
 
-  /* ---------------------------------------------------------------
-   * Rate limiting
-   * ------------------------------------------------------------- */
-
-  const rateLimit =
-    checkRateLimit(
-
-      request,
-
-      env,
-
-      identity
-
-    );
-
-
-  if (
-    !rateLimit.allowed
-  ) {
-
-    return errorResponse(
-
-      request,
-
-      env,
-
-      429,
-
-      "RATE_LIMITED",
-
-      "Too many AI requests. Please wait before trying again.",
-
-      requestId
-
-    );
-
-  }
-
-
-  /* ---------------------------------------------------------------
-   * Body size
-   * ------------------------------------------------------------- */
-
-  if (
-    !validateBodySize(
-      request
-    )
-  ) {
-
-    return errorResponse(
-
-      request,
-
-      env,
-
-      413,
-
-      "PAYLOAD_TOO_LARGE",
-
-      "Request body exceeds the permitted size.",
-
-      requestId
-
-    );
-
-  }
-
-
-  /* ---------------------------------------------------------------
-   * Parse JSON
-   * ------------------------------------------------------------- */
-
-  let body;
-
-
-  try {
-
-    body =
-      await readJSON(
-        request
-      );
-
-  }
-
-  catch (error) {
-
-    return errorResponse(
-
-      request,
-
-      env,
-
-      error?.code ===
-      "PAYLOAD_TOO_LARGE"
-        ? 413
-        : 400,
-
-      error?.code ||
-        "INVALID_JSON",
-
-      error instanceof Error
-        ? error.message
-        : "Invalid request body.",
-
-      requestId
-
-    );
-
-  }
-
-
-  /* ---------------------------------------------------------------
-   * Normalize enterprise request
-   * ------------------------------------------------------------- */
-
-  let requestData;
-
-
-  try {
-
-    requestData =
-      normalizeEnterpriseAIRequest(
-        body
-      );
-
-  }
-
-  catch (error) {
-
-    return errorResponse(
-
-      request,
-
-      env,
-
-      400,
-
-      "INVALID_AI_REQUEST",
-
-      error instanceof Error
-        ? error.message
-        : "Invalid AI request.",
-
-      requestId
-
-    );
-
-  }
-
-
-  /* ---------------------------------------------------------------
-   * Gemini secret
-   * ------------------------------------------------------------- */
+  /* ------------------------------------------------------------
+   * Gemini API secret
+   * ---------------------------------------------------------- */
 
   const apiKey =
-    getEnvString(
+    safeString(
       env?.GEMINI_API_KEY
     );
 
@@ -3043,37 +1769,121 @@ async function handleAI(
   }
 
 
-  /* ---------------------------------------------------------------
-   * Model
-   * ------------------------------------------------------------- */
+  /* ------------------------------------------------------------
+   * Body size validation
+   * ---------------------------------------------------------- */
+
+  if (
+    !validateBodySize(request)
+  ) {
+
+    return errorResponse(
+
+      request,
+
+      env,
+
+      413,
+
+      "PAYLOAD_TOO_LARGE",
+
+      "Request body exceeds the permitted size.",
+
+      requestId
+
+    );
+
+  }
+
+
+  /* ------------------------------------------------------------
+   * Parse request
+   * ---------------------------------------------------------- */
+
+  let body;
+
+
+  try {
+
+    body =
+      await readJSON(request);
+
+  } catch (error) {
+
+    const status =
+      error?.code === "PAYLOAD_TOO_LARGE"
+        ? 413
+        : 400;
+
+
+    return errorResponse(
+
+      request,
+
+      env,
+
+      status,
+
+      error?.code ||
+        "INVALID_REQUEST",
+
+      error instanceof Error
+        ? error.message
+        : "Invalid request.",
+
+      requestId
+
+    );
+
+  }
+
+
+  /* ------------------------------------------------------------
+   * Normalize AI request
+   * ---------------------------------------------------------- */
+
+  let geminiPayload;
+
+
+  try {
+
+    geminiPayload =
+      normalizeAIRequest(body);
+
+  } catch (error) {
+
+    return errorResponse(
+
+      request,
+
+      env,
+
+      400,
+
+      "INVALID_AI_REQUEST",
+
+      error instanceof Error
+        ? error.message
+        : "Invalid AI request.",
+
+      requestId
+
+    );
+
+  }
+
 
   const model =
-    getGeminiModel(
-      env
-    );
+    getGeminiModel(env);
 
-
-  /* ---------------------------------------------------------------
-   * Build controlled payload
-   * ------------------------------------------------------------- */
-
-  const geminiPayload =
-    buildGeminiPayload(
-      requestData
-    );
-
-
-  /* ---------------------------------------------------------------
-   * Endpoint
-   * ------------------------------------------------------------- */
 
   const endpoint =
     `${CONFIG.GEMINI_API_BASE}/models/${encodeURIComponent(model)}:generateContent`;
 
 
-  /* ---------------------------------------------------------------
-   * Safe logging
-   * ------------------------------------------------------------- */
+  /* ------------------------------------------------------------
+   * Safe metadata logging
+   * ---------------------------------------------------------- */
 
   log(
 
@@ -3081,28 +1891,24 @@ async function handleAI(
 
     "info",
 
-    "Enterprise AI request",
+    "Authorized AI request",
 
     {
 
       requestId,
 
-      operation:
-        requestData.operation,
-
       model,
 
-      authentication:
-        identity.method
+      authenticated:
+        true,
+
+      emailVerified:
+        authentication.user.emailVerified
 
     }
 
   );
 
-
-  /* ---------------------------------------------------------------
-   * Gemini request
-   * ------------------------------------------------------------- */
 
   let upstreamResponse;
 
@@ -3138,9 +1944,7 @@ async function handleAI(
 
       );
 
-  }
-
-  catch (error) {
+  } catch (error) {
 
     log(
 
@@ -3154,10 +1958,7 @@ async function handleAI(
 
         requestId,
 
-        error:
-          error instanceof Error
-            ? error.message
-            : String(error)
+        model
 
       }
 
@@ -3172,7 +1973,7 @@ async function handleAI(
 
       502,
 
-      "GEMINI_CONNECTION_ERROR",
+      "GEMINI_UPSTREAM_ERROR",
 
       "Unable to connect to the AI provider.",
 
@@ -3187,153 +1988,102 @@ async function handleAI(
     await upstreamResponse.text();
 
 
-  /* ---------------------------------------------------------------
-   * Upstream error
-   * ------------------------------------------------------------- */
+  if (upstreamResponse.ok) {
 
-  if (
-    !upstreamResponse.ok
-  ) {
-
-    log(
-
-      env,
-
-      "error",
-
-      "Gemini rejected request",
-
-      {
-
-        requestId,
-
-        status:
-          upstreamResponse.status,
-
-        operation:
-          requestData.operation
-
-      }
-
-    );
+    let providerData;
 
 
-    let status =
-      upstreamResponse.status;
+    try {
 
+      providerData =
+        JSON.parse(responseText);
 
-    if (
-      !Number.isInteger(status) ||
-      status < 400 ||
-      status > 599
-    ) {
+    } catch {
 
-      status = 502;
+      return errorResponse(
+
+        request,
+
+        env,
+
+        502,
+
+        "GEMINI_INVALID_RESPONSE",
+
+        "AI provider returned an invalid response.",
+
+        requestId
+
+      );
 
     }
 
 
-    return errorResponse(
+    return jsonResponse(
 
       request,
 
       env,
 
-      status,
+      normalizeGeminiResponse(
 
-      "GEMINI_UPSTREAM_ERROR",
+        providerData,
 
-      "The AI provider rejected the request.",
+        requestId,
 
-      requestId
+        model
+
+      )
 
     );
 
   }
 
 
-  /* ---------------------------------------------------------------
-   * Parse provider response
-   * ------------------------------------------------------------- */
+  log(
 
-  let providerData;
+    env,
 
+    "warn",
 
-  try {
+    "Gemini request rejected",
 
-    providerData =
-      JSON.parse(
-        responseText
-      );
-
-  }
-
-  catch {
-
-    return errorResponse(
-
-      request,
-
-      env,
-
-      502,
-
-      "GEMINI_INVALID_RESPONSE",
-
-      "The AI provider returned an invalid response.",
-
-      requestId
-
-    );
-
-  }
-
-
-  /* ---------------------------------------------------------------
-   * Normalize
-   * ------------------------------------------------------------- */
-
-  const normalized =
-    normalizeGeminiResponse(
-
-      providerData,
+    {
 
       requestId,
 
       model,
 
-      requestData.operation
+      status:
+        upstreamResponse.status
 
-    );
+    }
+
+  );
 
 
-  return jsonResponse(
+  return errorResponse(
 
     request,
 
     env,
 
-    normalized,
+    502,
 
-    200,
+    "GEMINI_UPSTREAM_ERROR",
 
-    {
+    "AI provider could not process the request.",
 
-      "X-RateLimit-Remaining":
-        String(
-          rateLimit.remaining
-        )
-
-    }
+    requestId
 
   );
 
 }
 
 
-/* =====================================================================
- * 36. API ROUTER
- * ===================================================================== */
+/* ================================================================
+ * 26. API ROUTER
+ * ================================================================ */
 
 async function routeAPI(
   request,
@@ -3342,22 +2092,15 @@ async function routeAPI(
 ) {
 
   const url =
-    new URL(
-      request.url
-    );
+    new URL(request.url);
 
 
   const path =
     url.pathname;
 
 
-  /* ---------------------------------------------------------------
-   * Health
-   * ------------------------------------------------------------- */
-
   if (
-    path ===
-    CONFIG.HEALTH_PATH
+    path === CONFIG.HEALTH_PATH
   ) {
 
     return handleHealth(
@@ -3368,13 +2111,8 @@ async function routeAPI(
   }
 
 
-  /* ---------------------------------------------------------------
-   * Version
-   * ------------------------------------------------------------- */
-
   if (
-    path ===
-    CONFIG.VERSION_PATH
+    path === CONFIG.VERSION_PATH
   ) {
 
     return handleVersion(
@@ -3385,13 +2123,8 @@ async function routeAPI(
   }
 
 
-  /* ---------------------------------------------------------------
-   * Information
-   * ------------------------------------------------------------- */
-
   if (
-    path ===
-    CONFIG.INFO_PATH
+    path === CONFIG.INFO_PATH
   ) {
 
     return handleInfo(
@@ -3402,30 +2135,8 @@ async function routeAPI(
   }
 
 
-  /* ---------------------------------------------------------------
-   * AI operations
-   * ------------------------------------------------------------- */
-
   if (
-    path ===
-    CONFIG.AI_OPERATIONS_PATH
-  ) {
-
-    return handleOperations(
-      request,
-      env
-    );
-
-  }
-
-
-  /* ---------------------------------------------------------------
-   * AI
-   * ------------------------------------------------------------- */
-
-  if (
-    path ===
-    CONFIG.AI_PATH
+    path === CONFIG.AI_PATH
   ) {
 
     return handleAI(
@@ -3440,10 +2151,6 @@ async function routeAPI(
 
   }
 
-
-  /* ---------------------------------------------------------------
-   * Unknown route
-   * ------------------------------------------------------------- */
 
   return errorResponse(
 
@@ -3464,9 +2171,9 @@ async function routeAPI(
 }
 
 
-/* =====================================================================
- * 37. ROOT ENDPOINT
- * ===================================================================== */
+/* ================================================================
+ * 27. ROOT ENDPOINT
+ * ================================================================ */
 
 async function handleRoot(
   request,
@@ -3491,29 +2198,30 @@ async function handleRoot(
         CONFIG.VERSION,
 
       message:
-        "BloggerSaaS Ultimate V5 Enterprise Worker is running.",
-
-      architecture:
-        "Secure AI Gateway",
+        "BloggerSaaS Ultimate V5 Firebase Authenticated AI Gateway is running.",
 
       api:
         CONFIG.API_PREFIX,
 
-      endpoints: {
+      authentication:
+        "Firebase ID Token",
 
-        health:
-          CONFIG.HEALTH_PATH,
+      endpoints:
+        {
 
-        version:
-          CONFIG.VERSION_PATH,
+          health:
+            CONFIG.HEALTH_PATH,
 
-        info:
-          CONFIG.INFO_PATH,
+          version:
+            CONFIG.VERSION_PATH,
 
-        ai:
-          CONFIG.AI_PATH
+          info:
+            CONFIG.INFO_PATH,
 
-      }
+          ai:
+            CONFIG.AI_PATH
+
+        }
 
     }
 
@@ -3522,9 +2230,9 @@ async function handleRoot(
 }
 
 
-/* =====================================================================
- * 38. REQUEST ID RESPONSE HEADER
- * ===================================================================== */
+/* ================================================================
+ * 28. ADD REQUEST ID
+ * ================================================================ */
 
 function addRequestId(
   response,
@@ -3564,75 +2272,19 @@ function addRequestId(
 }
 
 
-/* =====================================================================
- * 39. API REQUEST DETECTION
- * ===================================================================== */
-
-function isAPIRequest(
-  url
-) {
-
-  return (
-
-    url.pathname ===
-      CONFIG.API_PREFIX ||
-
-    url.pathname.startsWith(
-      `${CONFIG.API_PREFIX}/`
-    )
-
-  );
-
-}
-
-
-/* =====================================================================
- * 40. GLOBAL REQUEST HANDLER
- * ===================================================================== */
+/* ================================================================
+ * 29. REQUEST HANDLER
+ * ================================================================ */
 
 async function handleRequest(
-  originalRequest,
+  request,
   env,
-  ctx
+  ctx,
+  requestId
 ) {
 
-  const requestId =
-    originalRequest.headers.get(
-      "X-Request-ID"
-    ) ||
-    createRequestId();
-
-
-  const headers =
-    new Headers(
-      originalRequest.headers
-    );
-
-
-  headers.set(
-    "X-Request-ID",
-    requestId
-  );
-
-
-  const request =
-    new Request(
-
-      originalRequest,
-
-      {
-
-        headers
-
-      }
-
-    );
-
-
   const url =
-    new URL(
-      request.url
-    );
+    new URL(request.url);
 
 
   log(
@@ -3658,175 +2310,75 @@ async function handleRequest(
   );
 
 
-  /* ---------------------------------------------------------------
-   * OPTIONS / CORS
-   * ------------------------------------------------------------- */
+  /* ------------------------------------------------------------
+   * CORS Preflight
+   * ---------------------------------------------------------- */
 
   if (
-    request.method ===
-    "OPTIONS"
+    request.method === "OPTIONS"
   ) {
 
-    const origin =
-      request.headers.get(
-        "Origin"
-      );
+    return new Response(
 
+      null,
 
-    if (
-      origin &&
-      !getCorsOrigin(
-        request,
-        env
-      )
-    ) {
+      {
 
-      return addRequestId(
+        status:
+          204,
 
-        errorResponse(
+        headers:
+          buildHeaders(
+            request,
+            env
+          )
 
-          request,
-
-          env,
-
-          403,
-
-          "CORS_ORIGIN_DENIED",
-
-          "This origin is not authorized.",
-
-          requestId
-
-        ),
-
-        requestId
-
-      );
-
-    }
-
-
-    return addRequestId(
-
-      new Response(
-
-        null,
-
-        {
-
-          status:
-            204,
-
-          headers:
-            buildHeaders(
-              request,
-              env
-            )
-
-        }
-
-      ),
-
-      requestId
+      }
 
     );
 
   }
 
 
-  /* ---------------------------------------------------------------
-   * Body size protection
-   * ------------------------------------------------------------- */
+  /* ------------------------------------------------------------
+   * API request
+   * ---------------------------------------------------------- */
 
   if (
-    !validateBodySize(
-      request
+    url.pathname === CONFIG.API_PREFIX ||
+    url.pathname.startsWith(
+      `${CONFIG.API_PREFIX}/`
     )
   ) {
 
-    return addRequestId(
+    return routeAPI(
 
-      errorResponse(
-
-        request,
-
-        env,
-
-        413,
-
-        "PAYLOAD_TOO_LARGE",
-
-        "Request body exceeds the permitted size.",
-
-        requestId
-
-      ),
-
-      requestId
-
-    );
-
-  }
-
-
-  /* ---------------------------------------------------------------
-   * API
-   * ------------------------------------------------------------- */
-
-  if (
-    isAPIRequest(
-      url
-    )
-  ) {
-
-    const response =
-      await routeAPI(
-
-        request,
-
-        env,
-
-        requestId
-
-      );
-
-
-    return addRequestId(
-
-      response,
-
-      requestId
-
-    );
-
-  }
-
-
-  /* ---------------------------------------------------------------
-   * Root
-   * ------------------------------------------------------------- */
-
-  const response =
-    await handleRoot(
       request,
-      env
+
+      env,
+
+      requestId
+
     );
 
+  }
 
-  return addRequestId(
 
-    response,
+  /* ------------------------------------------------------------
+   * Root request
+   * ---------------------------------------------------------- */
 
-    requestId
-
+  return handleRoot(
+    request,
+    env
   );
 
 }
 
 
-/* =====================================================================
- * 41. FATAL ERROR HANDLER
- * ===================================================================== */
+/* ================================================================
+ * 30. FATAL ERROR HANDLER
+ * ================================================================ */
 
 function handleFatalError(
   request,
@@ -3857,23 +2409,17 @@ function handleFatalError(
   );
 
 
-  return addRequestId(
+  return errorResponse(
 
-    errorResponse(
+    request,
 
-      request,
+    env,
 
-      env,
+    500,
 
-      500,
+    "INTERNAL_SERVER_ERROR",
 
-      "INTERNAL_SERVER_ERROR",
-
-      "An unexpected server error occurred.",
-
-      requestId
-
-    ),
+    "An unexpected server error occurred.",
 
     requestId
 
@@ -3882,9 +2428,9 @@ function handleFatalError(
 }
 
 
-/* =====================================================================
- * 42. CLOUDFLARE MODULE WORKER ENTRY POINT
- * ===================================================================== */
+/* ================================================================
+ * 31. CLOUDFLARE WORKER ENTRY POINT
+ * ================================================================ */
 
 export default {
 
@@ -3903,30 +2449,44 @@ export default {
 
     try {
 
-      return await handleRequest(
+      const response =
+        await handleRequest(
 
-        request,
+          request,
 
-        env,
+          env,
 
-        ctx
+          ctx,
 
+          requestId
+
+        );
+
+
+      return addRequestId(
+        response,
+        requestId
       );
 
-    }
+    } catch (error) {
 
-    catch (error) {
+      const response =
+        handleFatalError(
 
-      return handleFatalError(
+          request,
 
-        request,
+          env,
 
-        env,
+          error,
 
-        error,
+          requestId
 
+        );
+
+
+      return addRequestId(
+        response,
         requestId
-
       );
 
     }
@@ -3936,8 +2496,8 @@ export default {
 };
 
 
-/* =====================================================================
+/* ================================================================
  * END OF FILE
  * BloggerSaaS Ultimate V5
- * Worker V5.1.8 Enterprise
- * ===================================================================== */
+ * Cloudflare Worker V5.1.9 Enterprise
+ * ================================================================ */
