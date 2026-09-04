@@ -3,5 +3,10 @@
   "name": "bloggersaas-ai-proxy",
   "main": "./worker/worker.js",
   "compatibility_date": "2026-08-08",
-  "workers_dev": true
+  "workers_dev": true,
+
+  "vars": {
+    "CORS_ORIGINS": "https://fatimamhaji786.github.io,https://adminfreeunlimitedmultitools.blogspot.com",
+    "FIREBASE_PROJECT_ID": "bloggersaas-v1"
+  }
 }
