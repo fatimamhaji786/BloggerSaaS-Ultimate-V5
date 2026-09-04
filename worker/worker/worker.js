@@ -1,7 +1,7 @@
 /**
  * ================================================================
  * BloggerSaaS Ultimate V5
- * Cloudflare Worker V5.1.9 Enterprise
+ * Cloudflare Worker V5.1.10 Enterprise
  * ================================================================
  *
  * Secure Firebase Authenticated AI Gateway
@@ -28,12 +28,9 @@
  *
  * GEMINI_API_KEY
  *
- * REQUIRED CLOUDFLARE VARIABLE
+ * REQUIRED CLOUDFLARE VARIABLES
  *
  * FIREBASE_PROJECT_ID
- *
- * RECOMMENDED CLOUDFLARE VARIABLE
- *
  * CORS_ORIGINS
  *
  * OPTIONAL CLOUDFLARE VARIABLE
@@ -42,21 +39,25 @@
  *
  * ================================================================
  *
- * SECURITY PRINCIPLES
+ * V5.1.10 FIXES
  *
- * ✓ No Gemini API key in Blogger
- * ✓ No permanent AI proxy token in Blogger
- * ✓ Firebase ID token authentication
- * ✓ Google JWT signature verification
+ * ✓ Production CORS handling
+ * ✓ Exact CORS origin matching
+ * ✓ Proper OPTIONS preflight handling
+ * ✓ Firebase X.509 certificate → SPKI public key extraction
+ * ✓ RS256 Firebase ID-token verification
+ * ✓ Firebase certificate caching
+ * ✓ Automatic certificate refresh for unknown kid
  * ✓ Firebase issuer validation
  * ✓ Firebase audience validation
  * ✓ Firebase expiration validation
  * ✓ Firebase subject validation
- * ✓ Exact CORS origin matching
- * ✓ Request-size protection
+ * ✓ Firebase issue-time validation
  * ✓ Security headers
  * ✓ Request IDs
+ * ✓ Request-size protection
  * ✓ Safe error responses
+ * ✓ No secret/token/full-prompt logging
  *
  * ================================================================
  */
@@ -74,7 +75,7 @@ const CONFIG = Object.freeze({
     "BloggerSaaS Ultimate V5",
 
   VERSION:
-    "5.1.9",
+    "5.1.10",
 
   API_PREFIX:
     "/api",
@@ -107,7 +108,10 @@ const CONFIG = Object.freeze({
     "https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com",
 
   GOOGLE_CERT_CACHE_SECONDS:
-    3600
+    3600,
+
+  CLOCK_SKEW_SECONDS:
+    300
 
 });
 
@@ -141,9 +145,6 @@ const SECURITY_HEADERS = Object.freeze({
 
 /* ================================================================
  * 3. CERTIFICATE CACHE
- *
- * Cloudflare Worker memory may be reused between requests.
- * This reduces unnecessary certificate downloads.
  * ================================================================ */
 
 let certificateCache = {
@@ -194,14 +195,7 @@ function safeString(value) {
 
 
 /* ================================================================
- * 5. LOGGING
- *
- * Never log:
- *
- * • Gemini API key
- * • Firebase token
- * • Authorization header
- * • Full AI prompt
+ * 5. SAFE LOGGING
  * ================================================================ */
 
 function log(
@@ -268,7 +262,9 @@ function log(
 function getAllowedOrigins(env) {
 
   const value =
-    safeString(env?.CORS_ORIGINS);
+    safeString(
+      env?.CORS_ORIGINS
+    );
 
 
   if (!value) {
@@ -281,9 +277,23 @@ function getAllowedOrigins(env) {
   return value
     .split(",")
     .map(
-      origin => origin.trim()
+      origin =>
+        origin.trim()
     )
     .filter(Boolean);
+
+}
+
+
+function getRequestOrigin(
+  request
+) {
+
+  return safeString(
+    request.headers.get(
+      "Origin"
+    )
+  );
 
 }
 
@@ -294,7 +304,9 @@ function getCorsOrigin(
 ) {
 
   const requestOrigin =
-    request.headers.get("Origin");
+    getRequestOrigin(
+      request
+    );
 
 
   if (!requestOrigin) {
@@ -305,7 +317,9 @@ function getCorsOrigin(
 
 
   const allowedOrigins =
-    getAllowedOrigins(env);
+    getAllowedOrigins(
+      env
+    );
 
 
   if (
@@ -366,6 +380,38 @@ function corsHeaders(
 
 
   return headers;
+
+}
+
+
+function isOriginAllowed(
+  request,
+  env
+) {
+
+  const origin =
+    getRequestOrigin(
+      request
+    );
+
+
+  /*
+   * Direct server-to-server requests may
+   * legitimately have no Origin header.
+   */
+  if (!origin) {
+
+    return true;
+
+  }
+
+
+  return Boolean(
+    getCorsOrigin(
+      request,
+      env
+    )
+  );
 
 }
 
@@ -517,7 +563,9 @@ function getContentLength(
     Number(value);
 
 
-  if (!Number.isFinite(number)) {
+  if (
+    !Number.isFinite(number)
+  ) {
 
     return null;
 
@@ -534,7 +582,9 @@ function validateBodySize(
 ) {
 
   const size =
-    getContentLength(request);
+    getContentLength(
+      request
+    );
 
 
   if (
@@ -593,7 +643,9 @@ async function readJSON(
 
   const bodyBytes =
     new TextEncoder()
-      .encode(bodyText)
+      .encode(
+        bodyText
+      )
       .byteLength;
 
 
@@ -632,7 +684,9 @@ async function readJSON(
 
   try {
 
-    return JSON.parse(bodyText);
+    return JSON.parse(
+      bodyText
+    );
 
   } catch {
 
@@ -661,19 +715,31 @@ function base64UrlToUint8Array(
 
   const base64 =
     value
-      .replace(/-/g, "+")
-      .replace(/_/g, "/");
+      .replace(
+        /-/g,
+        "+"
+      )
+      .replace(
+        /_/g,
+        "/"
+      );
 
 
   const padding =
     "=".repeat(
-      (4 - (base64.length % 4)) % 4
+      (
+        4 -
+        (
+          base64.length % 4
+        )
+      ) % 4
     );
 
 
   const binary =
     atob(
-      base64 + padding
+      base64 +
+      padding
     );
 
 
@@ -690,7 +756,9 @@ function base64UrlToUint8Array(
   ) {
 
     bytes[i] =
-      binary.charCodeAt(i);
+      binary.charCodeAt(
+        i
+      );
 
   }
 
@@ -705,15 +773,21 @@ function decodeBase64UrlJSON(
 ) {
 
   const bytes =
-    base64UrlToUint8Array(value);
+    base64UrlToUint8Array(
+      value
+    );
 
 
   const text =
     new TextDecoder()
-      .decode(bytes);
+      .decode(
+        bytes
+      );
 
 
-  return JSON.parse(text);
+  return JSON.parse(
+    text
+  );
 
 }
 
@@ -787,16 +861,19 @@ function parseJWT(
 
 
 /* ================================================================
- * 14. GOOGLE FIREBASE PUBLIC CERTIFICATES
+ * 14. FIREBASE PUBLIC CERTIFICATES
  * ================================================================ */
 
-async function getFirebaseCertificates() {
+async function getFirebaseCertificates(
+  forceRefresh = false
+) {
 
   const now =
     Date.now();
 
 
   if (
+    !forceRefresh &&
     certificateCache.certificates &&
     certificateCache.expiresAt > now
   ) {
@@ -815,6 +892,16 @@ async function getFirebaseCertificates() {
 
           "Accept":
             "application/json"
+
+        },
+
+        cf: {
+
+          cacheTtl:
+            300,
+
+          cacheEverything:
+            true
 
         }
 
@@ -850,7 +937,9 @@ async function getFirebaseCertificates() {
   const maxAgeSeconds =
     maxAgeMatch
       ? Math.min(
-          Number(maxAgeMatch[1]),
+          Number(
+            maxAgeMatch[1]
+          ),
           CONFIG.GOOGLE_CERT_CACHE_SECONDS
         )
       : CONFIG.GOOGLE_CERT_CACHE_SECONDS;
@@ -876,10 +965,20 @@ async function getFirebaseCertificates() {
 
 
 /* ================================================================
- * 15. PEM TO CRYPTO KEY
+ * 15. PEM / X.509 CERTIFICATE UTILITIES
+ *
+ * IMPORTANT:
+ *
+ * Google's endpoint returns X.509 certificates.
+ *
+ * crypto.subtle.importKey("spki", ...)
+ * cannot directly consume the full certificate DER.
+ *
+ * We therefore extract the SubjectPublicKeyInfo
+ * from the DER-encoded X.509 certificate.
  * ================================================================ */
 
-function pemToArrayBuffer(
+function pemToDer(
   pem
 ) {
 
@@ -900,7 +999,9 @@ function pemToArrayBuffer(
 
 
   const binary =
-    atob(clean);
+    atob(
+      clean
+    );
 
 
   const bytes =
@@ -916,12 +1017,343 @@ function pemToArrayBuffer(
   ) {
 
     bytes[i] =
-      binary.charCodeAt(i);
+      binary.charCodeAt(
+        i
+      );
 
   }
 
 
-  return bytes.buffer;
+  return bytes;
+
+}
+
+
+function readDERLength(
+  bytes,
+  offset
+) {
+
+  const first =
+    bytes[offset];
+
+
+  if (
+    first < 0x80
+  ) {
+
+    return {
+
+      length:
+        first,
+
+      nextOffset:
+        offset + 1
+
+    };
+
+  }
+
+
+  const byteCount =
+    first & 0x7f;
+
+
+  if (
+    byteCount === 0 ||
+    byteCount > 4
+  ) {
+
+    throw new Error(
+      "Invalid DER length."
+    );
+
+  }
+
+
+  let length =
+    0;
+
+
+  for (
+    let i = 0;
+    i < byteCount;
+    i++
+  ) {
+
+    length =
+      (
+        length * 256
+      ) +
+      bytes[
+        offset + 1 + i
+      ];
+
+  }
+
+
+  return {
+
+    length,
+
+    nextOffset:
+      offset +
+      1 +
+      byteCount
+
+  };
+
+}
+
+
+function readDERElement(
+  bytes,
+  offset
+) {
+
+  if (
+    offset >= bytes.length
+  ) {
+
+    throw new Error(
+      "Invalid DER element offset."
+    );
+
+  }
+
+
+  const tag =
+    bytes[offset];
+
+
+  const lengthInfo =
+    readDERLength(
+      bytes,
+      offset + 1
+    );
+
+
+  const valueStart =
+    lengthInfo.nextOffset;
+
+
+  const valueEnd =
+    valueStart +
+    lengthInfo.length;
+
+
+  if (
+    valueEnd > bytes.length
+  ) {
+
+    throw new Error(
+      "Invalid DER element length."
+    );
+
+  }
+
+
+  return {
+
+    tag,
+
+    start:
+      offset,
+
+    valueStart,
+
+    valueEnd,
+
+    end:
+      valueEnd
+
+  };
+
+}
+
+
+/**
+ * Extract SubjectPublicKeyInfo from an
+ * X.509 Certificate.
+ *
+ * Certificate structure:
+ *
+ * Certificate ::= SEQUENCE {
+ *   tbsCertificate       TBSCertificate,
+ *   signatureAlgorithm   AlgorithmIdentifier,
+ *   signatureValue       BIT STRING
+ * }
+ *
+ * TBSCertificate:
+ *
+ *   version
+ *   serialNumber
+ *   signature
+ *   issuer
+ *   validity
+ *   subject
+ *   subjectPublicKeyInfo
+ *   ...
+ */
+function extractSubjectPublicKeyInfo(
+  certificateDer
+) {
+
+  const root =
+    readDERElement(
+      certificateDer,
+      0
+    );
+
+
+  if (
+    root.tag !== 0x30
+  ) {
+
+    throw new Error(
+      "Firebase certificate is not a DER SEQUENCE."
+    );
+
+  }
+
+
+  const tbs =
+    readDERElement(
+      certificateDer,
+      root.valueStart
+    );
+
+
+  if (
+    tbs.tag !== 0x30
+  ) {
+
+    throw new Error(
+      "Invalid Firebase TBSCertificate."
+    );
+
+  }
+
+
+  let offset =
+    tbs.valueStart;
+
+
+  /*
+   * Optional [0] EXPLICIT version.
+   */
+  const first =
+    readDERElement(
+      certificateDer,
+      offset
+    );
+
+
+  if (
+    first.tag === 0xa0
+  ) {
+
+    offset =
+      first.end;
+
+  }
+
+
+  /*
+   * serialNumber
+   */
+  const serialNumber =
+    readDERElement(
+      certificateDer,
+      offset
+    );
+
+
+  offset =
+    serialNumber.end;
+
+
+  /*
+   * signature
+   */
+  const signature =
+    readDERElement(
+      certificateDer,
+      offset
+    );
+
+
+  offset =
+    signature.end;
+
+
+  /*
+   * issuer
+   */
+  const issuer =
+    readDERElement(
+      certificateDer,
+      offset
+    );
+
+
+  offset =
+    issuer.end;
+
+
+  /*
+   * validity
+   */
+  const validity =
+    readDERElement(
+      certificateDer,
+      offset
+    );
+
+
+  offset =
+    validity.end;
+
+
+  /*
+   * subject
+   */
+  const subject =
+    readDERElement(
+      certificateDer,
+      offset
+    );
+
+
+  offset =
+    subject.end;
+
+
+  /*
+   * subjectPublicKeyInfo
+   */
+  const spki =
+    readDERElement(
+      certificateDer,
+      offset
+    );
+
+
+  if (
+    spki.tag !== 0x30
+  ) {
+
+    throw new Error(
+      "Firebase certificate public-key structure is invalid."
+    );
+
+  }
+
+
+  return certificateDer.slice(
+    spki.start,
+    spki.end
+  );
 
 }
 
@@ -930,91 +1362,20 @@ function pemToArrayBuffer(
  * 16. FIREBASE JWT SIGNATURE VERIFICATION
  * ================================================================ */
 
-async function verifyFirebaseSignature(
-  parsedToken
-) {
-
-  const algorithm =
-    parsedToken.header?.alg;
-
-
-  if (
-    algorithm !== "RS256"
-  ) {
-
-    throw new Error(
-      "Unsupported Firebase token algorithm."
-    );
-
-  }
-
-
-  const keyId =
-    parsedToken.header?.kid;
-
-
-  if (!keyId) {
-
-    throw new Error(
-      "Firebase token key ID is missing."
-    );
-
-  }
-
-
-  const certificates =
-    await getFirebaseCertificates();
-
-
-  const certificate =
-    certificates[keyId];
-
-
-  if (!certificate) {
-
-    certificateCache.expiresAt = 0;
-
-    const refreshedCertificates =
-      await getFirebaseCertificates();
-
-
-    const refreshedCertificate =
-      refreshedCertificates[keyId];
-
-
-    if (!refreshedCertificate) {
-
-      throw new Error(
-        "Firebase token signing certificate was not found."
-      );
-
-    }
-
-
-    return verifyWithCertificate(
-      parsedToken,
-      refreshedCertificate
-    );
-
-  }
-
-
-  return verifyWithCertificate(
-    parsedToken,
-    certificate
-  );
-
-}
-
-
 async function verifyWithCertificate(
   parsedToken,
   certificate
 ) {
 
-  const certificateBuffer =
-    pemToArrayBuffer(
+  const certificateDer =
+    pemToDer(
       certificate
+    );
+
+
+  const spki =
+    extractSubjectPublicKeyInfo(
+      certificateDer
     );
 
 
@@ -1023,7 +1384,7 @@ async function verifyWithCertificate(
 
       "spki",
 
-      certificateBuffer,
+      spki,
 
       {
 
@@ -1057,6 +1418,85 @@ async function verifyWithCertificate(
 
     parsedToken.signingInput
 
+  );
+
+}
+
+
+async function verifyFirebaseSignature(
+  parsedToken
+) {
+
+  const algorithm =
+    parsedToken.header?.alg;
+
+
+  if (
+    algorithm !== "RS256"
+  ) {
+
+    throw new Error(
+      "Unsupported Firebase token algorithm."
+    );
+
+  }
+
+
+  const keyId =
+    safeString(
+      parsedToken.header?.kid
+    );
+
+
+  if (!keyId) {
+
+    throw new Error(
+      "Firebase token key ID is missing."
+    );
+
+  }
+
+
+  let certificates =
+    await getFirebaseCertificates();
+
+
+  let certificate =
+    certificates[keyId];
+
+
+  /*
+   * Firebase may rotate signing certificates.
+   *
+   * If the current cache does not contain
+   * the token's kid, force a fresh retrieval.
+   */
+  if (!certificate) {
+
+    certificates =
+      await getFirebaseCertificates(
+        true
+      );
+
+
+    certificate =
+      certificates[keyId];
+
+  }
+
+
+  if (!certificate) {
+
+    throw new Error(
+      "Firebase token signing certificate was not found."
+    );
+
+  }
+
+
+  return verifyWithCertificate(
+    parsedToken,
+    certificate
   );
 
 }
@@ -1135,7 +1575,9 @@ function validateFirebaseClaims(
 
   if (
     typeof payload.exp !== "number" ||
-    payload.exp <= now
+    payload.exp <=
+      now -
+      CONFIG.CLOCK_SKEW_SECONDS
   ) {
 
     throw new Error(
@@ -1147,7 +1589,9 @@ function validateFirebaseClaims(
 
   if (
     typeof payload.iat !== "number" ||
-    payload.iat > now + 300
+    payload.iat >
+      now +
+      CONFIG.CLOCK_SKEW_SECONDS
   ) {
 
     throw new Error(
@@ -1159,7 +1603,9 @@ function validateFirebaseClaims(
 
   if (
     typeof payload.auth_time === "number" &&
-    payload.auth_time > now + 300
+    payload.auth_time >
+      now +
+      CONFIG.CLOCK_SKEW_SECONDS
   ) {
 
     throw new Error(
@@ -1255,7 +1701,9 @@ async function authenticateFirebaseRequest(
   try {
 
     const parsedToken =
-      parseJWT(token);
+      parseJWT(
+        token
+      );
 
 
     const signatureValid =
@@ -1299,6 +1747,26 @@ async function authenticateFirebaseRequest(
     };
 
   } catch (error) {
+
+    log(
+
+      env,
+
+      "warn",
+
+      "Firebase token verification failed",
+
+      {
+
+        reason:
+          error instanceof Error
+            ? error.message
+            : "verification-error"
+
+      }
+
+    );
+
 
     return {
 
@@ -1366,7 +1834,9 @@ function normalizeAIRequest(
 
 
   if (
-    Array.isArray(body.contents)
+    Array.isArray(
+      body.contents
+    )
   ) {
 
     if (
@@ -1500,7 +1970,8 @@ function normalizeGeminiResponse(
           typeof part?.text === "string"
       )
       ?.map(
-        part => part.text
+        part =>
+          part.text
       )
       ?.join("") || "";
 
@@ -1517,7 +1988,8 @@ function normalizeGeminiResponse(
       model,
 
       finishReason:
-        candidate?.finishReason || null
+        candidate?.finishReason ||
+        null
 
     },
 
@@ -1559,6 +2031,11 @@ async function handleHealth(
 
       authentication:
         "Firebase ID Token",
+
+      corsConfigured:
+        getAllowedOrigins(
+          env
+        ).length > 0,
 
       timestamp:
         nowISO()
@@ -1649,6 +2126,16 @@ async function handleInfo(
 
         },
 
+      cors:
+        {
+
+          configured:
+            getAllowedOrigins(
+              env
+            ).length > 0
+
+        },
+
       endpoints:
         {
 
@@ -1706,9 +2193,9 @@ async function handleAI(
   }
 
 
-  /* ------------------------------------------------------------
+  /*
    * Firebase authentication
-   * ---------------------------------------------------------- */
+   */
 
   const authentication =
     await authenticateFirebaseRequest(
@@ -1717,7 +2204,9 @@ async function handleAI(
     );
 
 
-  if (!authentication.authenticated) {
+  if (
+    !authentication.authenticated
+  ) {
 
     return errorResponse(
 
@@ -1738,9 +2227,9 @@ async function handleAI(
   }
 
 
-  /* ------------------------------------------------------------
+  /*
    * Gemini API secret
-   * ---------------------------------------------------------- */
+   */
 
   const apiKey =
     safeString(
@@ -1769,12 +2258,14 @@ async function handleAI(
   }
 
 
-  /* ------------------------------------------------------------
+  /*
    * Body size validation
-   * ---------------------------------------------------------- */
+   */
 
   if (
-    !validateBodySize(request)
+    !validateBodySize(
+      request
+    )
   ) {
 
     return errorResponse(
@@ -1796,9 +2287,9 @@ async function handleAI(
   }
 
 
-  /* ------------------------------------------------------------
+  /*
    * Parse request
-   * ---------------------------------------------------------- */
+   */
 
   let body;
 
@@ -1806,12 +2297,15 @@ async function handleAI(
   try {
 
     body =
-      await readJSON(request);
+      await readJSON(
+        request
+      );
 
   } catch (error) {
 
     const status =
-      error?.code === "PAYLOAD_TOO_LARGE"
+      error?.code ===
+      "PAYLOAD_TOO_LARGE"
         ? 413
         : 400;
 
@@ -1838,9 +2332,9 @@ async function handleAI(
   }
 
 
-  /* ------------------------------------------------------------
+  /*
    * Normalize AI request
-   * ---------------------------------------------------------- */
+   */
 
   let geminiPayload;
 
@@ -1848,7 +2342,9 @@ async function handleAI(
   try {
 
     geminiPayload =
-      normalizeAIRequest(body);
+      normalizeAIRequest(
+        body
+      );
 
   } catch (error) {
 
@@ -1874,16 +2370,22 @@ async function handleAI(
 
 
   const model =
-    getGeminiModel(env);
+    getGeminiModel(
+      env
+    );
 
 
   const endpoint =
     `${CONFIG.GEMINI_API_BASE}/models/${encodeURIComponent(model)}:generateContent`;
 
 
-  /* ------------------------------------------------------------
+  /*
    * Safe metadata logging
-   * ---------------------------------------------------------- */
+   *
+   * No token.
+   * No API key.
+   * No prompt.
+   */
 
   log(
 
@@ -1988,7 +2490,9 @@ async function handleAI(
     await upstreamResponse.text();
 
 
-  if (upstreamResponse.ok) {
+  if (
+    upstreamResponse.ok
+  ) {
 
     let providerData;
 
@@ -1996,7 +2500,9 @@ async function handleAI(
     try {
 
       providerData =
-        JSON.parse(responseText);
+        JSON.parse(
+          responseText
+        );
 
     } catch {
 
@@ -2092,7 +2598,9 @@ async function routeAPI(
 ) {
 
   const url =
-    new URL(request.url);
+    new URL(
+      request.url
+    );
 
 
   const path =
@@ -2100,7 +2608,8 @@ async function routeAPI(
 
 
   if (
-    path === CONFIG.HEALTH_PATH
+    path ===
+    CONFIG.HEALTH_PATH
   ) {
 
     return handleHealth(
@@ -2112,7 +2621,8 @@ async function routeAPI(
 
 
   if (
-    path === CONFIG.VERSION_PATH
+    path ===
+    CONFIG.VERSION_PATH
   ) {
 
     return handleVersion(
@@ -2124,7 +2634,8 @@ async function routeAPI(
 
 
   if (
-    path === CONFIG.INFO_PATH
+    path ===
+    CONFIG.INFO_PATH
   ) {
 
     return handleInfo(
@@ -2136,7 +2647,8 @@ async function routeAPI(
 
 
   if (
-    path === CONFIG.AI_PATH
+    path ===
+    CONFIG.AI_PATH
   ) {
 
     return handleAI(
@@ -2205,6 +2717,11 @@ async function handleRoot(
 
       authentication:
         "Firebase ID Token",
+
+      corsConfigured:
+        getAllowedOrigins(
+          env
+        ).length > 0,
 
       endpoints:
         {
@@ -2284,7 +2801,9 @@ async function handleRequest(
 ) {
 
   const url =
-    new URL(request.url);
+    new URL(
+      request.url
+    );
 
 
   log(
@@ -2310,13 +2829,45 @@ async function handleRequest(
   );
 
 
-  /* ------------------------------------------------------------
-   * CORS Preflight
-   * ---------------------------------------------------------- */
+  /*
+   * CORS preflight
+   */
 
   if (
-    request.method === "OPTIONS"
+    request.method ===
+    "OPTIONS"
   ) {
+
+    /*
+     * When a browser supplies Origin,
+     * reject origins not explicitly allowed.
+     */
+
+    if (
+      !isOriginAllowed(
+        request,
+        env
+      )
+    ) {
+
+      return errorResponse(
+
+        request,
+
+        env,
+
+        403,
+
+        "CORS_ORIGIN_NOT_ALLOWED",
+
+        "The request origin is not permitted.",
+
+        requestId
+
+      );
+
+    }
+
 
     return new Response(
 
@@ -2340,12 +2891,46 @@ async function handleRequest(
   }
 
 
-  /* ------------------------------------------------------------
-   * API request
-   * ---------------------------------------------------------- */
+  /*
+   * Reject disallowed browser origins.
+   *
+   * Requests without Origin are allowed because
+   * they may be server-to-server or direct health checks.
+   */
 
   if (
-    url.pathname === CONFIG.API_PREFIX ||
+    !isOriginAllowed(
+      request,
+      env
+    )
+  ) {
+
+    return errorResponse(
+
+      request,
+
+      env,
+
+      403,
+
+      "CORS_ORIGIN_NOT_ALLOWED",
+
+      "The request origin is not permitted.",
+
+      requestId
+
+    );
+
+  }
+
+
+  /*
+   * API request
+   */
+
+  if (
+    url.pathname ===
+      CONFIG.API_PREFIX ||
     url.pathname.startsWith(
       `${CONFIG.API_PREFIX}/`
     )
@@ -2364,9 +2949,9 @@ async function handleRequest(
   }
 
 
-  /* ------------------------------------------------------------
+  /*
    * Root request
-   * ---------------------------------------------------------- */
+   */
 
   return handleRoot(
     request,
@@ -2464,8 +3049,11 @@ export default {
 
 
       return addRequestId(
+
         response,
+
         requestId
+
       );
 
     } catch (error) {
@@ -2485,8 +3073,11 @@ export default {
 
 
       return addRequestId(
+
         response,
+
         requestId
+
       );
 
     }
@@ -2498,6 +3089,8 @@ export default {
 
 /* ================================================================
  * END OF FILE
+ *
  * BloggerSaaS Ultimate V5
- * Cloudflare Worker V5.1.9 Enterprise
- * ================================================================ */
+ * Cloudflare Worker V5.1.10 Enterprise
+ * ================================================================
+ */
