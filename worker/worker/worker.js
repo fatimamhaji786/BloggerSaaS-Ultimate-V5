@@ -77,7 +77,7 @@ const CONFIG = Object.freeze({
     "BloggerSaaS Ultimate V5",
 
   VERSION:
-    "5.1.12",
+    "5.1.13",
 
   API_PREFIX:
     "/api",
@@ -104,7 +104,7 @@ const CONFIG = Object.freeze({
     "https://generativelanguage.googleapis.com/v1beta",
 
   DEFAULT_GEMINI_MODEL:
-    "gemini-2.5-flash",
+    "gemini-3.5-flash",
 
   GOOGLE_PUBLIC_KEYS_URL:
     "https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com",
