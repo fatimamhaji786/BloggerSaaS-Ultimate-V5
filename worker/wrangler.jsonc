@@ -8,5 +8,13 @@
   "vars": {
     "CORS_ORIGINS": "https://fatimamhaji786.github.io,https://adminfreeunlimitedmultitools.blogspot.com",
     "FIREBASE_PROJECT_ID": "bloggersaas-v1"
+  },
+
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "invocation_logs": true,
+      "head_sampling_rate": 1
+    }
   }
 }
