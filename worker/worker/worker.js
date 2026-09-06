@@ -1,7 +1,7 @@
 /**
  * ================================================================
  * BloggerSaaS Ultimate V5
- * Cloudflare Worker V5.1.10 Enterprise
+ * Cloudflare Worker V5.1.11 Enterprise
  * ================================================================
  *
  * Secure Firebase Authenticated AI Gateway
@@ -39,7 +39,7 @@
  *
  * ================================================================
  *
- * V5.1.10 FIXES
+ * V5.1.11 FIXES
  *
  * ✓ Production CORS handling
  * ✓ Exact CORS origin matching
@@ -58,6 +58,8 @@
  * ✓ Request-size protection
  * ✓ Safe error responses
  * ✓ No secret/token/full-prompt logging
+ * ✓ Gemini upstream diagnostic logging
+ * ✓ Gemini status-specific error handling
  *
  * ================================================================
  */
@@ -399,6 +401,7 @@ function isOriginAllowed(
    * Direct server-to-server requests may
    * legitimately have no Origin header.
    */
+
   if (!origin) {
 
     return true;
@@ -966,16 +969,6 @@ async function getFirebaseCertificates(
 
 /* ================================================================
  * 15. PEM / X.509 CERTIFICATE UTILITIES
- *
- * IMPORTANT:
- *
- * Google's endpoint returns X.509 certificates.
- *
- * crypto.subtle.importKey("spki", ...)
- * cannot directly consume the full certificate DER.
- *
- * We therefore extract the SubjectPublicKeyInfo
- * from the DER-encoded X.509 certificate.
  * ================================================================ */
 
 function pemToDer(
@@ -1173,28 +1166,9 @@ function readDERElement(
 
 
 /**
- * Extract SubjectPublicKeyInfo from an
- * X.509 Certificate.
- *
- * Certificate structure:
- *
- * Certificate ::= SEQUENCE {
- *   tbsCertificate       TBSCertificate,
- *   signatureAlgorithm   AlgorithmIdentifier,
- *   signatureValue       BIT STRING
- * }
- *
- * TBSCertificate:
- *
- *   version
- *   serialNumber
- *   signature
- *   issuer
- *   validity
- *   subject
- *   subjectPublicKeyInfo
- *   ...
+ * Extract SubjectPublicKeyInfo from X.509 certificate.
  */
+
 function extractSubjectPublicKeyInfo(
   certificateDer
 ) {
@@ -1239,9 +1213,6 @@ function extractSubjectPublicKeyInfo(
     tbs.valueStart;
 
 
-  /*
-   * Optional [0] EXPLICIT version.
-   */
   const first =
     readDERElement(
       certificateDer,
@@ -1259,9 +1230,6 @@ function extractSubjectPublicKeyInfo(
   }
 
 
-  /*
-   * serialNumber
-   */
   const serialNumber =
     readDERElement(
       certificateDer,
@@ -1273,9 +1241,6 @@ function extractSubjectPublicKeyInfo(
     serialNumber.end;
 
 
-  /*
-   * signature
-   */
   const signature =
     readDERElement(
       certificateDer,
@@ -1287,9 +1252,6 @@ function extractSubjectPublicKeyInfo(
     signature.end;
 
 
-  /*
-   * issuer
-   */
   const issuer =
     readDERElement(
       certificateDer,
@@ -1301,9 +1263,6 @@ function extractSubjectPublicKeyInfo(
     issuer.end;
 
 
-  /*
-   * validity
-   */
   const validity =
     readDERElement(
       certificateDer,
@@ -1315,9 +1274,6 @@ function extractSubjectPublicKeyInfo(
     validity.end;
 
 
-  /*
-   * subject
-   */
   const subject =
     readDERElement(
       certificateDer,
@@ -1329,9 +1285,6 @@ function extractSubjectPublicKeyInfo(
     subject.end;
 
 
-  /*
-   * subjectPublicKeyInfo
-   */
   const spki =
     readDERElement(
       certificateDer,
@@ -1465,12 +1418,6 @@ async function verifyFirebaseSignature(
     certificates[keyId];
 
 
-  /*
-   * Firebase may rotate signing certificates.
-   *
-   * If the current cache does not contain
-   * the token's kid, force a fresh retrieval.
-   */
   if (!certificate) {
 
     certificates =
@@ -2161,54 +2108,120 @@ async function handleInfo(
 
 
 /* ================================================================
- * 25. GEMINI AI ENDPOINT
+ * 25. GEMINI PROVIDER ERROR DIAGNOSTICS
  * ================================================================ */
-function parseGeminiProviderError(responseText) {
-  const MAX_DIAGNOSTIC_LENGTH = 1200;
 
-  if (!responseText) {
+function parseGeminiProviderError(
+  responseText
+) {
+
+  const MAX_DIAGNOSTIC_LENGTH =
+    1200;
+
+
+  if (
+    !responseText
+  ) {
+
     return {
-      type: "empty",
-      message: "Gemini returned an empty response body."
+
+      type:
+        "empty",
+
+      message:
+        "Gemini returned an empty response body."
+
     };
+
   }
 
+
   try {
-    const data = JSON.parse(responseText);
 
-    const error = data?.error;
+    const data =
+      JSON.parse(
+        responseText
+      );
 
-    if (error && typeof error === "object") {
+
+    const error =
+      data?.error;
+
+
+    if (
+      error &&
+      typeof error === "object"
+    ) {
+
       return {
-        type: "provider_error",
+
+        type:
+          "provider_error",
+
         code:
           typeof error.code === "number"
             ? error.code
             : null,
+
         status:
           typeof error.status === "string"
             ? error.status
             : null,
+
         message:
           typeof error.message === "string"
-            ? error.message.slice(0, MAX_DIAGNOSTIC_LENGTH)
+            ? error.message.slice(
+                0,
+                MAX_DIAGNOSTIC_LENGTH
+              )
             : null
+
       };
+
     }
 
+
     return {
-      type: "json_response",
-      message: JSON.stringify(data).slice(0, MAX_DIAGNOSTIC_LENGTH)
+
+      type:
+        "json_response",
+
+      message:
+        JSON.stringify(
+          data
+        ).slice(
+          0,
+          MAX_DIAGNOSTIC_LENGTH
+        )
+
     };
+
   } catch {
+
     return {
-      type: "text_response",
-      message: String(responseText).slice(0, MAX_DIAGNOSTIC_LENGTH)
+
+      type:
+        "text_response",
+
+      message:
+        String(
+          responseText
+        ).slice(
+          0,
+          MAX_DIAGNOSTIC_LENGTH
+        )
+
     };
+
   }
+
 }
 
-async function handleAIRequest(request, env) {
+
+/* ================================================================
+ * 26. GEMINI AI ENDPOINT
+ * ================================================================ */
+
 async function handleAI(
   request,
   env,
@@ -2425,11 +2438,12 @@ async function handleAI(
 
 
   /*
-   * Safe metadata logging
+   * Safe metadata logging.
    *
-   * No token.
-   * No API key.
-   * No prompt.
+   * Never log:
+   * - Firebase token
+   * - Gemini API key
+   * - full prompt
    */
 
   log(
@@ -2531,9 +2545,17 @@ async function handleAI(
   }
 
 
+  /*
+   * Read the provider response exactly once.
+   */
+
   const responseText =
     await upstreamResponse.text();
 
+
+  /* ============================================================
+   * Successful Gemini response
+   * ============================================================ */
 
   if (
     upstreamResponse.ok
@@ -2550,6 +2572,28 @@ async function handleAI(
         );
 
     } catch {
+
+      log(
+
+        env,
+
+        "error",
+
+        "Gemini returned invalid JSON",
+
+        {
+
+          requestId,
+
+          model,
+
+          status:
+            upstreamResponse.status
+
+        }
+
+      );
+
 
       return errorResponse(
 
@@ -2591,6 +2635,31 @@ async function handleAI(
   }
 
 
+  /* ============================================================
+   * Gemini provider rejected request
+   *
+   * IMPORTANT:
+   *
+   * We deliberately do NOT return the raw provider response
+   * to the browser.
+   *
+   * Sanitized diagnostic information is written to Cloudflare
+   * logs so we can determine whether the problem is:
+   *
+   * 400 = request format
+   * 401 = API authentication
+   * 403 = access/permission
+   * 404 = model unavailable/not found
+   * 429 = quota/rate limit
+   * 5xx = Gemini server-side issue
+   * ============================================================ */
+
+  const providerDiagnostic =
+    parseGeminiProviderError(
+      responseText
+    );
+
+
   log(
 
     env,
@@ -2606,11 +2675,103 @@ async function handleAI(
       model,
 
       status:
-        upstreamResponse.status
+        upstreamResponse.status,
+
+      statusText:
+        upstreamResponse.statusText ||
+        null,
+
+      providerError:
+        providerDiagnostic
 
     }
 
   );
+
+
+  let clientStatus =
+    502;
+
+  let clientCode =
+    "GEMINI_UPSTREAM_ERROR";
+
+  let clientMessage =
+    "AI provider could not process the request.";
+
+
+  if (
+    upstreamResponse.status ===
+    400
+  ) {
+
+    clientStatus =
+      400;
+
+    clientCode =
+      "GEMINI_BAD_REQUEST";
+
+    clientMessage =
+      "The AI provider rejected the request format.";
+
+  } else if (
+    upstreamResponse.status ===
+    401
+  ) {
+
+    clientCode =
+      "GEMINI_AUTH_ERROR";
+
+    clientMessage =
+      "The AI provider authentication failed.";
+
+  } else if (
+    upstreamResponse.status ===
+    403
+  ) {
+
+    clientCode =
+      "GEMINI_ACCESS_DENIED";
+
+    clientMessage =
+      "The AI provider denied access to the requested model or API.";
+
+  } else if (
+    upstreamResponse.status ===
+    404
+  ) {
+
+    clientCode =
+      "GEMINI_MODEL_NOT_FOUND";
+
+    clientMessage =
+      "The configured Gemini model was not found or is unavailable.";
+
+  } else if (
+    upstreamResponse.status ===
+    429
+  ) {
+
+    clientStatus =
+      429;
+
+    clientCode =
+      "GEMINI_RATE_LIMITED";
+
+    clientMessage =
+      "The AI provider rate limit or quota has been reached.";
+
+  } else if (
+    upstreamResponse.status >=
+    500
+  ) {
+
+    clientCode =
+      "GEMINI_UPSTREAM_ERROR";
+
+    clientMessage =
+      "The AI provider returned a server error.";
+
+  }
 
 
   return errorResponse(
@@ -2619,11 +2780,11 @@ async function handleAI(
 
     env,
 
-    502,
+    clientStatus,
 
-    "GEMINI_UPSTREAM_ERROR",
+    clientCode,
 
-    "AI provider could not process the request.",
+    clientMessage,
 
     requestId
 
@@ -2633,7 +2794,7 @@ async function handleAI(
 
 
 /* ================================================================
- * 26. API ROUTER
+ * 27. API ROUTER
  * ================================================================ */
 
 async function routeAPI(
@@ -2729,7 +2890,7 @@ async function routeAPI(
 
 
 /* ================================================================
- * 27. ROOT ENDPOINT
+ * 28. ROOT ENDPOINT
  * ================================================================ */
 
 async function handleRoot(
@@ -2793,7 +2954,7 @@ async function handleRoot(
 
 
 /* ================================================================
- * 28. ADD REQUEST ID
+ * 29. ADD REQUEST ID
  * ================================================================ */
 
 function addRequestId(
@@ -2835,7 +2996,7 @@ function addRequestId(
 
 
 /* ================================================================
- * 29. REQUEST HANDLER
+ * 30. REQUEST HANDLER
  * ================================================================ */
 
 async function handleRequest(
@@ -2882,11 +3043,6 @@ async function handleRequest(
     request.method ===
     "OPTIONS"
   ) {
-
-    /*
-     * When a browser supplies Origin,
-     * reject origins not explicitly allowed.
-     */
 
     if (
       !isOriginAllowed(
@@ -3007,7 +3163,7 @@ async function handleRequest(
 
 
 /* ================================================================
- * 30. FATAL ERROR HANDLER
+ * 31. FATAL ERROR HANDLER
  * ================================================================ */
 
 function handleFatalError(
@@ -3059,7 +3215,7 @@ function handleFatalError(
 
 
 /* ================================================================
- * 31. CLOUDFLARE WORKER ENTRY POINT
+ * 32. CLOUDFLARE WORKER ENTRY POINT
  * ================================================================ */
 
 export default {
@@ -3136,6 +3292,6 @@ export default {
  * END OF FILE
  *
  * BloggerSaaS Ultimate V5
- * Cloudflare Worker V5.1.10 Enterprise
+ * Cloudflare Worker V5.1.11 Enterprise
  * ================================================================
  */
