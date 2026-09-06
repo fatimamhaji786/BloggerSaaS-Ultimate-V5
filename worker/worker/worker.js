@@ -77,7 +77,7 @@ const CONFIG = Object.freeze({
     "BloggerSaaS Ultimate V5",
 
   VERSION:
-    "5.1.11",
+    "5.1.12",
 
   API_PREFIX:
     "/api",
