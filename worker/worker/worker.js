@@ -2163,7 +2163,52 @@ async function handleInfo(
 /* ================================================================
  * 25. GEMINI AI ENDPOINT
  * ================================================================ */
+function parseGeminiProviderError(responseText) {
+  const MAX_DIAGNOSTIC_LENGTH = 1200;
 
+  if (!responseText) {
+    return {
+      type: "empty",
+      message: "Gemini returned an empty response body."
+    };
+  }
+
+  try {
+    const data = JSON.parse(responseText);
+
+    const error = data?.error;
+
+    if (error && typeof error === "object") {
+      return {
+        type: "provider_error",
+        code:
+          typeof error.code === "number"
+            ? error.code
+            : null,
+        status:
+          typeof error.status === "string"
+            ? error.status
+            : null,
+        message:
+          typeof error.message === "string"
+            ? error.message.slice(0, MAX_DIAGNOSTIC_LENGTH)
+            : null
+      };
+    }
+
+    return {
+      type: "json_response",
+      message: JSON.stringify(data).slice(0, MAX_DIAGNOSTIC_LENGTH)
+    };
+  } catch {
+    return {
+      type: "text_response",
+      message: String(responseText).slice(0, MAX_DIAGNOSTIC_LENGTH)
+    };
+  }
+}
+
+async function handleAIRequest(request, env) {
 async function handleAI(
   request,
   env,
