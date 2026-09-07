@@ -16,5 +16,17 @@
       "invocation_logs": true,
       "head_sampling_rate": 1
     }
+  },
+
+  "env": {
+    "v514dev": {
+      "name": "bloggersaas-ai-proxy-v514-dev",
+      "workers_dev": true,
+
+      "vars": {
+        "CORS_ORIGINS": "https://fatimamhaji786.github.io,https://adminfreeunlimitedmultitools.blogspot.com",
+        "FIREBASE_PROJECT_ID": "bloggersaas-v1"
+      }
+    }
   }
 }
