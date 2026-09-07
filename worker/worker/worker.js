@@ -39,8 +39,8 @@
  *
  * ================================================================
  *
- * V5.1.14 FIXES
- *
+ *  V5.1.14 DEVELOPMENT BASELINE — INHERITED V5.1.11 FIXES
+ 
  * ✓ Production CORS handling
  * ✓ Exact CORS origin matching
  * ✓ Proper OPTIONS preflight handling
