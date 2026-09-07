@@ -1,7 +1,7 @@
 /**
  * ================================================================
  * BloggerSaaS Ultimate V5
- * Cloudflare Worker V5.1.11 Enterprise
+ * Cloudflare Worker V5.1.14 Enterprise
  * ===============================================================
  *
  * Secure Firebase Authenticated AI Gateway
