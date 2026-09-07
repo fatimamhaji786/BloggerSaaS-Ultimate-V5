@@ -1761,12 +1761,18 @@ function getGeminiModel(
 
 /* ================================================================
  * 20. AI REQUEST NORMALIZATION
+ * V5.1.14 DEVELOPMENT — REQUEST VALIDATION HARDENING
  * ================================================================ */
+
+const MAX_PROMPT_CHARS = 100000;
 
 function normalizeAIRequest(
   body
 ) {
 
+  /*
+   * Root request validation
+   */
   if (
     !body ||
     typeof body !== "object" ||
@@ -1780,6 +1786,47 @@ function normalizeAIRequest(
   }
 
 
+  /*
+   * Optional systemInstruction validation
+   */
+  if (
+    body.systemInstruction !== undefined &&
+    (
+      body.systemInstruction === null ||
+      typeof body.systemInstruction !== "object" ||
+      Array.isArray(body.systemInstruction)
+    )
+  ) {
+
+    throw new Error(
+      "systemInstruction must be a JSON object when provided."
+    );
+
+  }
+
+
+  /*
+   * Optional generationConfig validation
+   */
+  if (
+    body.generationConfig !== undefined &&
+    (
+      body.generationConfig === null ||
+      typeof body.generationConfig !== "object" ||
+      Array.isArray(body.generationConfig)
+    )
+  ) {
+
+    throw new Error(
+      "generationConfig must be a JSON object when provided."
+    );
+
+  }
+
+
+  /*
+   * Structured Gemini contents request
+   */
   if (
     Array.isArray(
       body.contents
@@ -1797,6 +1844,58 @@ function normalizeAIRequest(
     }
 
 
+    for (
+      const content of body.contents
+    ) {
+
+      if (
+        !content ||
+        typeof content !== "object" ||
+        Array.isArray(content)
+      ) {
+
+        throw new Error(
+          "Each contents item must be a JSON object."
+        );
+
+      }
+
+
+      if (
+        !Array.isArray(
+          content.parts
+        ) ||
+        content.parts.length === 0
+      ) {
+
+        throw new Error(
+          "Each contents item must contain a non-empty parts array."
+        );
+
+      }
+
+
+      for (
+        const part of content.parts
+      ) {
+
+        if (
+          !part ||
+          typeof part !== "object" ||
+          Array.isArray(part)
+        ) {
+
+          throw new Error(
+            "Each contents part must be a JSON object."
+          );
+
+        }
+
+      }
+
+    }
+
+
     return {
 
       contents:
@@ -1804,19 +1903,15 @@ function normalizeAIRequest(
 
       ...(body.systemInstruction
         ? {
-
             systemInstruction:
               body.systemInstruction
-
           }
         : {}),
 
       ...(body.generationConfig
         ? {
-
             generationConfig:
               body.generationConfig
-
           }
         : {})
 
@@ -1825,6 +1920,9 @@ function normalizeAIRequest(
   }
 
 
+  /*
+   * Simple prompt request
+   */
   if (
     typeof body.prompt === "string"
   ) {
@@ -1837,6 +1935,18 @@ function normalizeAIRequest(
 
       throw new Error(
         "prompt must not be empty."
+      );
+
+    }
+
+
+    if (
+      prompt.length >
+      MAX_PROMPT_CHARS
+    ) {
+
+      throw new Error(
+        "prompt exceeds the permitted length."
       );
 
     }
@@ -1868,19 +1978,15 @@ function normalizeAIRequest(
 
       ...(body.systemInstruction
         ? {
-
             systemInstruction:
               body.systemInstruction
-
           }
         : {}),
 
       ...(body.generationConfig
         ? {
-
             generationConfig:
               body.generationConfig
-
           }
         : {})
 
@@ -1889,11 +1995,15 @@ function normalizeAIRequest(
   }
 
 
+  /*
+   * No supported AI input
+   */
   throw new Error(
     "Provide either a non-empty prompt or contents array."
   );
 
-}
+          }
+            
 
 
 /* ================================================================
