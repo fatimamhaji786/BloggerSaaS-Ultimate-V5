@@ -2002,7 +2002,7 @@ function normalizeAIRequest(
     "Provide either a non-empty prompt or contents array."
   );
 
-                    
+}                
 
 
 /* ================================================================
