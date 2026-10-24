@@ -121,7 +121,7 @@ export async function handleFlashcardsAIDevDraft(request, env) {
 
   const declaredLengthHeader = request.headers.get("Content-Length");
   if (declaredLengthHeader !== null) {
-    if (!/^\\d+$/.test(declaredLengthHeader)) {
+    if (!/^\d+$/.test(declaredLengthHeader)) {
       return flashcardsDraftError("INVALID_CONTENT_LENGTH", "The request headers are invalid.", 400);
     }
     if (Number(declaredLengthHeader) > FLASHCARDS_DRAFT_LIMITS.MAX_BODY_BYTES) {
@@ -129,7 +129,7 @@ export async function handleFlashcardsAIDevDraft(request, env) {
     }
   }
 
-  // Cloudflare Rate Limiting binding: configure this binding in the DEV Worker.
+  // Cloudflare Rate Limiting binding is defined in the dedicated DEV config.
   // Fail closed if it is missing so a misconfigured public endpoint is not exposed.
   const ip = request.headers.get("CF-Connecting-IP") || "unknown";
   if (!env?.FLASHCARDS_LIMITER || typeof env.FLASHCARDS_LIMITER.limit !== "function") {
