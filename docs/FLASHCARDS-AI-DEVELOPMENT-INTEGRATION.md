@@ -17,16 +17,16 @@ Status: development-only code preparation. Not deployed and not connected to the
 ## Development-only files
 - `worker/worker/flashcards-ai-dev-draft.js`: isolated request handler. Enforces the exact allowed Blogger origin, POST/OPTIONS handling, request-size and source-text limits, card-count limits, server-side Turnstile verification, mandatory rate-limit binding, server-side Gemini calls, and response schema checks.
 - `worker/worker/flashcards-ai-dev-worker.js`: separate Worker entry point. It exposes only `/api/flashcards-ai`, `/api/health`, and `/api/version`; it does not import or route through the production Worker entry point.
-- These files are development code only. They are not deployed by this commit and are not connected to the published Blogger page.
+- `worker/flashcards-ai-dev/wrangler.jsonc`: dedicated Wrangler configuration with the development Worker name, entry point, allowed-origin variable, and model setting. It does not include any secrets or a rate-limit namespace ID.
+- These files are development code only. They are not deployed and are not connected to the published Blogger page.
 
 ## Required development configuration before testing
-1. Create/deploy a distinct Cloudflare Worker named `bloggersaas-ai-proxy-v514-dev` with entry point `worker/worker/flashcards-ai-dev-worker.js`. Do not replace or redeploy the production Worker.
-2. Set `FLASHCARDS_ALLOWED_ORIGIN` to exactly `https://freeunlimitedmultitools.blogspot.com`.
-3. Add `TURNSTILE_SECRET_KEY` as an encrypted development Worker secret. Never commit it or put it in Blogger code.
-4. Configure the `FLASHCARDS_LIMITER` rate-limiting binding with conservative per-IP limits. The endpoint fails closed if this binding is absent or unavailable.
-5. Configure a server-side `GEMINI_API_KEY` secret for the development Worker and optionally `GEMINI_MODEL`. Do not copy secrets into GitHub.
-6. Use the public Turnstile site key only on a development-only test page. Do not edit the published Blogger tool until validation passes.
-7. Verify that the development Worker uses its own settings and does not change production bindings, secrets, routes, or deployment.
+1. Configure a distinct Cloudflare Worker named `bloggersaas-ai-proxy-v514-dev` using `worker/flashcards-ai-dev/wrangler.jsonc`. Do not replace or redeploy the production Worker.
+2. Add `TURNSTILE_SECRET_KEY` as an encrypted development Worker secret. Never commit it or put it in Blogger code.
+3. Configure the `FLASHCARDS_LIMITER` rate-limiting binding with conservative per-IP limits. Its namespace/binding must be created and configured in Cloudflare; it is intentionally not guessed or hard-coded in Git. The endpoint fails closed if the binding is absent or unavailable.
+4. Configure a server-side `GEMINI_API_KEY` secret for the development Worker. The model variable is already set to `gemini-3.5-flash` in the development config.
+5. Use the public Turnstile site key only on a development-only test page. Do not edit the published Blogger tool until validation passes.
+6. Verify that the development Worker uses its own settings and does not change production bindings, secrets, routes, or deployment.
 
 ## Validation checklist (must pass before Blogger integration)
 - Missing/invalid Turnstile token is rejected.
@@ -41,4 +41,4 @@ Status: development-only code preparation. Not deployed and not connected to the
 - Confirm the local/fallback flashcard generator still works when AI is unavailable.
 
 ## Current result
-The development-only entry point and request handler are committed on `feature/flashcards-ai-dev`. The handler has not been runtime-tested, and no Cloudflare Worker has been created or deployed for it. No production Worker source, secret, Cloudflare setting, Blogger page, or production deployment was changed by this work. The endpoint is not ready for public use until the development configuration and validation checklist are complete.
+The development-only entry point, request handler, and dedicated Wrangler configuration are committed on `feature/flashcards-ai-dev`. The handler has not been runtime-tested, and no Cloudflare Worker has been created or deployed for it. No production Worker source, secret, Cloudflare setting, Blogger page, or production deployment was changed by this work. The endpoint is not ready for public use until the development configuration and validation checklist are complete.
