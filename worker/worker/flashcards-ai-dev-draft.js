@@ -23,6 +23,7 @@
 
 const FLASHCARDS_DRAFT_LIMITS = Object.freeze({
   MAX_BODY_BYTES: 12000,
+  MAX_PROVIDER_BYTES: 65536,
   MAX_SOURCE_CHARS: 8000,
   MAX_CARDS: 12,
   MIN_CARDS: 1,
@@ -49,6 +50,38 @@ function flashcardsDraftJson(data, status = 200) {
 
 function flashcardsDraftError(code, message, status) {
   return flashcardsDraftJson({ success: false, error: code, message }, status);
+}
+
+/**
+ * Read a request/provider stream with a hard byte cap. Returns null when the
+ * cap is exceeded, preventing unbounded buffering of a public request/response.
+ */
+async function flashcardsDraftReadLimited(stream, maxBytes) {
+  if (!stream) return new Uint8Array();
+  const reader = stream.getReader();
+  const chunks = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > maxBytes) {
+        try { await reader.cancel(); } catch {}
+        return null;
+      }
+      chunks.push(value);
+    }
+  } finally {
+    try { reader.releaseLock(); } catch {}
+  }
+  const result = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    result.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return result;
 }
 
 /**
@@ -86,9 +119,14 @@ export async function handleFlashcardsAIDevDraft(request, env) {
     return flashcardsDraftError("UNSUPPORTED_MEDIA_TYPE", "Send JSON content.", 415);
   }
 
-  const declaredLength = Number(request.headers.get("Content-Length") || 0);
-  if (declaredLength > FLASHCARDS_DRAFT_LIMITS.MAX_BODY_BYTES) {
-    return flashcardsDraftError("PAYLOAD_TOO_LARGE", "The request is too large.", 413);
+  const declaredLengthHeader = request.headers.get("Content-Length");
+  if (declaredLengthHeader !== null) {
+    if (!/^\\d+$/.test(declaredLengthHeader)) {
+      return flashcardsDraftError("INVALID_CONTENT_LENGTH", "The request headers are invalid.", 400);
+    }
+    if (Number(declaredLengthHeader) > FLASHCARDS_DRAFT_LIMITS.MAX_BODY_BYTES) {
+      return flashcardsDraftError("PAYLOAD_TOO_LARGE", "The request is too large.", 413);
+    }
   }
 
   // Cloudflare Rate Limiting binding: configure this binding in the DEV Worker.
@@ -116,8 +154,8 @@ export async function handleFlashcardsAIDevDraft(request, env) {
 
   let rawBody;
   try {
-    const bytes = await request.arrayBuffer();
-    if (bytes.byteLength > FLASHCARDS_DRAFT_LIMITS.MAX_BODY_BYTES) {
+    const bytes = await flashcardsDraftReadLimited(request.body, FLASHCARDS_DRAFT_LIMITS.MAX_BODY_BYTES);
+    if (bytes === null) {
       return flashcardsDraftError("PAYLOAD_TOO_LARGE", "The request is too large.", 413);
     }
     rawBody = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
@@ -220,7 +258,15 @@ export async function handleFlashcardsAIDevDraft(request, env) {
 
   let providerData;
   try {
-    providerData = await providerResponse.json();
+    const providerBytes = await flashcardsDraftReadLimited(
+      providerResponse.body,
+      FLASHCARDS_DRAFT_LIMITS.MAX_PROVIDER_BYTES
+    );
+    if (providerBytes === null) {
+      return flashcardsDraftError("AI_INVALID_RESPONSE", "The AI service returned an oversized response.", 502);
+    }
+    const providerText = new TextDecoder("utf-8", { fatal: true }).decode(providerBytes);
+    providerData = JSON.parse(providerText);
   } catch {
     return flashcardsDraftError("AI_INVALID_RESPONSE", "The AI service returned an invalid response.", 502);
   }
