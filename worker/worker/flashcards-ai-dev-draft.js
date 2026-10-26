@@ -32,14 +32,14 @@ const FLASHCARDS_DRAFT_LIMITS = Object.freeze({
   GEMINI_BASE: "https://generativelanguage.googleapis.com/v1beta"
 });
 
-function flashcardsDraftJson(data, status = 200) {
+function flashcardsDraftJson(data, status = 200, origin = "") {
   return new Response(JSON.stringify(data), {
     status,
     headers: {
       "Content-Type": "application/json; charset=utf-8",
       "Cache-Control": "no-store",
       "X-Content-Type-Options": "nosniff",
-      "Access-Control-Allow-Origin": String(env?.FLASHCARDS_ALLOWED_ORIGIN || ""),
+      ...(origin ? { "Access-Control-Allow-Origin": origin } : {}),
       "Access-Control-Allow-Methods": "POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type",
       "Access-Control-Max-Age": "86400",
@@ -48,8 +48,8 @@ function flashcardsDraftJson(data, status = 200) {
   });
 }
 
-function flashcardsDraftError(code, message, status) {
-  return flashcardsDraftJson({ success: false, error: code, message }, status);
+function flashcardsDraftError(code, message, status, origin = "") {
+  return flashcardsDraftJson({ success: false, error: code, message }, status, origin);
 }
 
 /**
@@ -91,8 +91,9 @@ async function flashcardsDraftReadLimited(stream, maxBytes) {
 export async function handleFlashcardsAIDevDraft(request, env) {
   const expectedOrigin = String(env?.FLASHCARDS_ALLOWED_ORIGIN || "").trim();
   const origin = request.headers.get("Origin") || "";
+  const error = (code, message, status) => error(code, message, status, origin);
   if (!expectedOrigin || origin !== expectedOrigin) {
-    return flashcardsDraftError("ORIGIN_NOT_ALLOWED", "This origin is not permitted.", 403);
+    return error("ORIGIN_NOT_ALLOWED", "This origin is not permitted.", 403);
   }
 
   // Browsers send a CORS preflight before cross-origin JSON POST requests.
@@ -112,20 +113,20 @@ export async function handleFlashcardsAIDevDraft(request, env) {
   }
 
   if (request.method !== "POST") {
-    return flashcardsDraftError("METHOD_NOT_ALLOWED", "Use POST for this endpoint.", 405);
+    return error("METHOD_NOT_ALLOWED", "Use POST for this endpoint.", 405);
   }
 
   if (!(request.headers.get("Content-Type") || "").toLowerCase().includes("application/json")) {
-    return flashcardsDraftError("UNSUPPORTED_MEDIA_TYPE", "Send JSON content.", 415);
+    return error("UNSUPPORTED_MEDIA_TYPE", "Send JSON content.", 415);
   }
 
   const declaredLengthHeader = request.headers.get("Content-Length");
   if (declaredLengthHeader !== null) {
     if (!/^\d+$/.test(declaredLengthHeader)) {
-      return flashcardsDraftError("INVALID_CONTENT_LENGTH", "The request headers are invalid.", 400);
+      return error("INVALID_CONTENT_LENGTH", "The request headers are invalid.", 400);
     }
     if (Number(declaredLengthHeader) > FLASHCARDS_DRAFT_LIMITS.MAX_BODY_BYTES) {
-      return flashcardsDraftError("PAYLOAD_TOO_LARGE", "The request is too large.", 413);
+      return error("PAYLOAD_TOO_LARGE", "The request is too large.", 413);
     }
   }
 
@@ -133,45 +134,45 @@ export async function handleFlashcardsAIDevDraft(request, env) {
   // Fail closed if it is missing so a misconfigured public endpoint is not exposed.
   const ip = request.headers.get("CF-Connecting-IP") || "unknown";
   if (!env?.FLASHCARDS_LIMITER || typeof env.FLASHCARDS_LIMITER.limit !== "function") {
-    return flashcardsDraftError("RATE_LIMIT_NOT_CONFIGURED", "AI generation is temporarily unavailable.", 503);
+    return error("RATE_LIMIT_NOT_CONFIGURED", "AI generation is temporarily unavailable.", 503);
   }
   let rateResult;
   try {
     rateResult = await env.FLASHCARDS_LIMITER.limit({ key: ip });
   } catch {
-    return flashcardsDraftError("RATE_LIMIT_UNAVAILABLE", "AI generation is temporarily unavailable.", 503);
+    return error("RATE_LIMIT_UNAVAILABLE", "AI generation is temporarily unavailable.", 503);
   }
   if (!rateResult?.success) {
-    return flashcardsDraftError("RATE_LIMITED", "Please wait before generating more flashcards.", 429);
+    return error("RATE_LIMITED", "Please wait before generating more flashcards.", 429);
   }
 
   if (!env?.TURNSTILE_SECRET_KEY) {
-    return flashcardsDraftError("CHALLENGE_NOT_CONFIGURED", "AI generation is temporarily unavailable.", 503);
+    return error("CHALLENGE_NOT_CONFIGURED", "AI generation is temporarily unavailable.", 503);
   }
   if (!env?.GEMINI_API_KEY) {
-    return flashcardsDraftError("AI_NOT_CONFIGURED", "AI generation is temporarily unavailable.", 503);
+    return error("AI_NOT_CONFIGURED", "AI generation is temporarily unavailable.", 503);
   }
 
   let rawBody;
   try {
     const bytes = await flashcardsDraftReadLimited(request.body, FLASHCARDS_DRAFT_LIMITS.MAX_BODY_BYTES);
     if (bytes === null) {
-      return flashcardsDraftError("PAYLOAD_TOO_LARGE", "The request is too large.", 413);
+      return error("PAYLOAD_TOO_LARGE", "The request is too large.", 413);
     }
     rawBody = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
   } catch {
-    return flashcardsDraftError("INVALID_BODY", "The request body could not be read.", 400);
+    return error("INVALID_BODY", "The request body could not be read.", 400);
   }
 
   let body;
   try {
     body = JSON.parse(rawBody);
   } catch {
-    return flashcardsDraftError("INVALID_JSON", "Send a valid JSON request.", 400);
+    return error("INVALID_JSON", "Send a valid JSON request.", 400);
   }
 
   if (!body || typeof body !== "object" || Array.isArray(body)) {
-    return flashcardsDraftError("INVALID_INPUT", "The request format is invalid.", 400);
+    return error("INVALID_INPUT", "The request format is invalid.", 400);
   }
 
   const sourceText = typeof body.sourceText === "string" ? body.sourceText.trim() : "";
@@ -179,14 +180,14 @@ export async function handleFlashcardsAIDevDraft(request, env) {
   const cardCount = Number(body.cardCount);
 
   if (!sourceText || sourceText.length > FLASHCARDS_DRAFT_LIMITS.MAX_SOURCE_CHARS) {
-    return flashcardsDraftError("INVALID_SOURCE_TEXT", "Enter text up to 8,000 characters.", 400);
+    return error("INVALID_SOURCE_TEXT", "Enter text up to 8,000 characters.", 400);
   }
   if (!Number.isInteger(cardCount) || cardCount < FLASHCARDS_DRAFT_LIMITS.MIN_CARDS ||
       cardCount > FLASHCARDS_DRAFT_LIMITS.MAX_CARDS) {
-    return flashcardsDraftError("INVALID_CARD_COUNT", "Choose between 1 and 12 flashcards.", 400);
+    return error("INVALID_CARD_COUNT", "Choose between 1 and 12 flashcards.", 400);
   }
   if (!token || token.length > 4096) {
-    return flashcardsDraftError("CHALLENGE_REQUIRED", "Complete the security check and try again.", 400);
+    return error("CHALLENGE_REQUIRED", "Complete the security check and try again.", 400);
   }
 
   // Verify Turnstile server-side. Never log the token or source text.
@@ -202,14 +203,14 @@ export async function handleFlashcardsAIDevDraft(request, env) {
       })
     });
     if (!verifyResponse.ok) {
-      return flashcardsDraftError("CHALLENGE_UNAVAILABLE", "The security check is temporarily unavailable.", 503);
+      return error("CHALLENGE_UNAVAILABLE", "The security check is temporarily unavailable.", 503);
     }
     challenge = await verifyResponse.json();
   } catch {
-    return flashcardsDraftError("CHALLENGE_UNAVAILABLE", "The security check is temporarily unavailable.", 503);
+    return error("CHALLENGE_UNAVAILABLE", "The security check is temporarily unavailable.", 503);
   }
   if (!challenge?.success || challenge.hostname !== "freeunlimitedmultitools.blogspot.com") {
-    return flashcardsDraftError("CHALLENGE_FAILED", "The security check failed. Please try again.", 403);
+    return error("CHALLENGE_FAILED", "The security check failed. Please try again.", 403);
   }
 
   const model = String(env.GEMINI_MODEL || "gemini-3.5-flash").trim();
@@ -243,13 +244,13 @@ export async function handleFlashcardsAIDevDraft(request, env) {
       }
     );
   } catch {
-    return flashcardsDraftError("AI_PROVIDER_UNAVAILABLE", "AI generation is temporarily unavailable.", 502);
+    return error("AI_PROVIDER_UNAVAILABLE", "AI generation is temporarily unavailable.", 502);
   }
 
   if (!providerResponse.ok) {
     // Do not pass through or log raw provider responses.
     const status = providerResponse.status === 429 ? 429 : 502;
-    return flashcardsDraftError(
+    return error(
       status === 429 ? "AI_PROVIDER_BUSY" : "AI_PROVIDER_ERROR",
       status === 429 ? "The AI service is busy. Please try later." : "AI generation failed. Please try again.",
       status
@@ -263,12 +264,12 @@ export async function handleFlashcardsAIDevDraft(request, env) {
       FLASHCARDS_DRAFT_LIMITS.MAX_PROVIDER_BYTES
     );
     if (providerBytes === null) {
-      return flashcardsDraftError("AI_INVALID_RESPONSE", "The AI service returned an oversized response.", 502);
+      return error("AI_INVALID_RESPONSE", "The AI service returned an oversized response.", 502);
     }
     const providerText = new TextDecoder("utf-8", { fatal: true }).decode(providerBytes);
     providerData = JSON.parse(providerText);
   } catch {
-    return flashcardsDraftError("AI_INVALID_RESPONSE", "The AI service returned an invalid response.", 502);
+    return error("AI_INVALID_RESPONSE", "The AI service returned an invalid response.", 502);
   }
 
   const candidateText = providerData?.candidates?.[0]?.content?.parts
@@ -280,26 +281,26 @@ export async function handleFlashcardsAIDevDraft(request, env) {
   try {
     generated = JSON.parse(candidateText || "");
   } catch {
-    return flashcardsDraftError("AI_INVALID_RESPONSE", "The AI service returned an invalid response.", 502);
+    return error("AI_INVALID_RESPONSE", "The AI service returned an invalid response.", 502);
   }
 
   if (!Array.isArray(generated?.cards) || generated.cards.length !== cardCount) {
-    return flashcardsDraftError("AI_INVALID_RESPONSE", "The AI service returned an unexpected number of cards.", 502);
+    return error("AI_INVALID_RESPONSE", "The AI service returned an unexpected number of cards.", 502);
   }
 
   const cards = [];
   for (const item of generated.cards) {
     if (!item || typeof item.question !== "string" || typeof item.answer !== "string") {
-      return flashcardsDraftError("AI_INVALID_RESPONSE", "The AI service returned invalid flashcards.", 502);
+      return error("AI_INVALID_RESPONSE", "The AI service returned invalid flashcards.", 502);
     }
     const question = item.question.trim();
     const answer = item.answer.trim();
     if (!question || !answer || question.length > FLASHCARDS_DRAFT_LIMITS.MAX_FIELD_CHARS ||
         answer.length > FLASHCARDS_DRAFT_LIMITS.MAX_FIELD_CHARS) {
-      return flashcardsDraftError("AI_INVALID_RESPONSE", "The AI service returned invalid flashcards.", 502);
+      return error("AI_INVALID_RESPONSE", "The AI service returned invalid flashcards.", 502);
     }
     cards.push({ question, answer });
   }
 
-  return flashcardsDraftJson({ success: true, cards });
+  return flashcardsDraftJson({ success: true, cards }, 200, origin);
 }
