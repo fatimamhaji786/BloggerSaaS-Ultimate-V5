@@ -39,7 +39,7 @@ function flashcardsDraftJson(data, status = 200) {
       "Content-Type": "application/json; charset=utf-8",
       "Cache-Control": "no-store",
       "X-Content-Type-Options": "nosniff",
-      "Access-Control-Allow-Origin": "https://freeunlimitedmultitools.blogspot.com",
+      "Access-Control-Allow-Origin": String(env?.FLASHCARDS_ALLOWED_ORIGIN || ""),
       "Access-Control-Allow-Methods": "POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type",
       "Access-Control-Max-Age": "86400",
@@ -101,7 +101,7 @@ export async function handleFlashcardsAIDevDraft(request, env) {
     return new Response(null, {
       status: 204,
       headers: {
-        "Access-Control-Allow-Origin": "https://freeunlimitedmultitools.blogspot.com",
+        "Access-Control-Allow-Origin": expectedOrigin,
         "Access-Control-Allow-Methods": "POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
         "Access-Control-Max-Age": "86400",
