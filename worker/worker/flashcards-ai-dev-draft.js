@@ -1,6 +1,5 @@
 /*
  * Flashcards AI public endpoint — DEVELOPMENT DRAFT ONLY
- *
  * This file is deliberately NOT imported by worker.js and does not affect
  * any deployed Worker. Review and integrate only on the development branch.
  *
