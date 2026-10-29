@@ -16,7 +16,7 @@
       {
         "name": "FLASHCARDS_LIMITER",
         "type": "ratelimit",
-        "namespace_id": "2001",
+        "namespace_id": "2002",
         "simple": {
           "limit": 5,
           "period": 60
