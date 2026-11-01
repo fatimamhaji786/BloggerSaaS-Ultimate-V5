@@ -2,6 +2,11 @@ name: Deploy Flashcards AI Development Worker
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - feature/flashcards-ai-dev
+    paths:
+      - .github/FLASHCARDS_AI_DEV_DEPLOY
 
 permissions:
   contents: read
