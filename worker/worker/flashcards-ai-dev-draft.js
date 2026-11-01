@@ -240,7 +240,8 @@ export async function handleFlashcardsAIDevDraft(request, env) {
     rateResult = await env.FLASHCARDS_LIMITER.limit({
       key: ip
     });
-  } catch {
+  } catch (err) {
+    console.error("[flashcards-ai-dev] rate_limiter_exception", err?.name || "Error");
     return error(
       "RATE_LIMIT_UNAVAILABLE",
       "AI generation is temporarily unavailable.",
@@ -395,6 +396,7 @@ export async function handleFlashcardsAIDevDraft(request, env) {
     );
 
     if (!verifyResponse.ok) {
+      console.error("[flashcards-ai-dev] turnstile_http_error", verifyResponse.status);
       return error(
         "CHALLENGE_UNAVAILABLE",
         "The security check is temporarily unavailable.",
@@ -403,7 +405,8 @@ export async function handleFlashcardsAIDevDraft(request, env) {
     }
 
     challenge = await verifyResponse.json();
-  } catch {
+  } catch (err) {
+    console.error("[flashcards-ai-dev] turnstile_exception", err?.name || "Error");
     return error(
       "CHALLENGE_UNAVAILABLE",
       "The security check is temporarily unavailable.",
@@ -415,6 +418,7 @@ export async function handleFlashcardsAIDevDraft(request, env) {
     !challenge?.success ||
     challenge.hostname !== expectedHostname
   ) {
+    console.error("[flashcards-ai-dev] turnstile_rejected", { success: Boolean(challenge?.success), hostnameMatched: challenge?.hostname === expectedHostname });
     return error(
       "CHALLENGE_FAILED",
       "The security check failed. Please try again.",
@@ -475,7 +479,8 @@ export async function handleFlashcardsAIDevDraft(request, env) {
         })
       }
     );
-  } catch {
+  } catch (err) {
+    console.error("[flashcards-ai-dev] gemini_fetch_exception", err?.name || "Error");
     return error(
       "AI_PROVIDER_UNAVAILABLE",
       "AI generation is temporarily unavailable.",
@@ -484,6 +489,7 @@ export async function handleFlashcardsAIDevDraft(request, env) {
   }
 
   if (!providerResponse.ok) {
+    console.error("[flashcards-ai-dev] gemini_http_error", providerResponse.status);
     const status =
       providerResponse.status === 429 ? 429 : 502;
 
@@ -519,7 +525,8 @@ export async function handleFlashcardsAIDevDraft(request, env) {
     }).decode(providerBytes);
 
     providerData = JSON.parse(providerText);
-  } catch {
+  } catch (err) {
+    console.error("[flashcards-ai-dev] gemini_response_parse_exception", err?.name || "Error");
     return error(
       "AI_INVALID_RESPONSE",
       "The AI service returned an invalid response.",
