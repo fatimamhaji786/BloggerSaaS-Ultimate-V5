@@ -8,7 +8,7 @@
 
   "vars": {
     "FLASHCARDS_ALLOWED_ORIGIN": "https://freeunlimitedmultitools.blogspot.com",
-    "GEMINI_MODEL": "gemini-3.5-flash"
+    "GEMINI_MODEL": "gemini-3.8-flash"
   },
 
   "ratelimits": [
