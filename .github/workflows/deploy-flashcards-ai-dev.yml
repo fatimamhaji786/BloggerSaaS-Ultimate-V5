@@ -30,12 +30,15 @@ jobs:
           node-version: 22
 
       - name: Validate required secrets
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
         shell: bash
         run: |
           test -n "$CLOUDFLARE_API_TOKEN" || { echo "Missing CLOUDFLARE_API_TOKEN"; exit 1; }
           test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "Missing CLOUDFLARE_ACCOUNT_ID"; exit 1; }
-          test -n "${{ secrets.GEMINI_API_KEY }}" || { echo "Missing GEMINI_API_KEY"; exit 1; }
-          test -n "${{ secrets.TURNSTILE_SECRET_KEY }}" || { echo "Missing TURNSTILE_SECRET_KEY"; exit 1; }
+          test -n "$GEMINI_API_KEY" || { echo "Missing GEMINI_API_KEY"; exit 1; }
+          test -n "$TURNSTILE_SECRET_KEY" || { echo "Missing TURNSTILE_SECRET_KEY"; exit 1; }
 
       - name: Install Gemini API secret on development Worker
         env:
