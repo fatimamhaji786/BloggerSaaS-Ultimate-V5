@@ -449,6 +449,7 @@ export async function handleFlashcardsAIDevDraft(request, env) {
   ].join("\n\n");
 
   let providerResponse;
+  const geminiRequestStartedAt = Date.now();
 
   try {
     providerResponse = await fetch(
@@ -480,7 +481,13 @@ export async function handleFlashcardsAIDevDraft(request, env) {
       }
     );
   } catch (err) {
-    console.error("[flashcards-ai-dev] gemini_fetch_exception", err?.name || "Error");
+    // Safe diagnostics: never log the API key, request headers, prompt, or source text.
+    console.error("[flashcards-ai-dev] gemini_fetch_exception", {
+      errorName: err?.name || "Error",
+      elapsedMs: Date.now() - geminiRequestStartedAt,
+      timeoutMs: FLASHCARDS_DRAFT_LIMITS.REQUEST_TIMEOUT_MS,
+      model
+    });
     return error(
       "AI_PROVIDER_UNAVAILABLE",
       "AI generation is temporarily unavailable.",
