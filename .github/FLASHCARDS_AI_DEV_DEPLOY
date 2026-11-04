@@ -1,4 +1,4 @@
 Opt-in deployment trigger for the isolated Flashcards AI development Worker.
 Branch: feature/flashcards-ai-dev
-Approved deployment of reviewed logging commit 4fcc03d74207a0ea587b887ec366bb7e58d11693.
+Approved deployment of safe Gemini timeout diagnostics commit 438e95810a59088e0ea51bcb9afe53a5cd807539.
 Production deployment is not authorized by this file.
