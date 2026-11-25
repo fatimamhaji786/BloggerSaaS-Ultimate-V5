@@ -496,7 +496,57 @@ export async function handleFlashcardsAIDevDraft(request, env) {
   }
 
   if (!providerResponse.ok) {
-    console.error("[flashcards-ai-dev] gemini_http_error", providerResponse.status);
+    let providerCode = null;
+    let providerStatus = null;
+    let providerMessage = null;
+
+    try {
+      const diagnosticBytes = await flashcardsDraftReadLimited(
+        providerResponse.body,
+        4096
+      );
+
+      if (diagnosticBytes !== null) {
+        const diagnosticText = new TextDecoder("utf-8", {
+          fatal: true
+        }).decode(diagnosticBytes);
+
+        const diagnosticData = JSON.parse(diagnosticText);
+        const providerError = diagnosticData?.error;
+
+        if (providerError && typeof providerError === "object") {
+          providerCode =
+            typeof providerError.code === "number" ||
+            typeof providerError.code === "string"
+              ? String(providerError.code).slice(0, 40)
+              : null;
+
+          providerStatus =
+            typeof providerError.status === "string"
+              ? providerError.status.slice(0, 80)
+              : null;
+
+          providerMessage =
+            typeof providerError.message === "string"
+              ? providerError.message
+                  .replace(/[\u0000-\u001F\u007F]/g, " ")
+                  .slice(0, 400)
+              : null;
+        }
+      }
+    } catch {
+      // Diagnostic parsing must never expose provider response contents.
+    }
+
+    console.error("[flashcards-ai-dev] gemini_http_error", {
+      httpStatus: providerResponse.status,
+      model,
+      elapsedMs: Date.now() - geminiRequestStartedAt,
+      providerCode,
+      providerStatus,
+      providerMessage
+    });
+
     const status =
       providerResponse.status === 429 ? 429 : 502;
 
